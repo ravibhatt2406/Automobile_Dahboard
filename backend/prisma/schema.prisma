@@ -1,0 +1,1064 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING
+}
+
+enum AccountType {
+  CUSTOMER
+  EMPLOYEE
+  SUPER_ADMIN
+}
+
+enum EmployeeStatus {
+  ACTIVE
+  INACTIVE
+  PENDING_APPROVAL
+  TERMINATED
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum CustomerType {
+  INDIVIDUAL
+  BUSINESS
+}
+
+enum CustomerStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  PROPOSAL
+  NEGOTIATION
+  CONVERTED
+  LOST
+}
+
+enum LeadPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum VehicleStatus {
+  IN_STOCK
+  RESERVED
+  ALLOCATED
+  PDI_PENDING
+  PDI_COMPLETED
+  DELIVERED
+  SOLD
+  SERVICE
+  TRANSFERRED
+  BLOCKED
+}
+
+enum QuotationStatus {
+  DRAFT
+  SUBMITTED
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  EXPIRED
+  CONVERTED
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  CONVERTED_TO_DELIVERY
+}
+
+enum PaymentStatus {
+  CREATED
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+enum FinanceStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  DISBURSED
+  CANCELLED
+}
+
+enum InsuranceStatus {
+  PENDING
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  PAID
+  PARTIALLY_PAID
+  CANCELLED
+}
+
+enum InvoicePaymentStatus {
+  UNPAID
+  PARTIALLY_PAID
+  PAID
+}
+
+enum PdiStatus {
+  PENDING
+  IN_PROGRESS
+  PASSED
+  FAILED
+}
+
+enum DeliveryStatus {
+  PENDING
+  READY
+  COMPLETED
+  CANCELLED
+}
+
+enum AppointmentStatus {
+  REQUESTED
+  CONFIRMED
+  RESCHEDULED
+  CHECKED_IN
+  CONVERTED_TO_JOB
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum ServiceJobStatus {
+  OPEN
+  CHECKED_IN
+  DIAGNOSIS
+  WAITING_FOR_APPROVAL
+  IN_PROGRESS
+  WAITING_FOR_PARTS
+  QUALITY_CHECK
+  READY_FOR_DELIVERY
+  COMPLETED
+  CANCELLED
+}
+
+enum StockMovementType {
+  PURCHASE
+  ADJUSTMENT
+  RESERVATION
+  RELEASE
+  ISSUE
+  RETURN
+  TRANSFER
+}
+
+enum ApprovalDecision {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum QcStatus {
+  PENDING
+  PASSED
+  FAILED
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+  READ
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  SMS
+  PUSH
+}
+
+model User {
+  id           String      @id @default(uuid())
+  email        String      @unique
+  phone        String?     @unique
+  passwordHash String      @map("password_hash")
+  accountType  AccountType @default(EMPLOYEE) @map("account_type")
+  status       UserStatus  @default(ACTIVE)
+  lastLoginAt  DateTime?   @map("last_login_at")
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+
+  employeeProfile          Employee?
+  customerProfile          Customer?
+  approvalRequestsCreated EmployeeApprovalRequest[] @relation("RequestedByUser")
+  approvalRequestsHandled EmployeeApprovalRequest[] @relation("ApprovedByUser")
+  auditLogs                AuditLog[]
+
+  @@map("users")
+}
+
+model Franchise {
+  id        String   @id @default(uuid())
+  code      String   @unique
+  name      String
+  legalName String?  @map("legal_name")
+  taxId     String?  @map("tax_id")
+  status    String   @default("ACTIVE")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  branches          Branch[]
+  customerLinks     CustomerFranchise[]
+  leads             Lead[]
+  quotations        Quotation[]
+  invoices          Invoice[]
+
+  @@map("franchises")
+}
+
+model Branch {
+  id          String   @id @default(uuid())
+  franchiseId String   @map("franchise_id")
+  code        String   @unique
+  name        String
+  address     String?
+  city        String?
+  state       String?
+  status      String   @default("ACTIVE")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  franchise  Franchise   @relation(fields: [franchiseId], references: [id], onDelete: Cascade)
+  employees  Employee[]
+  leads      Lead[]
+  vehicles   Vehicle[]
+  quotations Quotation[]
+  bookings   Booking[]
+  invoices   Invoice[]
+  serviceAppointments ServiceAppointment[]
+  serviceJobs        ServiceJob[]
+  partStocks         PartStock[]
+
+  @@map("branches")
+}
+
+model Employee {
+  id           String         @id @default(uuid())
+  userId       String         @unique @map("user_id")
+  branchId     String         @map("branch_id")
+  employeeCode String         @unique @map("employee_code")
+  firstName    String         @map("first_name")
+  lastName     String         @map("last_name")
+  designation  String?
+  status       EmployeeStatus @default(PENDING_APPROVAL)
+  hiredAt      DateTime?      @map("hired_at")
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+
+  user             User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  branch           Branch                    @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  roleAssignments  EmployeeRoleAssignment[]
+  approvalRequests EmployeeApprovalRequest[]
+  leadsAssigned    Lead[]                    @relation("AssignedLeadEmployee")
+  followUps        FollowUp[]
+  quotations       Quotation[]               @relation("SalespersonQuotation")
+  bookings         Booking[]                 @relation("SalespersonBooking")
+  advisorAppointments ServiceAppointment[]   @relation("AdvisorAppointments")
+  advisorJobs         ServiceJob[]           @relation("AdvisorJobs")
+  mechanicJobs        ServiceJob[]           @relation("MechanicJobs")
+  diagnoses           ServiceDiagnosis[]
+
+  @@map("employees")
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  rank        Int      @default(99)
+  isSystem    Boolean  @default(true) @map("is_system")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  rolePermissions         RolePermission[]
+  employeeRoleAssignments EmployeeRoleAssignment[]
+  approvalRequests        EmployeeApprovalRequest[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  module      String
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       String @map("role_id")
+  permissionId String @map("permission_id")
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model EmployeeRoleAssignment {
+  id         String   @id @default(uuid())
+  employeeId String   @map("employee_id")
+  roleId     String   @map("role_id")
+  assignedAt DateTime @default(now()) @map("assigned_at")
+  assignedBy String?  @map("assigned_by")
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  role     Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([employeeId, roleId])
+  @@map("employee_role_assignments")
+}
+
+model EmployeeApprovalRequest {
+  id                String         @id @default(uuid())
+  employeeId        String         @map("employee_id")
+  requestedByUserId String         @map("requested_by_user_id")
+  assignedRoleId    String         @map("assigned_role_id")
+  status            ApprovalStatus @default(PENDING)
+  approvedByUserId  String?        @map("approved_by_user_id")
+  rejectionReason   String?        @map("rejection_reason")
+  createdAt         DateTime       @default(now()) @map("created_at")
+  updatedAt         DateTime       @updatedAt @map("updated_at")
+
+  employee        Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  requestedByUser User     @relation("RequestedByUser", fields: [requestedByUserId], references: [id])
+  approvedByUser  User?    @relation("ApprovedByUser", fields: [approvedByUserId], references: [id])
+  assignedRole    Role     @relation(fields: [assignedRoleId], references: [id])
+
+  @@map("employee_approval_requests")
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  actorUserId String?  @map("actor_user_id")
+  action      String
+  entityType  String   @map("entity_type")
+  entityId    String?  @map("entity_id")
+  ipAddress   String?  @map("ip_address")
+  userAgent   String?  @map("user_agent")
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  actorUser User? @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@map("audit_logs")
+}
+
+// ==========================================
+// PHASE 2: CORE BUSINESS OPERATIONS ENTITIES
+// ==========================================
+
+model Customer {
+  id           String         @id @default(uuid())
+  userId       String?        @unique @map("user_id")
+  name         String
+  phone        String
+  email        String?
+  address      String?
+  city         String?
+  state        String?
+  pincode      String?
+  gstin        String?
+  customerType CustomerType   @default(INDIVIDUAL) @map("customer_type")
+  companyName  String?        @map("company_name")
+  status       CustomerStatus @default(ACTIVE)
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+
+  user               User?                 @relation(fields: [userId], references: [id], onDelete: SetNull)
+  franchiseLinks     CustomerFranchise[]
+  leads              Lead[]
+  quotations         Quotation[]
+  bookings           Booking[]
+  vehicles           Vehicle[]
+  invoices           Invoice[]
+  deliveries         Delivery[]
+  financeApplications FinanceApplication[]
+  insurancePolicies  InsurancePolicy[]
+  serviceAppointments ServiceAppointment[]
+  serviceJobs        ServiceJob[]
+
+  @@map("customers")
+}
+
+model CustomerFranchise {
+  customerId  String   @map("customer_id")
+  franchiseId String   @map("franchise_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  customer  Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  franchise Franchise @relation(fields: [franchiseId], references: [id], onDelete: Cascade)
+
+  @@id([customerId, franchiseId])
+  @@map("customer_franchises")
+}
+
+model Lead {
+  id                   String       @id @default(uuid())
+  customerId           String       @map("customer_id")
+  franchiseId          String       @map("franchise_id")
+  branchId             String       @map("branch_id")
+  assignedEmployeeId   String?      @map("assigned_employee_id")
+  source               String       @default("DIRECT_WALKIN")
+  interestedModel      String?      @map("interested_model")
+  expectedPurchaseDate DateTime?    @map("expected_purchase_date")
+  expectedBudget       Decimal?     @map("expected_budget")
+  status               LeadStatus   @default(NEW)
+  priority             LeadPriority @default(MEDIUM)
+  notes                String?
+  createdAt            DateTime     @default(now()) @map("created_at")
+  updatedAt            DateTime     @updatedAt @map("updated_at")
+
+  customer         Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  franchise        Franchise  @relation(fields: [franchiseId], references: [id], onDelete: Cascade)
+  branch           Branch     @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  assignedEmployee Employee?  @relation("AssignedLeadEmployee", fields: [assignedEmployeeId], references: [id])
+  followUps        FollowUp[]
+  quotations       Quotation[]
+
+  @@map("leads")
+}
+
+model FollowUp {
+  id          String    @id @default(uuid())
+  leadId      String    @map("lead_id")
+  employeeId  String    @map("employee_id")
+  scheduledAt DateTime  @map("scheduled_at")
+  completedAt DateTime? @map("completed_at")
+  notes       String
+  status      String    @default("PENDING")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  lead     Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@map("follow_ups")
+}
+
+model Manufacturer {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  country   String?
+  status    String   @default("ACTIVE")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  truckModels TruckModel[]
+
+  @@map("manufacturers")
+}
+
+model TruckModel {
+  id             String   @id @default(uuid())
+  manufacturerId String   @map("manufacturer_id")
+  name           String
+  category       String?
+  status         String   @default("ACTIVE")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  manufacturer  Manufacturer   @relation(fields: [manufacturerId], references: [id], onDelete: Cascade)
+  truckVariants TruckVariant[]
+
+  @@unique([manufacturerId, name])
+  @@map("truck_models")
+}
+
+model TruckVariant {
+  id            String   @id @default(uuid())
+  modelId       String   @map("model_id")
+  name          String
+  engineDetails String?  @map("engine_details")
+  horsepower    Int?
+  fuelType      String?  @map("fuel_type")
+  transmission  String?
+  payload       Float?
+  basePrice     Decimal  @map("base_price")
+  gstRate       Decimal  @default(28.00) @map("gst_rate")
+  description   String?
+  specifications Json?
+  images        String[] @default([])
+  status        String   @default("ACTIVE")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  model      TruckModel  @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  vehicles   Vehicle[]
+  quotations Quotation[]
+
+  @@unique([modelId, name])
+  @@map("truck_variants")
+}
+
+model Vehicle {
+  id                 String        @id @default(uuid())
+  vin                String        @unique
+  engineNumber       String        @unique @map("engine_number")
+  registrationNumber String?       @map("registration_number")
+  variantId          String        @map("variant_id")
+  branchId           String        @map("branch_id")
+  customerId         String?       @map("customer_id")
+  status             VehicleStatus @default(IN_STOCK)
+  purchaseDate       DateTime?     @map("purchase_date")
+  manufacturingYear  Int           @map("manufacturing_year")
+  color              String?
+  mileage            Float?        @default(0)
+  baseCost           Decimal       @map("base_cost")
+  sellingPrice       Decimal       @map("selling_price")
+  images             String[]      @default([])
+  documents          Json?
+  createdAt          DateTime      @default(now()) @map("created_at")
+  updatedAt          DateTime      @updatedAt @map("updated_at")
+
+  variant        TruckVariant        @relation(fields: [variantId], references: [id])
+  branch         Branch              @relation(fields: [branchId], references: [id])
+  customer       Customer?           @relation(fields: [customerId], references: [id])
+  bookings       Booking[]
+  allocations    VehicleAllocation[]
+  pdiInspections PdiInspection[]
+  deliveries     Delivery[]
+  invoices       Invoice[]
+  serviceAppointments ServiceAppointment[]
+  serviceJobs        ServiceJob[]
+
+  @@map("vehicles")
+}
+
+model Quotation {
+  id                    String          @id @default(uuid())
+  quotationNumber       String          @unique @map("quotation_number")
+  customerId            String          @map("customer_id")
+  leadId                String?         @map("lead_id")
+  franchiseId           String          @map("franchise_id")
+  branchId              String          @map("branch_id")
+  salespersonEmployeeId String          @map("salesperson_employee_id")
+  createdByUserId       String          @map("created_by_user_id")
+  variantId             String          @map("variant_id")
+  quantity              Int             @default(1)
+  unitBasePrice         Decimal         @map("unit_base_price")
+  accessoriesAmount     Decimal         @default(0) @map("accessories_amount")
+  insuranceAmount       Decimal         @default(0) @map("insurance_amount")
+  registrationAmount    Decimal         @default(0) @map("registration_amount")
+  financeCharges        Decimal         @default(0) @map("finance_charges")
+  discountAmount        Decimal         @default(0) @map("discount_amount")
+  subtotal              Decimal         @map("subtotal")
+  gstRate               Decimal         @default(28.00) @map("gst_rate")
+  gstAmount             Decimal         @map("gst_amount")
+  totalAmount           Decimal         @map("total_amount")
+  validityDate          DateTime        @map("validity_date")
+  status                QuotationStatus @default(DRAFT)
+  notes                 String?
+  createdAt             DateTime        @default(now()) @map("created_at")
+  updatedAt             DateTime        @updatedAt @map("updated_at")
+
+  customer    Customer        @relation(fields: [customerId], references: [id])
+  lead        Lead?           @relation(fields: [leadId], references: [id])
+  franchise   Franchise       @relation(fields: [franchiseId], references: [id])
+  branch      Branch          @relation(fields: [branchId], references: [id])
+  salesperson Employee        @relation("SalespersonQuotation", fields: [salespersonEmployeeId], references: [id])
+  variant     TruckVariant    @relation(fields: [variantId], references: [id])
+  items       QuotationItem[]
+  bookings    Booking[]
+
+  @@map("quotations")
+}
+
+model QuotationItem {
+  id          String   @id @default(uuid())
+  quotationId String   @map("quotation_id")
+  itemType    String   @map("item_type")
+  description String
+  unitPrice   Decimal  @map("unit_price")
+  quantity    Int      @default(1)
+  totalPrice  Decimal  @map("total_price")
+
+  quotation Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+
+  @@map("quotation_items")
+}
+
+model Booking {
+  id                    String        @id @default(uuid())
+  bookingNumber         String        @unique @map("booking_number")
+  customerId            String        @map("customer_id")
+  quotationId           String        @map("quotation_id")
+  vehicleId             String?       @map("vehicle_id")
+  branchId              String        @map("branch_id")
+  salespersonEmployeeId String        @map("salesperson_employee_id")
+  bookingAmount         Decimal       @map("booking_amount")
+  totalAmount           Decimal       @map("total_amount")
+  status                BookingStatus @default(PENDING)
+  bookingDate           DateTime      @default(now()) @map("booking_date")
+  cancellationReason    String?       @map("cancellation_reason")
+  notes                 String?
+  createdAt             DateTime      @default(now()) @map("created_at")
+  updatedAt             DateTime      @updatedAt @map("updated_at")
+
+  customer            Customer            @relation(fields: [customerId], references: [id])
+  quotation           Quotation           @relation(fields: [quotationId], references: [id])
+  vehicle             Vehicle?            @relation(fields: [vehicleId], references: [id])
+  branch              Branch              @relation(fields: [branchId], references: [id])
+  salesperson         Employee            @relation("SalespersonBooking", fields: [salespersonEmployeeId], references: [id])
+  payments            Payment[]
+  financeApplication  FinanceApplication?
+  insurancePolicy     InsurancePolicy?
+  allocations         VehicleAllocation[]
+  deliveries          Delivery[]
+  invoices            Invoice[]
+
+  @@map("bookings")
+}
+
+model Payment {
+  id               String        @id @default(uuid())
+  bookingId        String        @map("booking_id")
+  invoiceId        String?       @map("invoice_id")
+  gateway          String        @default("BANK_TRANSFER")
+  gatewayOrderId   String?       @map("gateway_order_id")
+  gatewayPaymentId String?       @map("gateway_payment_id")
+  idempotencyKey   String?       @unique @map("idempotency_key")
+  amount           Decimal      
+  currency         String        @default("INR")
+  status           PaymentStatus @default(CREATED)
+  paymentMethod    String?       @map("payment_method")
+  metadata         Json?
+  paidAt           DateTime?     @map("paid_at")
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+
+  booking Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  invoice Invoice? @relation(fields: [invoiceId], references: [id])
+
+  @@map("payments")
+}
+
+model FinanceApplication {
+  id                String        @id @default(uuid())
+  applicationNumber String        @unique @map("application_number")
+  customerId        String        @map("customer_id")
+  bookingId         String        @unique @map("booking_id")
+  financeProvider   String        @map("finance_provider")
+  loanAmount        Decimal       @map("loan_amount")
+  downPayment       Decimal       @map("down_payment")
+  tenureMonths      Int           @map("tenure_months")
+  interestRate      Decimal?      @map("interest_rate")
+  status            FinanceStatus @default(DRAFT)
+  remarks           String?
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  customer Customer @relation(fields: [customerId], references: [id])
+  booking  Booking  @relation(fields: [bookingId], references: [id])
+
+  @@map("finance_applications")
+}
+
+model InsurancePolicy {
+  id            String          @id @default(uuid())
+  policyNumber  String          @unique @map("policy_number")
+  customerId    String          @map("customer_id")
+  bookingId     String          @unique @map("booking_id")
+  insurer       String
+  policyType    String          @map("policy_type")
+  premium       Decimal        
+  startDate     DateTime        @map("start_date")
+  expiryDate    DateTime        @map("expiry_date")
+  status        InsuranceStatus @default(PENDING)
+  documentKey   String?         @map("document_key")
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+
+  customer Customer @relation(fields: [customerId], references: [id])
+  booking  Booking  @relation(fields: [bookingId], references: [id])
+
+  @@map("insurance_policies")
+}
+
+model VehicleAllocation {
+  id                    String        @id @default(uuid())
+  bookingId             String        @map("booking_id")
+  vehicleId             String        @map("vehicle_id")
+  allocatedByUserId     String        @map("allocated_by_user_id")
+  allocatedAt           DateTime      @default(now()) @map("allocated_at")
+  previousVehicleStatus VehicleStatus @map("previous_vehicle_status")
+  notes                 String?
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+
+  @@map("vehicle_allocations")
+}
+
+model PdiInspection {
+  id              String    @id @default(uuid())
+  vehicleId       String    @map("vehicle_id")
+  bookingId       String?   @map("booking_id")
+  inspectorUserId String    @map("inspector_user_id")
+  inspectionDate  DateTime  @default(now()) @map("inspection_date")
+  status          PdiStatus @default(PENDING)
+  checklist       Json
+  failedItems     String[]  @default([]) @map("failed_items")
+  remarks         String?
+  images          String[]  @default([])
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+
+  @@map("pdi_inspections")
+}
+
+model Invoice {
+  id             String               @id @default(uuid())
+  invoiceNumber  String               @unique @map("invoice_number")
+  customerId     String               @map("customer_id")
+  vehicleId      String?              @map("vehicle_id")
+  bookingId      String?              @map("booking_id")
+  franchiseId    String               @map("franchise_id")
+  branchId       String               @map("branch_id")
+  billingAddress String               @map("billing_address")
+  gstin          String?
+  subtotal       Decimal             
+  discount       Decimal              @default(0)
+  taxableAmount  Decimal              @map("taxable_amount")
+  cgstAmount     Decimal              @default(0) @map("cgst_amount")
+  sgstAmount     Decimal              @default(0) @map("sgst_amount")
+  igstAmount     Decimal              @default(0) @map("igst_amount")
+  totalAmount    Decimal              @map("total_amount")
+  paymentStatus  InvoicePaymentStatus @default(UNPAID) @map("payment_status")
+  status         InvoiceStatus        @default(ISSUED)
+  issuedAt       DateTime?            @map("issued_at")
+  createdAt      DateTime             @default(now()) @map("created_at")
+  updatedAt      DateTime             @updatedAt @map("updated_at")
+
+  customer  Customer      @relation(fields: [customerId], references: [id])
+  vehicle   Vehicle?      @relation(fields: [vehicleId], references: [id])
+  booking   Booking?      @relation(fields: [bookingId], references: [id])
+  franchise Franchise     @relation(fields: [franchiseId], references: [id])
+  branch    Branch        @relation(fields: [branchId], references: [id])
+  items     InvoiceItem[]
+  payments  Payment[]
+  deliveries Delivery[]
+  serviceJobs ServiceJob[]
+
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id            String   @id @default(uuid())
+  invoiceId     String   @map("invoice_id")
+  description   String
+  quantity      Int      @default(1)
+  unitPrice     Decimal  @map("unit_price")
+  taxableAmount Decimal  @map("taxable_amount")
+  gstRate       Decimal  @default(28.00) @map("gst_rate")
+  gstAmount     Decimal  @map("gst_amount")
+  totalAmount   Decimal  @map("total_amount")
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@map("invoice_items")
+}
+
+model Delivery {
+  id                     String         @id @default(uuid())
+  deliveryNumber         String         @unique @map("delivery_number")
+  customerId             String         @map("customer_id")
+  vehicleId              String         @map("vehicle_id")
+  bookingId              String         @map("booking_id")
+  invoiceId              String         @map("invoice_id")
+  deliveryDate           DateTime       @default(now()) @map("delivery_date")
+  deliveryLocation       String         @map("delivery_location")
+  deliveryEmployeeId     String         @map("delivery_employee_id")
+  odometerReading        Float          @default(0) @map("odometer_reading")
+  customerAcknowledgement Boolean        @default(true) @map("customer_acknowledgement")
+  documentsKey           String?        @map("documents_key")
+  status                 DeliveryStatus @default(COMPLETED)
+  createdAt              DateTime       @default(now()) @map("created_at")
+  updatedAt              DateTime       @updatedAt @map("updated_at")
+
+  customer Customer @relation(fields: [customerId], references: [id])
+  vehicle  Vehicle  @relation(fields: [vehicleId], references: [id])
+  booking  Booking  @relation(fields: [bookingId], references: [id])
+  invoice  Invoice  @relation(fields: [invoiceId], references: [id])
+
+  @@map("deliveries")
+}
+
+model FileAttachment {
+  id               String   @id @default(uuid())
+  fileId           String   @unique @map("file_id")
+  entityType       String   @map("entity_type")
+  entityId         String   @map("entity_id")
+  storageKey       String   @map("storage_key")
+  filename         String
+  mimeType         String   @map("mime_type")
+  size             Int
+  uploadedByUserId String   @map("uploaded_by_user_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@map("file_attachments")
+}
+
+// ==========================================
+// PHASE 3: AFTER-SALES & SERVICE OPERATIONS
+// ==========================================
+
+model ServiceAppointment {
+  id                String            @id @default(uuid())
+  appointmentNumber String            @unique @map("appointment_number")
+  customerId        String            @map("customer_id")
+  vehicleId         String            @map("vehicle_id")
+  branchId          String            @map("branch_id")
+  serviceAdvisorId  String?           @map("service_advisor_id")
+  requestedService  String            @map("requested_service")
+  preferredDate     DateTime          @map("preferred_date")
+  preferredTime     String?           @map("preferred_time")
+  status            AppointmentStatus @default(REQUESTED)
+  customerNotes     String?           @map("customer_notes")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+
+  customer       Customer     @relation(fields: [customerId], references: [id])
+  vehicle        Vehicle      @relation(fields: [vehicleId], references: [id])
+  branch         Branch       @relation(fields: [branchId], references: [id])
+  serviceAdvisor Employee?    @relation("AdvisorAppointments", fields: [serviceAdvisorId], references: [id])
+  serviceJobs    ServiceJob[]
+
+  @@map("service_appointments")
+}
+
+model ServiceJob {
+  id                      String           @id @default(uuid())
+  jobNumber               String           @unique @map("job_number")
+  appointmentId           String?          @map("appointment_id")
+  customerId              String           @map("customer_id")
+  vehicleId               String           @map("vehicle_id")
+  branchId                String           @map("branch_id")
+  serviceAdvisorId        String           @map("service_advisor_id")
+  assignedMechanicId      String?          @map("assigned_mechanic_id")
+  complaint               String
+  diagnosis               String?
+  odometer                Float?           @default(0)
+  fuelLevel               String?          @map("fuel_level")
+  estimatedCompletionTime  DateTime?        @map("estimated_completion_time")
+  actualCompletionTime    DateTime?        @map("actual_completion_time")
+  estimatedCost           Decimal          @default(0) @map("estimated_cost")
+  actualCost              Decimal          @default(0) @map("actual_cost")
+  status                  ServiceJobStatus @default(OPEN)
+  notes                   String?
+  warrantyCoverage        Boolean          @default(false) @map("warranty_coverage")
+  warrantyClaimRef        String?          @map("warranty_claim_ref")
+  serviceInvoiceId        String?          @map("service_invoice_id")
+  createdAt               DateTime         @default(now()) @map("created_at")
+  updatedAt               DateTime         @updatedAt @map("updated_at")
+
+  appointment      ServiceAppointment? @relation(fields: [appointmentId], references: [id])
+  customer         Customer            @relation(fields: [customerId], references: [id])
+  vehicle          Vehicle             @relation(fields: [vehicleId], references: [id])
+  branch           Branch              @relation(fields: [branchId], references: [id])
+  serviceAdvisor   Employee            @relation("AdvisorJobs", fields: [serviceAdvisorId], references: [id])
+  assignedMechanic Employee?           @relation("MechanicJobs", fields: [assignedMechanicId], references: [id])
+  serviceInvoice   Invoice?            @relation(fields: [serviceInvoiceId], references: [id])
+  diagnoses        ServiceDiagnosis[]
+  labourItems      ServiceLabour[]
+  jobParts         ServiceJobPart[]
+  approvals        ServiceApproval[]
+  qcInspections    ServiceQc[]
+
+  @@map("service_jobs")
+}
+
+model ServiceDiagnosis {
+  id              String   @id @default(uuid())
+  serviceJobId    String   @map("service_job_id")
+  mechanicId      String   @map("mechanic_id")
+  findings        String
+  recommendedWork String   @map("recommended_work")
+  severity        String   @default("MEDIUM")
+  additionalCost  Decimal  @default(0) @map("additional_cost")
+  images          String[] @default([])
+  notes           String?
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  serviceJob ServiceJob @relation(fields: [serviceJobId], references: [id], onDelete: Cascade)
+  mechanic   Employee   @relation(fields: [mechanicId], references: [id])
+
+  @@map("service_diagnoses")
+}
+
+model ServiceLabour {
+  id           String   @id @default(uuid())
+  serviceJobId String   @map("service_job_id")
+  labourType   String   @map("labour_type")
+  description  String
+  hours        Float    @default(1.0)
+  hourlyRate   Decimal  @map("hourly_rate")
+  discount     Decimal  @default(0)
+  taxRate      Decimal  @default(18.00) @map("tax_rate")
+  totalAmount  Decimal  @map("total_amount")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  serviceJob ServiceJob @relation(fields: [serviceJobId], references: [id], onDelete: Cascade)
+
+  @@map("service_labour")
+}
+
+model Part {
+  id           String   @id @default(uuid())
+  partNumber   String   @unique @map("part_number")
+  name         String
+  description  String?
+  manufacturer String?
+  category     String?
+  unitPrice    Decimal  @map("unit_price")
+  gstRate      Decimal  @default(18.00) @map("gst_rate")
+  status       String   @default("ACTIVE")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  stocks   PartStock[]
+  jobParts ServiceJobPart[]
+
+  @@map("parts")
+}
+
+model PartStock {
+  id               String   @id @default(uuid())
+  partId           String   @map("part_id")
+  branchId         String   @map("branch_id")
+  quantityOnHand   Int      @default(0) @map("quantity_on_hand")
+  quantityReserved Int      @default(0) @map("quantity_reserved")
+  reorderThreshold Int      @default(5) @map("reorder_threshold")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  part      Part                @relation(fields: [partId], references: [id], onDelete: Cascade)
+  branch    Branch              @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  movements PartStockMovement[]
+
+  @@unique([partId, branchId])
+  @@map("part_stocks")
+}
+
+model PartStockMovement {
+  id           String            @id @default(uuid())
+  partStockId  String            @map("part_stock_id")
+  movementType StockMovementType @map("movement_type")
+  quantity     Int
+  referenceRef String?           @map("reference_ref")
+  notes        String?
+  actorUserId  String?           @map("actor_user_id")
+  createdAt    DateTime          @default(now()) @map("created_at")
+
+  partStock PartStock @relation(fields: [partStockId], references: [id], onDelete: Cascade)
+
+  @@map("part_stock_movements")
+}
+
+model ServiceJobPart {
+  id           String   @id @default(uuid())
+  serviceJobId String   @map("service_job_id")
+  partId       String   @map("part_id")
+  quantity     Int      @default(1)
+  unitPrice    Decimal  @map("unit_price")
+  gstRate      Decimal  @default(18.00) @map("gst_rate")
+  totalAmount  Decimal  @map("total_amount")
+  status       String   @default("REQUESTED")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  serviceJob ServiceJob @relation(fields: [serviceJobId], references: [id], onDelete: Cascade)
+  part       Part       @relation(fields: [partId], references: [id])
+
+  @@map("service_job_parts")
+}
+
+model ServiceApproval {
+  id                 String           @id @default(uuid())
+  serviceJobId       String           @map("service_job_id")
+  additionalWorkDesc String           @map("additional_work_desc")
+  estimatedCost      Decimal          @map("estimated_cost")
+  decision           ApprovalDecision @default(PENDING)
+  customerNotes      String?          @map("customer_notes")
+  decidedAt          DateTime?        @map("decided_at")
+  createdAt          DateTime         @default(now()) @map("created_at")
+
+  serviceJob ServiceJob @relation(fields: [serviceJobId], references: [id], onDelete: Cascade)
+
+  @@map("service_approvals")
+}
+
+model ServiceQc {
+  id              String   @id @default(uuid())
+  serviceJobId    String   @map("service_job_id")
+  inspectorUserId String   @map("inspector_user_id")
+  status          QcStatus @default(PENDING)
+  checklist       Json
+  failedItems     String[] @default([]) @map("failed_items")
+  remarks         String?
+  images          String[] @default([])
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  serviceJob ServiceJob @relation(fields: [serviceJobId], references: [id], onDelete: Cascade)
+
+  @@map("service_qcs")
+}
+
+model Notification {
+  id         String              @id @default(uuid())
+  userId     String?             @map("user_id")
+  customerId String?             @map("customer_id")
+  channel    NotificationChannel @default(IN_APP)
+  title      String
+  body       String
+  metadata   Json?
+  status     NotificationStatus  @default(PENDING)
+  sentAt     DateTime?           @map("sent_at")
+  createdAt  DateTime            @default(now()) @map("created_at")
+
+  @@map("notifications")
+}

@@ -1,0 +1,49 @@
+import { NestFactory } from '@nestjs/core';
+import { ValidationPipe, Logger } from '@nestjs/common';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { AppModule } from './app.module';
+
+async function bootstrap() {
+  const logger = new Logger('TitanBootstrap');
+  const app = await NestFactory.create(AppModule);
+
+  const port = process.env.PORT || 4000;
+  const corsOrigin = process.env.CORS_ORIGIN || '*';
+
+  // Enable CORS
+  app.enableCors({
+    origin: corsOrigin === '*' ? true : corsOrigin,
+    credentials: true,
+  });
+
+  // Global Validation Pipe
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+      forbidNonWhitelisted: true,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
+    }),
+  );
+
+  // Swagger OpenAPI Setup
+  if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_SWAGGER === 'true') {
+    const swaggerConfig = new DocumentBuilder()
+      .setTitle('Titan Auto Platform API')
+      .setDescription('Enterprise Automobile Franchise Management Platform Backend — Phase 1 RBAC, Auth & Multi-Tenancy')
+      .setVersion('1.0.0-phase1')
+      .addBearerAuth()
+      .build();
+
+    const document = SwaggerModule.createDocument(app, swaggerConfig);
+    SwaggerModule.setup('api/docs', app, document);
+    logger.log(`OpenAPI Swagger documentation available at http://localhost:${port}/api/docs`);
+  }
+
+  await app.listen(port);
+  logger.log(`Titan Auto Backend Platform running on port ${port}`);
+}
+
+bootstrap();

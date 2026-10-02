@@ -1,0 +1,85 @@
+import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { CrmService } from './crm.service';
+import { CreateLeadDto } from './dto/create-lead.dto';
+import { CreateFollowUpDto } from './dto/create-followup.dto';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { RolesGuard } from '@/common/guards/roles.guard';
+import { TenantScopeGuard } from '@/common/guards/tenant-scope.guard';
+import { Roles } from '@/common/decorators/roles.decorator';
+import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import { LeadStatus } from '@prisma/client';
+
+@ApiTags('CRM & Leads')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, RolesGuard, TenantScopeGuard)
+@Controller('api/v1/leads')
+export class CrmController {
+  constructor(private readonly crmService: CrmService) {}
+
+  @Post()
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE')
+  @ApiOperation({ summary: 'Create new customer lead' })
+  async createLead(@Body() dto: CreateLeadDto, @CurrentUser('id') actorUserId: string) {
+    return this.crmService.createLead(dto, actorUserId);
+  }
+
+  @Get()
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE')
+  @ApiOperation({ summary: 'Get list of leads (filtered by branchId or status)' })
+  async findAllLeads(
+    @Query('branchId') branchId?: string,
+    @Query('status') status?: LeadStatus,
+    @Query('limit') limit = 50,
+    @Query('offset') offset = 0,
+  ) {
+    return this.crmService.findAllLeads(branchId, status, Number(limit), Number(offset));
+  }
+
+  @Get(':id')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE')
+  @ApiOperation({ summary: 'Get lead details by ID' })
+  async findOneLead(@Param('id') id: string) {
+    return this.crmService.findOneLead(id);
+  }
+
+  @Post(':id/assign')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER')
+  @ApiOperation({ summary: 'Assign or reassign lead to a sales employee (Manager/Admin Only)' })
+  async assignLead(
+    @Param('id') leadId: string,
+    @Body('employeeId') employeeId: string,
+    @CurrentUser('id') actorUserId: string,
+  ) {
+    return this.crmService.assignLead(leadId, employeeId, actorUserId);
+  }
+
+  @Patch(':id/status')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE')
+  @ApiOperation({ summary: 'Update lead status in lifecycle (NEW -> CONTACTED -> QUALIFIED -> etc.)' })
+  async updateLeadStatus(
+    @Param('id') leadId: string,
+    @Body('status') status: LeadStatus,
+    @CurrentUser('id') actorUserId: string,
+  ) {
+    return this.crmService.updateLeadStatus(leadId, status, actorUserId);
+  }
+
+  @Post(':id/follow-ups')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE')
+  @ApiOperation({ summary: 'Schedule a follow-up action for a lead' })
+  async addFollowUp(
+    @Param('id') leadId: string,
+    @Body() dto: CreateFollowUpDto,
+    @CurrentUser('id') actorUserId: string,
+  ) {
+    return this.crmService.addFollowUp(leadId, dto, actorUserId);
+  }
+
+  @Patch('follow-ups/:followUpId/complete')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE')
+  @ApiOperation({ summary: 'Mark a scheduled follow-up action as completed' })
+  async completeFollowUp(@Param('followUpId') followUpId: string) {
+    return this.crmService.completeFollowUp(followUpId);
+  }
+}

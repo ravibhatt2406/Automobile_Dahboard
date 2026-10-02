@@ -1,0 +1,238 @@
+export type UserRole =
+  | 'SUPER_ADMIN'
+  | 'FRANCHISE_OWNER'
+  | 'FRANCHISE_MANAGER'
+  | 'BRANCH_OWNER'
+  | 'BRANCH_MANAGER'
+  | 'DEPARTMENT_MANAGER'
+  | 'SALES_EMPLOYEE'
+  | 'MECHANIC'
+  | 'CUSTOMER';
+
+export interface RolePermissions {
+  canViewAllFranchises: boolean;
+  canManageFranchises: boolean;
+  canViewBranches: boolean;
+  canManageBranches: boolean;
+  canViewEmployees: boolean;
+  canManageEmployees: boolean;
+  canViewAllCustomers: boolean;
+  canViewLeads: boolean;
+  canManageLeads: boolean;
+  canViewInventory: boolean;
+  canManageInventory: boolean;
+  canViewSales: boolean;
+  canManageSales: boolean;
+  canViewServiceJobs: boolean;
+  canManageServiceJobs: boolean;
+  canViewFinance: boolean;
+  canViewReports: boolean;
+  canManageSettings: boolean;
+}
+
+export const ROLE_LABELS: Record<UserRole, string> = {
+  SUPER_ADMIN: 'Super Admin',
+  FRANCHISE_OWNER: 'Franchise Owner',
+  FRANCHISE_MANAGER: 'Franchise Manager',
+  BRANCH_OWNER: 'Branch Owner',
+  BRANCH_MANAGER: 'Branch Manager',
+  DEPARTMENT_MANAGER: 'Department Manager',
+  SALES_EMPLOYEE: 'Sales Executive',
+  MECHANIC: 'Service Technician / Mechanic',
+  CUSTOMER: 'Commercial Fleet Customer',
+};
+
+export const ROLE_RANKS: Record<UserRole, number> = {
+  SUPER_ADMIN: 1,
+  FRANCHISE_OWNER: 2,
+  FRANCHISE_MANAGER: 3,
+  BRANCH_OWNER: 4,
+  BRANCH_MANAGER: 5,
+  DEPARTMENT_MANAGER: 6,
+  SALES_EMPLOYEE: 7,
+  MECHANIC: 7,
+  CUSTOMER: 99,
+};
+
+export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
+  SUPER_ADMIN: {
+    canViewAllFranchises: true,
+    canManageFranchises: true,
+    canViewBranches: true,
+    canManageBranches: true,
+    canViewEmployees: true,
+    canManageEmployees: true,
+    canViewAllCustomers: true,
+    canViewLeads: true,
+    canManageLeads: true,
+    canViewInventory: true,
+    canManageInventory: true,
+    canViewSales: true,
+    canManageSales: true,
+    canViewServiceJobs: true,
+    canManageServiceJobs: true,
+    canViewFinance: true,
+    canViewReports: true,
+    canManageSettings: true,
+  },
+  FRANCHISE_OWNER: {
+    canViewAllFranchises: false,
+    canManageFranchises: false,
+    canViewBranches: true,
+    canManageBranches: true,
+    canViewEmployees: true,
+    canManageEmployees: true,
+    canViewAllCustomers: true,
+    canViewLeads: true,
+    canManageLeads: true,
+    canViewInventory: true,
+    canManageInventory: true,
+    canViewSales: true,
+    canManageSales: true,
+    canViewServiceJobs: true,
+    canManageServiceJobs: true,
+    canViewFinance: true,
+    canViewReports: true,
+    canManageSettings: true,
+  },
+  FRANCHISE_MANAGER: {
+    canViewAllFranchises: false,
+    canManageFranchises: false,
+    canViewBranches: true,
+    canManageBranches: false,
+    canViewEmployees: true,
+    canManageEmployees: true,
+    canViewAllCustomers: true,
+    canViewLeads: true,
+    canManageLeads: true,
+    canViewInventory: true,
+    canManageInventory: true,
+    canViewSales: true,
+    canManageSales: true,
+    canViewServiceJobs: true,
+    canManageServiceJobs: true,
+    canViewFinance: true,
+    canViewReports: true,
+    canManageSettings: false,
+  },
+  BRANCH_OWNER: {
+    canViewAllFranchises: false,
+    canManageFranchises: false,
+    canViewBranches: true,
+    canManageBranches: false,
+    canViewEmployees: true,
+    canManageEmployees: true,
+    canViewAllCustomers: true,
+    canViewLeads: true,
+    canManageLeads: true,
+    canViewInventory: true,
+    canManageInventory: true,
+    canViewSales: true,
+    canManageSales: true,
+    canViewServiceJobs: true,
+    canManageServiceJobs: true,
+    canViewFinance: true,
+    canViewReports: true,
+    canManageSettings: false,
+  },
+  BRANCH_MANAGER: {
+    canViewAllFranchises: false,
+    canManageFranchises: false,
+    canViewBranches: true,
+    canManageBranches: false,
+    canViewEmployees: true,
+    canManageEmployees: false,
+    canViewAllCustomers: true,
+    canViewLeads: true,
+    canManageLeads: true,
+    canViewInventory: true,
+    canManageInventory: true,
+    canViewSales: true,
+    canManageSales: true,
+    canViewServiceJobs: true,
+    canManageServiceJobs: true,
+    canViewFinance: true,
+    canViewReports: true,
+    canManageSettings: false,
+  },
+  DEPARTMENT_MANAGER: {
+    canViewAllFranchises: false,
+    canManageFranchises: false,
+    canViewBranches: false,
+    canManageBranches: false,
+    canViewEmployees: true,
+    canManageEmployees: false,
+    canViewAllCustomers: true,
+    canViewLeads: true,
+    canManageLeads: true,
+    canViewInventory: true,
+    canManageInventory: false,
+    canViewSales: true,
+    canManageSales: false,
+    canViewServiceJobs: true,
+    canManageServiceJobs: true,
+    canViewFinance: false,
+    canViewReports: true,
+    canManageSettings: false,
+  },
+  SALES_EMPLOYEE: {
+    canViewAllFranchises: false,
+    canManageFranchises: false,
+    canViewBranches: false,
+    canManageBranches: false,
+    canViewEmployees: false,
+    canManageEmployees: false,
+    canViewAllCustomers: true,
+    canViewLeads: true,
+    canManageLeads: true,
+    canViewInventory: true,
+    canManageInventory: false,
+    canViewSales: true,
+    canManageSales: true,
+    canViewServiceJobs: false,
+    canManageServiceJobs: false,
+    canViewFinance: false,
+    canViewReports: false,
+    canManageSettings: false,
+  },
+  MECHANIC: {
+    canViewAllFranchises: false,
+    canManageFranchises: false,
+    canViewBranches: false,
+    canManageBranches: false,
+    canViewEmployees: false,
+    canManageEmployees: false,
+    canViewAllCustomers: false,
+    canViewLeads: false,
+    canManageLeads: false,
+    canViewInventory: false,
+    canManageInventory: false,
+    canViewSales: false,
+    canManageSales: false,
+    canViewServiceJobs: true,
+    canManageServiceJobs: true,
+    canViewFinance: false,
+    canViewReports: false,
+    canManageSettings: false,
+  },
+  CUSTOMER: {
+    canViewAllFranchises: false,
+    canManageFranchises: false,
+    canViewBranches: false,
+    canManageBranches: false,
+    canViewEmployees: false,
+    canManageEmployees: false,
+    canViewAllCustomers: false,
+    canViewLeads: false,
+    canManageLeads: false,
+    canViewInventory: true,
+    canManageInventory: false,
+    canViewSales: false,
+    canManageSales: false,
+    canViewServiceJobs: false,
+    canManageServiceJobs: false,
+    canViewFinance: false,
+    canViewReports: false,
+    canManageSettings: false,
+  },
+};

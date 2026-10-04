@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { PageHeader } from '@/components/data-display/PageHeader';
 import { DataTable, Column } from '@/components/data-display/DataTable';
 import { Branch } from '@/types/domain';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { branchService } from '@/services/branch.service';
-import { Plus, Edit, Eye } from 'lucide-react';
+import { Plus, Edit, Eye, PowerOff } from 'lucide-react';
 import { StatusBadge } from '@/components/data-display/StatusBadge';
 import { useAuth } from '@/app/providers/AuthContext';
 import { BranchFormModal } from './BranchFormModal';
@@ -12,15 +12,27 @@ import { useNavigate } from 'react-router-dom';
 
 export const BranchesListPage: React.FC = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { permissions } = useAuth();
   const canManage = permissions.canManageBranches;
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBranch, setEditingBranch] = useState<Branch | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['branches'],
     queryFn: () => branchService.getBranches(),
+  });
+
+  const deactivateMutation = useMutation({
+    mutationFn: (id: string) => branchService.updateBranchStatus(id, 'INACTIVE'),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['branches'] });
+    },
+    onError: (err: any) => {
+      setActionError(err?.message || 'Failed to deactivate branch.');
+    },
   });
 
   const handleCreate = () => {
@@ -31,6 +43,27 @@ export const BranchesListPage: React.FC = () => {
   const handleEdit = (branch: Branch) => {
     setEditingBranch(branch);
     setIsModalOpen(true);
+  };
+
+  const handleDeactivate = (branch: Branch) => {
+    if (confirm(`Deactivate branch "${branch.name}"? This will disable operations at this location.`)) {
+      deactivateMutation.mutate(branch.id);
+    }
+  };
+
+  const handleFormSubmit = async (formData: Partial<Branch>) => {
+    try {
+      setActionError(null);
+      if (editingBranch?.id) {
+        await branchService.updateBranch(editingBranch.id, formData);
+      } else {
+        await branchService.createBranch(formData);
+      }
+      await refetch();
+    } catch (err: any) {
+      setActionError(err?.message || 'Failed to save branch.');
+      throw err;
+    }
   };
 
   const columns: Column<Branch>[] = [
@@ -61,13 +94,22 @@ export const BranchesListPage: React.FC = () => {
               <Edit className="w-3.5 h-3.5" /> Edit
             </button>
           )}
+          {canManage && row.status !== 'INACTIVE' && row.status !== 'inactive' && (
+            <button
+              onClick={() => handleDeactivate(row)}
+              disabled={deactivateMutation.isPending}
+              className="inline-flex items-center gap-1 text-rose-400 hover:text-rose-300 font-medium disabled:opacity-50"
+            >
+              <PowerOff className="w-3.5 h-3.5" /> Deactivate
+            </button>
+          )}
         </div>
       ),
     },
   ];
 
   return (
-    <div>
+    <div className="space-y-4">
       <PageHeader
         title="Dealership Branches"
         subtitle="Locations, service hubs, and showroom facilities"
@@ -84,6 +126,13 @@ export const BranchesListPage: React.FC = () => {
         }
       />
 
+      {actionError && (
+        <div className="p-3 rounded-lg bg-rose-950/80 border border-rose-800 text-rose-300 text-xs">
+          {actionError}
+          <button onClick={() => setActionError(null)} className="ml-2 underline">Dismiss</button>
+        </div>
+      )}
+
       <DataTable<Branch>
         columns={columns}
         data={data?.data || []}
@@ -98,14 +147,7 @@ export const BranchesListPage: React.FC = () => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         initialData={editingBranch}
-        onSubmit={async (formData) => {
-          try {
-            await branchService.createBranch(formData);
-            await refetch();
-          } catch (err) {
-            console.error('Error saving branch:', err);
-          }
-        }}
+        onSubmit={handleFormSubmit}
       />
     </div>
   );

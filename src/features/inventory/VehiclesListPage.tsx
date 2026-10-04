@@ -2,26 +2,45 @@ import React, { useState } from 'react';
 import { PageHeader } from '@/components/data-display/PageHeader';
 import { DataTable, Column } from '@/components/data-display/DataTable';
 import { Vehicle } from '@/types/domain';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { vehicleService } from '@/services/vehicle.service';
-import { Plus, LayoutGrid, Table, Image as ImageIcon, Filter, ShieldCheck, Truck, ExternalLink } from 'lucide-react';
+import { Plus, LayoutGrid, Table, Filter, Archive } from 'lucide-react';
 import { StatusBadge } from '@/components/data-display/StatusBadge';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/app/providers/AuthContext';
 
 export const VehiclesListPage: React.FC = () => {
   const navigate = useNavigate();
-  const { activeRole } = useAuth();
+  const queryClient = useQueryClient();
+  const { activeRole, permissions } = useAuth();
   const isCustomer = activeRole === 'CUSTOMER';
+  const canManage = permissions.canManageInventory || permissions.canManageBranches;
 
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [filterMake, setFilterMake] = useState<string>('ALL');
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['vehicles'],
     queryFn: () => vehicleService.getVehicles(),
   });
+
+  const blockMutation = useMutation({
+    mutationFn: (id: string) => vehicleService.updateVehicleStatus(id, 'BLOCKED'),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+    },
+    onError: (err: any) => {
+      setActionError(err?.message || 'Failed to archive vehicle.');
+    },
+  });
+
+  const handleBlock = (vehicle: Vehicle) => {
+    if (confirm(`Archive vehicle ${vehicle.make} ${vehicle.model} (VIN: ${vehicle.vin})? It will be marked as BLOCKED.`)) {
+      blockMutation.mutate(vehicle.id);
+    }
+  };
 
   // Default demo vehicles when backend has 0 registered vehicles for user view
   const defaultCustomerVehicles: Vehicle[] = [
@@ -92,14 +111,14 @@ export const VehiclesListPage: React.FC = () => {
       cell: (row) => (
         <div>
           <span className="font-bold text-[#111111] block">
-            {row.year} {row.make} {row.model}
+            {row.manufacturingYear || row.year} {row.make} {row.model}
           </span>
           <span className="text-xs text-zinc-500">{row.vehicleType}</span>
         </div>
       ),
     },
-    { header: 'Fuel & Trans', cell: (row) => (
-      <span className="capitalize font-mono text-xs text-zinc-700">{row.fuelType} • {row.transmission}</span>
+    { header: 'Fuel / Type', cell: (row) => (
+      <span className="capitalize font-mono text-xs text-zinc-700">{row.fuelType} • {row.color || '—'}</span>
     )},
     { header: 'Branch Location', accessorKey: 'branchName' },
     {
@@ -111,20 +130,37 @@ export const VehiclesListPage: React.FC = () => {
       cell: (row) => <StatusBadge status={row.status} />,
     },
     {
-      header: 'Action',
+      header: 'Actions',
       cell: (row) => (
-        <button
-          onClick={() => navigate(`/inventory/vehicles/${row.id}`)}
-          className="text-xs font-semibold text-[#111111] hover:text-[#F5A800] underline"
-        >
-          View Overview →
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate(`/inventory/vehicles/${row.id}`)}
+            className="text-xs font-semibold text-[#111111] hover:text-[#F5A800] underline"
+          >
+            View →
+          </button>
+          {canManage && row.status !== 'BLOCKED' && row.status !== 'SOLD' && (
+            <button
+              onClick={() => handleBlock(row)}
+              disabled={blockMutation.isPending}
+              className="inline-flex items-center gap-1 text-xs text-zinc-400 hover:text-rose-600 font-medium disabled:opacity-50"
+            >
+              <Archive className="w-3.5 h-3.5" /> Archive
+            </button>
+          )}
+        </div>
       ),
     },
   ];
 
   return (
     <div className="space-y-6">
+      {actionError && (
+        <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs flex justify-between items-center">
+          <span>{actionError}</span>
+          <button onClick={() => setActionError(null)} className="underline ml-2">Dismiss</button>
+        </div>
+      )}
       <PageHeader
         title={isCustomer ? 'My Vehicles' : 'Vehicle Inventory Stock'}
         subtitle={

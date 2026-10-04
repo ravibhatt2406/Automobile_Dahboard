@@ -23,12 +23,12 @@ export interface Branch {
   address: string;
   city: string;
   state: string;
-  pincode: string;
-  phone: string;
-  email: string;
+  pincode?: string;
+  phone?: string;
+  email?: string;
   managerId?: string;
   managerName?: string;
-  status: 'active' | 'inactive';
+  status: 'active' | 'inactive' | 'ACTIVE' | 'INACTIVE' | string;
   createdAt: string;
 }
 
@@ -108,23 +108,28 @@ export interface Vehicle {
   model: string;
   variant?: string;
   vehicleType: string;
-  year: number;
+  year?: number;
+  manufacturingYear?: number; // backend field
   color: string;
-  fuelType: 'diesel' | 'electric' | 'hybrid' | 'cng';
-  transmission: 'manual' | 'automatic' | 'automated_manual';
+  fuelType: string;
+  transmission?: string;
   engineSpec?: string;
   gvw?: string; // Gross Vehicle Weight
-  franchiseId: string;
-  franchiseName: string;
-  branchId: string;
-  branchName: string;
+  franchiseId?: string;
+  franchiseName?: string;
+  branchId?: string;
+  branchName?: string;
+  branch?: { id: string; name: string; franchiseId?: string };
+  variant_details?: { id: string; name: string; model?: { name: string; manufacturer?: { name: string } } };
   stockLocation?: string;
   purchasePrice?: number;
+  baseCost?: number; // backend invoice cost field
   exShowroomPrice?: number;
-  sellingPrice: number;
+  sellingPrice?: number;
   gstRate?: number;
-  status: 'available' | 'reserved' | 'sold' | 'in_transit' | 'under_service';
-  photos: string[]; // List of uploaded image data URLs or file paths
+  status: string; // 'IN_STOCK' | 'RESERVED' | 'ALLOCATED' | 'DELIVERED' | 'SOLD' | 'BLOCKED' | 'available' etc.
+  photos?: string[]; // List of uploaded image data URLs or file paths
+  images?: string[]; // backend field name
   primaryPhoto?: string;
   threeDModelUrl?: string;
   createdAt: string;

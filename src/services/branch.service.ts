@@ -46,10 +46,36 @@ export const branchService = {
       address: data.address || undefined,
       city: data.city || undefined,
       state: data.state || undefined,
+      phone: data.phone || undefined,
+      email: data.email || undefined,
     };
     const res = await apiFetch<any>('/branches', {
       method: 'POST',
       body: JSON.stringify(payload),
+    });
+    return unwrapData<Branch>(res);
+  },
+
+  async updateBranch(id: string, data: Partial<Branch>): Promise<Branch> {
+    const payload = {
+      name: data.name,
+      address: data.address,
+      city: data.city,
+      state: data.state,
+      phone: data.phone,
+      email: data.email,
+    };
+    const res = await apiFetch<any>(`/branches/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+    return unwrapData<Branch>(res);
+  },
+
+  async updateBranchStatus(id: string, status: 'ACTIVE' | 'INACTIVE'): Promise<Branch> {
+    const res = await apiFetch<any>(`/branches/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
     });
     return unwrapData<Branch>(res);
   },

@@ -44,11 +44,22 @@ export const VehicleDetailPage: React.FC = () => {
     createdAt: new Date().toISOString(),
   };
 
+  // Normalize backend vs frontend field differences
+  const veh = vehicle as any;
+  const displayYear = veh.manufacturingYear || veh.year || '—';
+  const displayMake = veh.make || veh.variant?.model?.manufacturer?.name || '—';
+  const displayModel = veh.model || veh.variant?.model?.name || '—';
+  const displayBranchName = veh.branchName || veh.branch?.name || '—';
+  const displayFranchiseName = veh.franchiseName || veh.branch?.franchise?.name || '—';
+  const displayPrice = veh.sellingPrice || 0;
+  const displayPhotos = veh.photos || veh.images || [];
+  const displayPrimaryPhoto = veh.primaryPhoto || displayPhotos[0] || null;
+
   return (
     <div className="space-y-6">
       <PageHeader
-        title={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
-        subtitle={`Reg: ${vehicle.registrationNumber || 'Registration Pending'} • VIN: ${vehicle.vin}`}
+        title={`${displayYear} ${displayMake} ${displayModel}`}
+        subtitle={`Reg: ${veh.registrationNumber || 'Registration Pending'} • VIN: ${veh.vin}`}
         breadcrumbItems={[
           { label: isCustomer ? 'My Vehicles' : 'Inventory', href: '/inventory/vehicles' },
           { label: vehicle.registrationNumber || vehicle.vin },

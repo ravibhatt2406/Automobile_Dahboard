@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/app/providers/AuthContext';
-import { UserRole, ROLE_LABELS } from '@/types/roles';
 import { useNavigate, Link } from 'react-router-dom';
-import { Lock, Mail, ArrowRight, Shield, Sparkles } from 'lucide-react';
+import { Lock, Mail, ArrowRight, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 import heroAsset from '@/assets/hero.png';
 
@@ -12,7 +11,6 @@ export const LoginPage: React.FC = () => {
 
   const [emailOrPhone, setEmailOrPhone] = useState('admin@titanauto.com');
   const [password, setPassword] = useState('••••••••••••');
-  const [selectedRole, setSelectedRole] = useState<UserRole>('SUPER_ADMIN');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -126,24 +124,6 @@ export const LoginPage: React.FC = () => {
                     required
                   />
                 </div>
-              </div>
-
-              {/* Dev Role Testing Shortcut */}
-              <div className="pt-3 border-t border-[#E5E5E5]">
-                <label className="block text-[11px] font-mono text-zinc-500 mb-1 flex items-center gap-1">
-                  <Shield className="w-3.5 h-3.5 text-[#F5A800]" /> Role Context Preset:
-                </label>
-                <select
-                  value={selectedRole}
-                  onChange={(e) => setSelectedRole(e.target.value as UserRole)}
-                  className="w-full h-9 px-2.5 rounded-lg bg-zinc-50 border border-zinc-200 text-xs text-zinc-800 font-medium focus:outline-none cursor-pointer"
-                >
-                  {(Object.keys(ROLE_LABELS) as UserRole[]).map((r) => (
-                    <option key={r} value={r}>
-                      {ROLE_LABELS[r]}
-                    </option>
-                  ))}
-                </select>
               </div>
 
               <button

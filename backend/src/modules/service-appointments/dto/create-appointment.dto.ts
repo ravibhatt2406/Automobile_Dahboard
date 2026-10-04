@@ -3,22 +3,22 @@ import { IsDateString, IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-va
 
 export class CreateAppointmentDto {
   @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' })
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   customerId: string;
 
   @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' })
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   vehicleId: string;
 
   @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' })
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   branchId: string;
 
   @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', required: false })
-  @IsUUID()
+  @IsString()
   @IsOptional()
   serviceAdvisorId?: string;
 

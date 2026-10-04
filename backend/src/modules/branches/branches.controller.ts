@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { BranchesService } from './branches.service';
 import { CreateBranchDto } from './dto/create-branch.dto';
@@ -10,7 +10,7 @@ import { CurrentUser } from '@/common/decorators/current-user.decorator';
 @ApiTags('Branches')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Controller('api/v1/branches')
+@Controller('branches')
 export class BranchesController {
   constructor(private readonly branchesService: BranchesService) {}
 
@@ -33,5 +33,27 @@ export class BranchesController {
   @ApiOperation({ summary: 'Get branch details by ID' })
   async findOne(@Param('id') id: string) {
     return this.branchesService.findOne(id);
+  }
+
+  @Patch(':id')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER')
+  @ApiOperation({ summary: 'Update branch details (Super Admin / Franchise Owner / Branch Manager)' })
+  async update(
+    @Param('id') id: string,
+    @Body() dto: Partial<CreateBranchDto>,
+    @CurrentUser('id') actorUserId: string,
+  ) {
+    return this.branchesService.update(id, dto, actorUserId);
+  }
+
+  @Patch(':id/status')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER')
+  @ApiOperation({ summary: 'Activate or deactivate branch (Super Admin / Franchise Owner Only)' })
+  async updateStatus(
+    @Param('id') id: string,
+    @Body('status') status: string,
+    @CurrentUser('id') actorUserId: string,
+  ) {
+    return this.branchesService.updateStatus(id, status, actorUserId);
   }
 }

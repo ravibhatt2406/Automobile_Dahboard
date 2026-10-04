@@ -6,18 +6,20 @@ import { Employee } from '@/types/domain';
 import { UserRole, ROLE_LABELS } from '@/types/roles';
 import { X, UserPlus, Save, Shield } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
+import { branchService } from '@/services/branch.service';
 
 const employeeSchema = z.object({
   employeeCode: z.string().min(2, 'Employee code required'),
   firstName: z.string().min(2, 'First name required'),
   lastName: z.string().min(2, 'Last name required'),
   email: z.string().email('Valid email required'),
-  phone: z.string().min(5, 'Phone number required'),
-  department: z.string().min(2, 'Department required'),
-  designation: z.string().min(2, 'Designation required'),
-  franchiseId: z.string().optional(),
-  branchId: z.string().optional(),
-  status: z.enum(['active', 'inactive', 'on_leave', 'pending_approval']),
+  phone: z.string().optional(),
+  password: z.string().min(6, 'Password must be at least 6 characters').optional().or(z.literal('')),
+  department: z.string().optional(),
+  designation: z.string().optional(),
+  branchId: z.string().min(1, 'Branch assignment required'),
+  status: z.enum(['active', 'inactive', 'on_leave', 'pending_approval']).optional(),
 });
 
 type EmployeeFormData = z.infer<typeof employeeSchema>;
@@ -25,7 +27,7 @@ type EmployeeFormData = z.infer<typeof employeeSchema>;
 interface EmployeeFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: Partial<Employee>) => void;
+  onSubmit: (data: any) => Promise<void> | void;
   initialData?: Employee | null;
 }
 
@@ -37,6 +39,12 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
 }) => {
   const isEditing = Boolean(initialData);
 
+  const { data: branchesRes } = useQuery({
+    queryKey: ['branches'],
+    queryFn: () => branchService.getBranches(),
+  });
+  const branches = branchesRes?.data || [];
+
   const availableRoles: UserRole[] = [
     'BRANCH_MANAGER',
     'DEPARTMENT_MANAGER',
@@ -46,19 +54,11 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
     'BRANCH_OWNER',
   ];
 
-  const [selectedRoles, setSelectedRoles] = useState<string[]>(
-    initialData?.roles || ['BRANCH_MANAGER', 'SALES_EMPLOYEE']
+  const [selectedRole, setSelectedRole] = useState<UserRole>(
+    (initialData?.roles?.[0] as UserRole) || 'BRANCH_MANAGER'
   );
 
-  const toggleRole = (roleKey: string) => {
-    if (selectedRoles.includes(roleKey)) {
-      if (selectedRoles.length > 1) {
-        setSelectedRoles(selectedRoles.filter((r) => r !== roleKey));
-      }
-    } else {
-      setSelectedRoles([...selectedRoles, roleKey]);
-    }
-  };
+  const [formError, setFormError] = useState<string | null>(null);
 
   const {
     register,
@@ -67,25 +67,37 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
   } = useForm<EmployeeFormData>({
     resolver: zodResolver(employeeSchema),
     defaultValues: {
-      employeeCode: initialData?.employeeCode || 'EMP-1082',
+      employeeCode: initialData?.employeeCode || `EMP-${Math.floor(1000 + Math.random() * 9000)}`,
       firstName: initialData?.firstName || '',
       lastName: initialData?.lastName || '',
       email: initialData?.email || '',
       phone: initialData?.phone || '',
-      department: initialData?.department || 'Commercial Sales',
-      designation: initialData?.designation || 'Branch Sales Executive',
+      password: '',
+      department: initialData?.department || 'Operations',
+      designation: initialData?.designation || 'Staff',
+      branchId: initialData?.branchId || branches[0]?.id || '',
       status: initialData?.status || 'active',
     },
   });
 
-  const handleFormSubmit = (data: EmployeeFormData) => {
-    onSubmit({
-      ...initialData,
-      ...data,
-      roles: selectedRoles,
-      joinedAt: initialData?.joinedAt || new Date().toISOString(),
-    });
-    onClose();
+  const handleFormSubmit = async (data: EmployeeFormData) => {
+    setFormError(null);
+    try {
+      await onSubmit({
+        email: data.email,
+        phone: data.phone || undefined,
+        password: data.password || 'Password123!',
+        firstName: data.firstName,
+        lastName: data.lastName,
+        branchId: data.branchId || branches[0]?.id,
+        employeeCode: data.employeeCode,
+        roleName: selectedRole,
+        designation: data.designation,
+      });
+      onClose();
+    } catch (err: any) {
+      setFormError(err?.message || 'Failed to save employee.');
+    }
   };
 
   return (
@@ -108,6 +120,12 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
               </button>
             </div>
 
+            {formError && (
+              <div className="p-3 rounded-lg bg-rose-950/80 border border-rose-800 text-rose-300 text-xs">
+                {formError}
+              </div>
+            )}
+
             <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4 text-xs">
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -122,16 +140,20 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-slate-400 mb-1">Status</label>
+                  <label className="block text-slate-400 mb-1">Branch Hub</label>
                   <select
-                    {...register('status')}
+                    {...register('branchId')}
                     className="w-full h-9 px-3 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 focus:border-blue-500"
                   >
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                    <option value="on_leave">On Leave</option>
-                    <option value="pending_approval">Pending Approval</option>
+                    {branches.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name} ({b.code})
+                      </option>
+                    ))}
                   </select>
+                  {errors.branchId && (
+                    <p className="text-rose-400 text-[11px] mt-1">{errors.branchId.message}</p>
+                  )}
                 </div>
               </div>
 
@@ -180,6 +202,21 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
                 </div>
               </div>
 
+              {!isEditing && (
+                <div>
+                  <label className="block text-slate-400 mb-1">Initial Password</label>
+                  <input
+                    type="password"
+                    {...register('password')}
+                    placeholder="Leave blank for default (Password123!)"
+                    className="w-full h-9 px-3 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 focus:border-blue-500"
+                  />
+                  {errors.password && (
+                    <p className="text-rose-400 text-[11px] mt-1">{errors.password.message}</p>
+                  )}
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-slate-400 mb-1">Department</label>
@@ -198,22 +235,19 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
                 </div>
               </div>
 
-              {/* Multi-Role Assignment Support */}
+              {/* Role Assignment */}
               <div className="p-3 rounded-lg bg-slate-900/90 border border-slate-800 space-y-2">
                 <span className="text-[11px] font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1">
-                  <Shield className="w-3.5 h-3.5 text-blue-400" /> Multi-Role Assignment (Combined Roles)
+                  <Shield className="w-3.5 h-3.5 text-blue-400" /> Primary Assigned Role
                 </span>
-                <p className="text-[10px] text-slate-400">
-                  Select all active platform roles assigned to this employee.
-                </p>
                 <div className="grid grid-cols-2 gap-1.5 pt-1">
                   {availableRoles.map((roleKey) => {
-                    const isSelected = selectedRoles.includes(roleKey);
+                    const isSelected = selectedRole === roleKey;
                     return (
                       <button
                         type="button"
                         key={roleKey}
-                        onClick={() => toggleRole(roleKey)}
+                        onClick={() => setSelectedRole(roleKey)}
                         className={`px-2.5 py-1.5 rounded text-left text-[11px] flex items-center justify-between border transition-all ${
                           isSelected
                             ? 'bg-blue-600/20 text-blue-300 border-blue-500/40 font-semibold'
@@ -239,9 +273,9 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-lg shadow-blue-600/20"
+                  className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-lg shadow-blue-600/20 disabled:opacity-50"
                 >
-                  <Save className="w-3.5 h-3.5" /> Save Personnel Record
+                  <Save className="w-3.5 h-3.5" /> {isSubmitting ? 'Saving...' : 'Save Personnel Record'}
                 </button>
               </div>
             </form>

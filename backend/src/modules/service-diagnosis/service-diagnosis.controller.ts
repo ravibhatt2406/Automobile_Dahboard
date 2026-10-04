@@ -19,7 +19,7 @@ import { CurrentUser } from '@/common/decorators/current-user.decorator';
 @ApiTags('Service Diagnosis')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard, TenantScopeGuard)
-@Controller('api/v1')
+@Controller('')
 export class ServiceDiagnosisController {
   constructor(private readonly diagnosisService: ServiceDiagnosisService) {}
 

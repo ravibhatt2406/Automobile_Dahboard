@@ -20,7 +20,7 @@ import { InsuranceStatus } from '@prisma/client';
 @ApiTags('Insurance')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard, TenantScopeGuard)
-@Controller('api/v1/insurance/policies')
+@Controller('insurance/policies')
 export class InsuranceController {
   constructor(private readonly insuranceService: InsuranceService) {}
 

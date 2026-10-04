@@ -18,7 +18,7 @@ import { CurrentUser } from '@/common/decorators/current-user.decorator';
 @ApiTags('Service Labour')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard, TenantScopeGuard)
-@Controller('api/v1')
+@Controller('')
 export class ServiceLabourController {
   constructor(private readonly labourService: ServiceLabourService) {}
 

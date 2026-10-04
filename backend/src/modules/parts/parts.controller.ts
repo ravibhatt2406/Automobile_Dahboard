@@ -20,7 +20,7 @@ import { CurrentUser } from '@/common/decorators/current-user.decorator';
 @ApiTags('Parts & Inventory')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard, TenantScopeGuard)
-@Controller('api/v1/parts')
+@Controller('parts')
 export class PartsController {
   constructor(private readonly partsService: PartsService) {}
 

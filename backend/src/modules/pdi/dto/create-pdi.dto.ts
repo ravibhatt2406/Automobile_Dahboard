@@ -1,15 +1,15 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsEnum, IsNotEmpty, IsObject, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsArray, IsEnum, IsNotEmpty, IsObject, IsOptional, IsString } from 'class-validator';
 import { PdiStatus } from '@prisma/client';
 
 export class CreatePdiDto {
   @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' })
-  @IsUUID()
-  @IsNotEmpty()
-  vehicleId: string;
+  @IsString()
+  @IsOptional()
+  vehicleId?: string;
 
   @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', required: false })
-  @IsUUID()
+  @IsString()
   @IsOptional()
   bookingId?: string;
 

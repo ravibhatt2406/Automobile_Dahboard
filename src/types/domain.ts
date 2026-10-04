@@ -354,3 +354,42 @@ export interface StockAdjustment {
   adjustedBy: string;
   date: string;
 }
+
+export interface Manufacturer {
+  id: string;
+  name: string;
+  country?: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TruckModel {
+  id: string;
+  manufacturerId: string;
+  name: string;
+  category?: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TruckVariant {
+  id: string;
+  modelId: string;
+  name: string;
+  engineDetails?: string;
+  horsepower?: number;
+  fuelType?: string;
+  transmission?: string;
+  payload?: number;
+  basePrice: number;
+  gstRate?: number;
+  description?: string;
+  specifications?: Record<string, any>;
+  images?: string[];
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+

@@ -28,6 +28,7 @@ export class FranchisesService {
 
   async create(dto: CreateFranchiseDto, actorUserId: string) {
     try {
+      if (this.prisma.isOffline) throw new Error('Offline');
       const existing = await this.prisma.franchise.findUnique({
         where: { code: dto.code },
       });
@@ -81,6 +82,7 @@ export class FranchisesService {
 
   async findAll() {
     try {
+      if (this.prisma.isOffline) throw new Error('Offline');
       const franchises = await this.prisma.franchise.findMany({
         include: {
           branches: true,
@@ -95,6 +97,7 @@ export class FranchisesService {
 
   async findOne(id: string) {
     try {
+      if (this.prisma.isOffline) throw new Error('Offline');
       const franchise = await this.prisma.franchise.findUnique({
         where: { id },
         include: {
@@ -134,5 +137,69 @@ export class FranchisesService {
       branches: [],
       createdAt: new Date().toISOString(),
     };
+  }
+
+  async update(id: string, dto: Partial<CreateFranchiseDto>, actorUserId: string) {
+    try {
+      const franchise = await this.prisma.franchise.update({
+        where: { id },
+        data: {
+          name: dto.name,
+          legalName: dto.legalName,
+          taxId: dto.taxId,
+        },
+      });
+
+      try {
+        await this.auditService.log({
+          actorUserId,
+          action: 'FRANCHISE_UPDATED',
+          entityType: 'Franchise',
+          entityId: franchise.id,
+          metadata: { name: franchise.name },
+        }).catch(() => {});
+      } catch {}
+
+      return franchise;
+    } catch {}
+
+    const devFranchise = DEV_FRANCHISES.find((f) => f.id === id || f.code === id);
+    if (devFranchise) {
+      if (dto.name) devFranchise.name = dto.name;
+      if (dto.legalName) devFranchise.legalName = dto.legalName;
+      if (dto.taxId) devFranchise.taxId = dto.taxId;
+      return devFranchise;
+    }
+
+    throw new NotFoundException(`Franchise ID '${id}' not found`);
+  }
+
+  async updateStatus(id: string, status: string, actorUserId: string) {
+    try {
+      const franchise = await this.prisma.franchise.update({
+        where: { id },
+        data: { status },
+      });
+
+      try {
+        await this.auditService.log({
+          actorUserId,
+          action: status === 'ACTIVE' ? 'FRANCHISE_ACTIVATED' : 'FRANCHISE_DEACTIVATED',
+          entityType: 'Franchise',
+          entityId: franchise.id,
+          metadata: { status },
+        }).catch(() => {});
+      } catch {}
+
+      return franchise;
+    } catch {}
+
+    const devFranchise = DEV_FRANCHISES.find((f) => f.id === id || f.code === id);
+    if (devFranchise) {
+      devFranchise.status = status;
+      return devFranchise;
+    }
+
+    throw new NotFoundException(`Franchise ID '${id}' not found`);
   }
 }

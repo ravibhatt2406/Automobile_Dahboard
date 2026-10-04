@@ -8,7 +8,7 @@ import { Roles } from '@/common/decorators/roles.decorator';
 @ApiTags('Permissions')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Controller('api/v1/permissions')
+@Controller('permissions')
 export class PermissionsController {
   constructor(private readonly permissionsService: PermissionsService) {}
 

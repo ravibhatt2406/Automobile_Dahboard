@@ -4,12 +4,16 @@ import { DataTable, Column } from '@/components/data-display/DataTable';
 import { Vehicle } from '@/types/domain';
 import { useQuery } from '@tanstack/react-query';
 import { vehicleService } from '@/services/vehicle.service';
-import { Plus, LayoutGrid, Table, Image as ImageIcon, Filter } from 'lucide-react';
+import { Plus, LayoutGrid, Table, Image as ImageIcon, Filter, ShieldCheck, Truck, ExternalLink } from 'lucide-react';
 import { StatusBadge } from '@/components/data-display/StatusBadge';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/app/providers/AuthContext';
 
 export const VehiclesListPage: React.FC = () => {
   const navigate = useNavigate();
+  const { activeRole } = useAuth();
+  const isCustomer = activeRole === 'CUSTOMER';
+
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [filterMake, setFilterMake] = useState<string>('ALL');
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
@@ -19,7 +23,57 @@ export const VehiclesListPage: React.FC = () => {
     queryFn: () => vehicleService.getVehicles(),
   });
 
-  const vehicles = data?.data || [];
+  // Default demo vehicles when backend has 0 registered vehicles for user view
+  const defaultCustomerVehicles: Vehicle[] = [
+    {
+      id: 'veh-01',
+      vin: 'MAT482500K982401',
+      make: 'Ashok Leyland',
+      model: '4825 10x4 Tipper',
+      variant: 'BS6 Heavy Tipper',
+      vehicleType: 'Tipper Truck',
+      year: 2026,
+      color: 'White',
+      fuelType: 'diesel',
+      transmission: 'manual',
+      franchiseId: 'fr-ashok-leyland',
+      franchiseName: 'Ashok Leyland',
+      branchId: 'br-jaipur',
+      branchName: 'Jaipur Branch',
+      sellingPrice: 4850000,
+      status: 'available',
+      registrationNumber: 'RJ-14-EA-4825',
+      photos: ['https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=1200&q=80'],
+      primaryPhoto: 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=1200&q=80',
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'veh-02',
+      vin: 'MAT553000K110482',
+      make: 'Tata Motors',
+      model: 'Prima 5530.S Trailer',
+      variant: 'Cummins 300HP',
+      vehicleType: 'Tractor Trailer',
+      year: 2026,
+      color: 'Yellow',
+      fuelType: 'diesel',
+      transmission: 'manual',
+      franchiseId: 'fr-tata',
+      franchiseName: 'Tata Motors',
+      branchId: 'br-jodhpur',
+      branchName: 'Jodhpur Branch',
+      sellingPrice: 5100000,
+      status: 'available',
+      registrationNumber: 'RJ-14-GA-5530',
+      photos: ['https://images.unsplash.com/photo-1591768793355-74d04bb6608f?auto=format&fit=crop&w=1200&q=80'],
+      primaryPhoto: 'https://images.unsplash.com/photo-1591768793355-74d04bb6608f?auto=format&fit=crop&w=1200&q=80',
+      createdAt: new Date().toISOString(),
+    },
+  ];
+
+  const fetchedVehicles = data?.data || [];
+  const vehicles = fetchedVehicles.length > 0 ? fetchedVehicles : defaultCustomerVehicles;
+
   const filteredVehicles = vehicles.filter((v) => {
     if (filterMake !== 'ALL' && v.make !== filterMake) return false;
     if (filterStatus !== 'ALL' && v.status !== filterStatus) return false;
@@ -27,23 +81,30 @@ export const VehiclesListPage: React.FC = () => {
   });
 
   const columns: Column<Vehicle>[] = [
-    { header: 'VIN', accessorKey: 'vin', className: 'font-mono text-xs font-semibold text-blue-400' },
+    { header: 'VIN / Reg', cell: (row) => (
+      <div>
+        <span className="font-mono font-bold text-zinc-900 block">{row.registrationNumber || 'Reg Pending'}</span>
+        <span className="font-mono text-[10px] text-zinc-400">VIN: {row.vin}</span>
+      </div>
+    )},
     {
-      header: 'Make & Model',
+      header: 'Manufacturer & Model',
       cell: (row) => (
         <div>
-          <span className="font-semibold text-slate-100 block">
+          <span className="font-bold text-[#111111] block">
             {row.year} {row.make} {row.model}
           </span>
-          <span className="text-xs text-slate-400">{row.vehicleType}</span>
+          <span className="text-xs text-zinc-500">{row.vehicleType}</span>
         </div>
       ),
     },
-    { header: 'Fuel', accessorKey: 'fuelType', className: 'capitalize' },
-    { header: 'Dealership Branch', accessorKey: 'branchName' },
+    { header: 'Fuel & Trans', cell: (row) => (
+      <span className="capitalize font-mono text-xs text-zinc-700">{row.fuelType} • {row.transmission}</span>
+    )},
+    { header: 'Branch Location', accessorKey: 'branchName' },
     {
-      header: 'Price',
-      cell: (row) => `$${(row.sellingPrice || 0).toLocaleString()}`,
+      header: 'Ex-Showroom Price',
+      cell: (row) => `₹${(row.sellingPrice || 0).toLocaleString('en-IN')}`,
     },
     {
       header: 'Status',
@@ -54,29 +115,33 @@ export const VehiclesListPage: React.FC = () => {
       cell: (row) => (
         <button
           onClick={() => navigate(`/inventory/vehicles/${row.id}`)}
-          className="text-xs text-blue-400 hover:text-blue-300 font-medium underline"
+          className="text-xs font-semibold text-[#111111] hover:text-[#F5A800] underline"
         >
-          Specs & 3D
+          View Overview →
         </button>
       ),
     },
   ];
 
   return (
-    <div>
+    <div className="space-y-6">
       <PageHeader
-        title="Vehicle Inventory Stock"
-        subtitle="Commercial truck stock pool, chassis inventory, and spec registry"
-        breadcrumbItems={[{ label: 'Inventory' }, { label: 'Vehicles' }]}
+        title={isCustomer ? 'My Vehicles' : 'Vehicle Inventory Stock'}
+        subtitle={
+          isCustomer
+            ? 'Your active commercial vehicle fleet, registration details, compliance certificates, and service schedule'
+            : 'Commercial truck stock pool, chassis inventory, and spec registry'
+        }
+        breadcrumbItems={isCustomer ? [{ label: 'My Vehicles' }] : [{ label: 'Inventory' }, { label: 'Vehicles' }]}
         actions={
           <div className="flex items-center gap-3">
-            <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg p-0.5">
+            <div className="flex items-center bg-zinc-100 border border-zinc-200 rounded-lg p-0.5">
               <button
                 onClick={() => setViewMode('grid')}
                 className={`p-1.5 rounded-md text-xs flex items-center gap-1 font-medium transition-colors ${
                   viewMode === 'grid'
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-[#111111] text-[#F5A800] shadow-xs'
+                    : 'text-zinc-500 hover:text-zinc-900'
                 }`}
                 title="Grid Showcase"
               >
@@ -86,8 +151,8 @@ export const VehiclesListPage: React.FC = () => {
                 onClick={() => setViewMode('table')}
                 className={`p-1.5 rounded-md text-xs flex items-center gap-1 font-medium transition-colors ${
                   viewMode === 'table'
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-[#111111] text-[#F5A800] shadow-xs'
+                    : 'text-zinc-500 hover:text-zinc-900'
                 }`}
                 title="Table View"
               >
@@ -95,110 +160,108 @@ export const VehiclesListPage: React.FC = () => {
               </button>
             </div>
 
-            <button
-              onClick={() => navigate('/inventory/vehicles/new')}
-              className="inline-flex items-center gap-2 px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg transition-colors shadow-lg shadow-blue-600/20"
-            >
-              <Plus className="w-4 h-4" /> Add Commercial Vehicle
-            </button>
+            {!isCustomer && (
+              <button
+                onClick={() => navigate('/inventory/vehicles/new')}
+                className="inline-flex items-center gap-2 px-3.5 py-2 bg-[#111111] hover:bg-black text-[#F5A800] text-xs font-semibold rounded-lg transition-colors shadow-xs"
+              >
+                <Plus className="w-4 h-4" /> Add Vehicle Asset
+              </button>
+            )}
           </div>
         }
       />
 
       {/* Filter Bar */}
-      <div className="cockpit-card p-3 rounded-xl border border-slate-800 mb-6 flex flex-wrap items-center gap-3 text-xs">
-        <span className="text-slate-400 font-semibold flex items-center gap-1">
-          <Filter className="w-3.5 h-3.5 text-blue-400" /> Filters:
+      <div className="cockpit-card p-3 rounded-xl border border-[#E5E5E5] bg-white flex flex-wrap items-center gap-3 text-xs">
+        <span className="text-zinc-500 font-semibold flex items-center gap-1">
+          <Filter className="w-3.5 h-3.5 text-[#F5A800]" /> Filter Inventory:
         </span>
         <select
           value={filterMake}
           onChange={(e) => setFilterMake(e.target.value)}
-          className="bg-slate-900 border border-slate-800 rounded px-2.5 py-1 text-slate-200 focus:outline-none"
+          className="bg-zinc-50 border border-zinc-200 rounded-lg px-2.5 py-1 text-zinc-900 focus:outline-none"
         >
           <option value="ALL">All Manufacturers</option>
-          <option value="Titan Commercial">Titan Commercial</option>
-          <option value="Volvo Trucks">Volvo Trucks</option>
+          <option value="Ashok Leyland">Ashok Leyland</option>
+          <option value="Tata Motors">Tata Motors</option>
         </select>
 
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
-          className="bg-slate-900 border border-slate-800 rounded px-2.5 py-1 text-slate-200 focus:outline-none"
+          className="bg-zinc-50 border border-zinc-200 rounded-lg px-2.5 py-1 text-zinc-900 focus:outline-none"
         >
           <option value="ALL">All Statuses</option>
           <option value="available">Available Stock</option>
           <option value="reserved">Reserved</option>
-          <option value="in_transit">In Transit</option>
-          <option value="under_service">Under Service</option>
+          <option value="delivered">Delivered</option>
         </select>
       </div>
 
       {viewMode === 'grid' ? (
-        filteredVehicles.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredVehicles.map((vehicle) => (
-              <div
-                key={vehicle.id}
-                onClick={() => navigate(`/inventory/vehicles/${vehicle.id}`)}
-                className="cockpit-card cockpit-card-hover p-4 rounded-xl border border-slate-800 cursor-pointer space-y-3 flex flex-col justify-between"
-              >
-                {/* Vehicle Image / No Image State */}
-                <div className="w-full h-40 rounded-lg bg-slate-950 border border-slate-800 overflow-hidden flex items-center justify-center relative">
-                  {vehicle.primaryPhoto || (vehicle.photos && vehicle.photos[0]) ? (
-                    <img
-                      src={vehicle.primaryPhoto || vehicle.photos[0]}
-                      alt={vehicle.model}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex flex-col items-center justify-center text-center p-3 text-slate-600">
-                      <ImageIcon className="w-6 h-6 mb-1 text-slate-600" />
-                      <span className="text-[11px] font-medium text-slate-500">No vehicle image</span>
-                    </div>
-                  )}
-                  <div className="absolute top-2 right-2">
-                    <StatusBadge status={vehicle.status} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredVehicles.map((vehicle) => (
+            <div
+              key={vehicle.id}
+              onClick={() => navigate(`/inventory/vehicles/${vehicle.id}`)}
+              className="cockpit-card rounded-xl border border-[#E5E5E5] bg-white cursor-pointer overflow-hidden flex flex-col justify-between hover:border-zinc-300 transition-all shadow-xs group"
+            >
+              {/* Vehicle Image Header */}
+              <div className="w-full h-44 bg-zinc-900 border-b border-zinc-200 overflow-hidden relative">
+                <img
+                  src={vehicle.primaryPhoto || vehicle.photos?.[0] || 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=1200&q=80'}
+                  alt={vehicle.model}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute top-3 left-3 bg-black/80 text-[#F5A800] text-[10px] font-mono font-bold px-2 py-0.5 rounded uppercase">
+                  {vehicle.make}
+                </div>
+                <div className="absolute top-3 right-3">
+                  <StatusBadge status={vehicle.status} />
+                </div>
+              </div>
+
+              {/* Vehicle Details */}
+              <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
+                <div>
+                  <span className="font-mono text-[10px] text-amber-700 font-bold uppercase tracking-wider block">
+                    Reg: {vehicle.registrationNumber || 'Registration Pending'}
+                  </span>
+                  <h4 className="text-base font-bold text-[#111111] group-hover:text-[#F5A800] transition-colors mt-0.5">
+                    {vehicle.year} {vehicle.make} {vehicle.model}
+                  </h4>
+                  <p className="text-xs text-zinc-500">{vehicle.vehicleType}</p>
+                </div>
+
+                <div className="bg-zinc-50 p-2.5 rounded-lg border border-zinc-200 font-mono text-[11px] grid grid-cols-2 gap-2 text-zinc-700">
+                  <div>
+                    <span className="text-[9px] uppercase text-zinc-400 block font-sans">VIN</span>
+                    <span className="font-semibold text-zinc-900 truncate block">{vehicle.vin}</span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] uppercase text-zinc-400 block font-sans">Branch</span>
+                    <span className="font-semibold text-zinc-900 truncate block">{vehicle.branchName}</span>
                   </div>
                 </div>
 
-                <div className="space-y-1">
-                  <span className="font-mono text-[10px] text-blue-400 uppercase tracking-widest">
-                    VIN: {vehicle.vin}
-                  </span>
-                  <h4 className="text-sm font-bold text-slate-100">
-                    {vehicle.year} {vehicle.make} {vehicle.model}
-                  </h4>
-                  <p className="text-xs text-slate-400">{vehicle.vehicleType}</p>
-                </div>
-
-                <div className="flex items-center justify-between pt-2 border-t border-slate-800 text-xs font-mono">
-                  <span className="text-slate-400">{vehicle.branchName}</span>
-                  <span className="font-bold text-slate-100">
-                    ${(vehicle.sellingPrice || 0).toLocaleString()}
+                <div className="flex items-center justify-between pt-2 border-t border-zinc-100 text-xs font-mono">
+                  <span className="text-xs text-zinc-500 font-sans">Ex-Showroom:</span>
+                  <span className="font-bold text-zinc-900 text-sm">
+                    ₹{(vehicle.sellingPrice || 0).toLocaleString('en-IN')}
                   </span>
                 </div>
               </div>
-            ))}
-          </div>
-        ) : (
-          <DataTable<Vehicle>
-            columns={columns}
-            data={[]}
-            emptyTitle="No vehicles have been added yet."
-            emptyDescription="There are no commercial truck inventory assets recorded in the database."
-            emptyActionLabel="Add Vehicle Asset"
-            onEmptyAction={() => navigate('/inventory/vehicles/new')}
-          />
-        )
+            </div>
+          ))}
+        </div>
       ) : (
         <DataTable<Vehicle>
           columns={columns}
           data={filteredVehicles}
           isLoading={isLoading}
-          emptyTitle="No vehicles have been added yet."
-          emptyDescription="There are no commercial truck inventory assets recorded in the database."
-          emptyActionLabel="Add Vehicle Asset"
-          onEmptyAction={() => navigate('/inventory/vehicles/new')}
+          emptyTitle="No commercial vehicles found"
+          emptyDescription="There are no vehicle assets matching your criteria."
         />
       )}
     </div>

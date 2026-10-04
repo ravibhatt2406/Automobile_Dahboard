@@ -3,32 +3,32 @@ import { IsBoolean, IsDateString, IsNotEmpty, IsNumber, IsOptional, IsString, Is
 
 export class CreateJobCardDto {
   @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', required: false })
-  @IsUUID()
+  @IsString()
   @IsOptional()
   appointmentId?: string;
 
   @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' })
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   customerId: string;
 
   @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' })
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   vehicleId: string;
 
   @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' })
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   branchId: string;
 
   @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' })
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   serviceAdvisorId: string;
 
   @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', required: false })
-  @IsUUID()
+  @IsString()
   @IsOptional()
   assignedMechanicId?: string;
 

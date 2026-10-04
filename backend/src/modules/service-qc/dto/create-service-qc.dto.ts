@@ -3,10 +3,10 @@ import { IsArray, IsEnum, IsNotEmpty, IsObject, IsOptional, IsString, IsUUID } f
 import { QcStatus } from '@prisma/client';
 
 export class CreateServiceQcDto {
-  @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' })
-  @IsUUID()
-  @IsNotEmpty()
-  serviceJobId: string;
+  @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', required: false })
+  @IsString()
+  @IsOptional()
+  serviceJobId?: string;
 
   @ApiProperty({
     example: {

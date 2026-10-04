@@ -110,3 +110,11 @@ export async function apiFetch<T>(
   }
 }
 
+export function unwrapData<T>(res: any): T {
+  if (res && typeof res === 'object' && 'data' in res && res.data !== undefined) {
+    return res.data as T;
+  }
+  return res as T;
+}
+
+

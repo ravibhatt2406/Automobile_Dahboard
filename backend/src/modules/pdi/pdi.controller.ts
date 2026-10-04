@@ -19,7 +19,7 @@ import { CurrentUser } from '@/common/decorators/current-user.decorator';
 @ApiTags('PDI')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard, TenantScopeGuard)
-@Controller('api/v1')
+@Controller('')
 export class PdiController {
   constructor(private readonly pdiService: PdiService) {}
 

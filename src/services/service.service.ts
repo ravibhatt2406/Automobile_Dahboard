@@ -29,3 +29,6 @@ export const serviceManagementService = {
     }
   },
 };
+
+export const serviceService = serviceManagementService;
+

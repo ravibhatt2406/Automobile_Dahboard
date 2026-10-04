@@ -1,25 +1,25 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID } from 'class-validator';
-import { LeadPriority, LeadStatus } from '@prisma/client';
+import { IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+import { LeadPriority } from '@prisma/client';
 
 export class CreateLeadDto {
   @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' })
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   customerId: string;
 
-  @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' })
-  @IsUUID()
-  @IsNotEmpty()
-  franchiseId: string;
-
-  @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' })
-  @IsUUID()
-  @IsNotEmpty()
-  branchId: string;
+  @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', required: false })
+  @IsString()
+  @IsOptional()
+  franchiseId?: string;
 
   @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', required: false })
-  @IsUUID()
+  @IsString()
+  @IsOptional()
+  branchId?: string;
+
+  @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', required: false })
+  @IsString()
   @IsOptional()
   assignedEmployeeId?: string;
 
@@ -38,7 +38,7 @@ export class CreateLeadDto {
   @IsOptional()
   expectedBudget?: number;
 
-  @ApiProperty({ enum: LeadPriority, example: LeadPriority.HIGH })
+  @ApiProperty({ enum: LeadPriority, example: LeadPriority.HIGH, required: false })
   @IsEnum(LeadPriority)
   @IsOptional()
   priority?: LeadPriority;

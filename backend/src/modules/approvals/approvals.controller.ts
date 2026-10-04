@@ -10,7 +10,7 @@ import { CurrentUser } from '@/common/decorators/current-user.decorator';
 @ApiTags('Approvals')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Controller('api/v1/approvals')
+@Controller('approvals')
 export class ApprovalsController {
   constructor(private readonly approvalsService: ApprovalsService) {}
 

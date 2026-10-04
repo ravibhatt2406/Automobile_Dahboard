@@ -39,13 +39,32 @@ export const AppShell: React.FC<{ children?: React.ReactNode }> = ({ children })
         />
 
         <main
-          className={`flex-1 transition-all duration-300 p-4 md:p-6 lg:p-8 min-w-0 ${
+          className={`flex-1 transition-all duration-300 p-4 md:p-6 lg:p-8 min-w-0 flex flex-col justify-between ${
             collapsed ? 'lg:ml-16' : 'lg:ml-64'
           }`}
         >
-          <div className="max-w-7xl mx-auto space-y-6">
+          <div className="max-w-7xl mx-auto space-y-6 w-full">
             {children || <Outlet />}
           </div>
+
+          <footer className="max-w-7xl mx-auto w-full pt-8 mt-12 border-t border-[#E5E5E5] text-[11px] text-zinc-500 font-mono flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div>
+              <span>Titan Auto Commercial Platform © 2026</span>
+              <span className="mx-2">•</span>
+              <span>Ashok Leyland & Tata Commercial Franchise Network</span>
+            </div>
+            <div className="flex items-center gap-4 text-zinc-600">
+              <a href="#privacy" onClick={(e) => { e.preventDefault(); alert("Titan Auto Privacy Policy: Personal customer data, VIN numbers, and financial details are protected under applicable Indian data privacy regulations. Data is strictly processed for vehicle transactions, insurance, and service fulfillment."); }} className="hover:text-zinc-900 underline">
+                Privacy Policy
+              </a>
+              <span>•</span>
+              <a href="#terms" onClick={(e) => { e.preventDefault(); alert("Titan Auto Commercial Terms: Quotations, GST invoices, vehicle bookings, and warranty terms are subject to dealership agreement and vehicle manufacturer policies."); }} className="hover:text-zinc-900 underline">
+                Terms of Service
+              </a>
+              <span>•</span>
+              <span className="text-zinc-400">GSTIN Registered Dealerships</span>
+            </div>
+          </footer>
         </main>
       </div>
     </div>

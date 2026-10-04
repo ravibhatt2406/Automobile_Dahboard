@@ -21,7 +21,7 @@ import { FinanceStatus } from '@prisma/client';
 @ApiTags('Finance')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard, TenantScopeGuard)
-@Controller('api/v1/finance/applications')
+@Controller('finance/applications')
 export class FinanceController {
   constructor(private readonly financeService: FinanceService) {}
 

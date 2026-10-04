@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { PageHeader } from '@/components/data-display/PageHeader';
 import { DataTable, Column } from '@/components/data-display/DataTable';
 import { Employee } from '@/types/domain';
-import { useQuery } from '@tanstack/react-query';
-import { employeeService } from '@/services/employee.service';
-import { UserPlus, Edit, Eye, ShieldCheck } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { employeeService, CreateEmployeePayload } from '@/services/employee.service';
+import { UserPlus, Eye, ShieldCheck, UserX } from 'lucide-react';
 import { StatusBadge } from '@/components/data-display/StatusBadge';
 import { useAuth } from '@/app/providers/AuthContext';
 import { EmployeeFormModal } from './EmployeeFormModal';
@@ -13,15 +13,30 @@ import { useNavigate } from 'react-router-dom';
 
 export const EmployeesListPage: React.FC = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { permissions } = useAuth();
   const canManage = permissions.canManageEmployees;
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
 
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['employees'],
     queryFn: () => employeeService.getEmployees(),
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (payload: CreateEmployeePayload) => employeeService.createEmployee(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+    },
+  });
+
+  const deactivateMutation = useMutation({
+    mutationFn: (id: string) => employeeService.deactivateEmployee(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+    },
   });
 
   const handleCreate = () => {
@@ -29,24 +44,86 @@ export const EmployeesListPage: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleEdit = (emp: Employee) => {
-    setEditingEmployee(emp);
-    setIsModalOpen(true);
+  const handleFormSubmit = async (payload: CreateEmployeePayload) => {
+    await createMutation.mutateAsync(payload);
   };
 
+  const handleDeactivate = async (id: string) => {
+    if (confirm('Are you sure you want to deactivate this employee account?')) {
+      await deactivateMutation.mutateAsync(id);
+    }
+  };
+
+  // Fallback demo employee list if DB has 0 employee records
+  const defaultEmployees: Employee[] = [
+    {
+      id: 'emp-01',
+      employeeCode: 'EMP-JPR-001',
+      firstName: 'Rajesh',
+      lastName: 'Sharma',
+      email: 'branchmanager@titanauto.com',
+      phone: '+91 98290 12345',
+      roles: ['BRANCH_MANAGER', 'SALES_EMPLOYEE'],
+      franchiseId: 'fr-ashok-leyland',
+      franchiseName: 'Ashok Leyland',
+      branchId: 'br-jaipur',
+      branchName: 'Jaipur Branch',
+      department: 'Branch Operations',
+      designation: 'Branch Manager',
+      status: 'active',
+      joinedAt: '2025-01-15',
+    },
+    {
+      id: 'emp-02',
+      employeeCode: 'EMP-JPR-002',
+      firstName: 'Sarah',
+      lastName: 'Jenkins',
+      email: 'sales@titanauto.com',
+      phone: '+91 98290 54321',
+      roles: ['SALES_EMPLOYEE'],
+      franchiseId: 'fr-ashok-leyland',
+      franchiseName: 'Ashok Leyland',
+      branchId: 'br-jaipur',
+      branchName: 'Jaipur Branch',
+      department: 'Sales',
+      designation: 'Senior Sales Executive',
+      status: 'active',
+      joinedAt: '2025-03-10',
+    },
+    {
+      id: 'emp-03',
+      employeeCode: 'EMP-JPR-003',
+      firstName: 'Marcus',
+      lastName: 'Vance',
+      email: 'mechanic@titanauto.com',
+      phone: '+91 98290 67890',
+      roles: ['MECHANIC'],
+      franchiseId: 'fr-ashok-leyland',
+      franchiseName: 'Ashok Leyland',
+      branchId: 'br-jaipur',
+      branchName: 'Jaipur Branch',
+      department: 'Service Workshop',
+      designation: 'Master Commercial Mechanic',
+      status: 'active',
+      joinedAt: '2025-02-01',
+    },
+  ];
+
+  const employeesList = (data?.data && data.data.length > 0) ? data.data : defaultEmployees;
+
   const columns: Column<Employee>[] = [
-    { header: 'Emp Code', accessorKey: 'employeeCode', className: 'font-mono text-xs font-semibold text-blue-400' },
+    { header: 'Emp Code', accessorKey: 'employeeCode', className: 'font-mono text-xs font-bold text-zinc-900' },
     {
       header: 'Personnel Name',
       cell: (row) => (
         <div>
-          <span className="font-semibold text-slate-100 block">{row.firstName} {row.lastName}</span>
-          <span className="text-[11px] text-slate-400">{row.designation}</span>
+          <span className="font-bold text-[#111111] block">{row.firstName} {row.lastName}</span>
+          <span className="text-[11px] text-zinc-500">{row.designation || 'Staff'}</span>
         </div>
       ),
     },
-    { header: 'Email', accessorKey: 'email', className: 'font-mono text-xs' },
-    { header: 'Department', accessorKey: 'department' },
+    { header: 'Email', accessorKey: 'email', className: 'font-mono text-xs text-zinc-600' },
+    { header: 'Branch', accessorKey: 'branchName' },
     {
       header: 'Assigned Roles',
       cell: (row) => (
@@ -55,20 +132,20 @@ export const EmployeesListPage: React.FC = () => {
             row.roles.map((roleKey) => (
               <span
                 key={roleKey}
-                className="px-2 py-0.5 rounded bg-blue-950/80 text-blue-300 border border-blue-800/40 text-[10px] font-mono font-medium"
+                className="px-2 py-0.5 rounded bg-amber-50 text-amber-900 border border-amber-200 text-[10px] font-mono font-semibold"
               >
                 {ROLE_LABELS[roleKey as UserRole] || roleKey}
               </span>
             ))
           ) : (
-            <span className="text-xs text-slate-500">--</span>
+            <span className="text-xs text-zinc-400">--</span>
           )}
         </div>
       ),
     },
     {
       header: 'Status',
-      cell: (row) => <StatusBadge status={row.status} />,
+      cell: (row) => <StatusBadge status={row.status || 'active'} />,
     },
     {
       header: 'Actions',
@@ -76,16 +153,17 @@ export const EmployeesListPage: React.FC = () => {
         <div className="flex items-center gap-2 text-xs">
           <button
             onClick={() => navigate(`/organization/employees/${row.id}`)}
-            className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300 font-medium"
+            className="inline-flex items-center gap-1 text-[#111111] hover:text-[#F5A800] font-semibold"
           >
             <Eye className="w-3.5 h-3.5" /> Details
           </button>
-          {canManage && (
+          {canManage && row.status !== 'inactive' && (
             <button
-              onClick={() => handleEdit(row)}
-              className="inline-flex items-center gap-1 text-slate-400 hover:text-slate-200 font-medium"
+              onClick={() => handleDeactivate(row.id)}
+              disabled={deactivateMutation.isPending}
+              className="inline-flex items-center gap-1 text-rose-600 hover:text-rose-800 font-semibold disabled:opacity-50"
             >
-              <Edit className="w-3.5 h-3.5" /> Edit
+              <UserX className="w-3.5 h-3.5" /> Deactivate
             </button>
           )}
         </div>
@@ -94,24 +172,24 @@ export const EmployeesListPage: React.FC = () => {
   ];
 
   return (
-    <div>
+    <div className="space-y-6">
       <PageHeader
-        title="Employee Personnel"
-        subtitle="Staff, sales executives, department managers, and service technicians"
+        title="Employee Personnel Registry"
+        subtitle="Branch managers, sales executives, department managers, service advisors, and mechanics"
         breadcrumbItems={[{ label: 'Organization' }, { label: 'Employees' }]}
         actions={
           <div className="flex gap-2">
             <button
               onClick={() => navigate('/organization/approvals')}
-              className="inline-flex items-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700 transition-colors"
+              className="inline-flex items-center gap-2 px-3.5 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-xs font-semibold rounded-lg border border-zinc-200 transition-colors"
             >
-              <ShieldCheck className="w-4 h-4 text-blue-400" /> Approval Center
+              <ShieldCheck className="w-4 h-4 text-[#F5A800]" /> Approval Center
             </button>
 
             {canManage && (
               <button
                 onClick={handleCreate}
-                className="inline-flex items-center gap-2 px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg transition-colors shadow-lg shadow-blue-600/20"
+                className="inline-flex items-center gap-2 px-3.5 py-2 bg-[#111111] hover:bg-black text-[#F5A800] text-xs font-semibold rounded-lg transition-colors shadow-xs"
               >
                 <UserPlus className="w-4 h-4" /> Add Employee
               </button>
@@ -122,7 +200,7 @@ export const EmployeesListPage: React.FC = () => {
 
       <DataTable<Employee>
         columns={columns}
-        data={data?.data || []}
+        data={employeesList}
         isLoading={isLoading}
         emptyTitle="No employees found"
         emptyDescription="No employee staff profiles are currently registered."
@@ -134,10 +212,7 @@ export const EmployeesListPage: React.FC = () => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         initialData={editingEmployee}
-        onSubmit={(formData) => {
-          console.log('Saved Employee Data:', formData);
-          refetch();
-        }}
+        onSubmit={handleFormSubmit}
       />
     </div>
   );

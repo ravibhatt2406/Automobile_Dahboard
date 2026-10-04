@@ -47,16 +47,26 @@ export function DataTable<T extends { id: string | number }>({
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [currentPage, setCurrentPage] = useState(page);
 
+  // Ensure data is always an array
+  const safeData = useMemo(() => {
+    if (Array.isArray(data)) return data;
+    if (data && typeof data === 'object') {
+      if (Array.isArray((data as any).data)) return (data as any).data;
+      if (Array.isArray((data as any).items)) return (data as any).items;
+    }
+    return [];
+  }, [data]);
+
   // Search Filter
   const filteredData = useMemo(() => {
-    if (!searchTerm.trim()) return data;
+    if (!searchTerm.trim()) return safeData;
     const term = searchTerm.toLowerCase();
-    return data.filter((row) =>
-      Object.values(row).some((val) =>
+    return safeData.filter((row: T) =>
+      row && typeof row === 'object' && Object.values(row).some((val) =>
         val !== null && val !== undefined && String(val).toLowerCase().includes(term)
       )
     );
-  }, [data, searchTerm]);
+  }, [safeData, searchTerm]);
 
   // Sort Filter
   const sortedData = useMemo(() => {
@@ -94,7 +104,7 @@ export function DataTable<T extends { id: string | number }>({
   return (
     <div className="cockpit-card rounded-xl border border-[#E5E5E5] bg-white overflow-hidden shadow-xs space-y-0">
       {/* Search Bar Header */}
-      {searchable && data && data.length > 0 && (
+      {searchable && safeData.length > 0 && (
         <div className="p-3.5 border-b border-[#E5E5E5] bg-zinc-50/70 flex items-center justify-between gap-3">
           <div className="relative flex items-center flex-1 max-w-xs">
             <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-3 pointer-events-none" />
@@ -154,13 +164,13 @@ export function DataTable<T extends { id: string | number }>({
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E5E5E5] font-sans">
-              {paginatedData.map((row) => (
-                <tr key={row.id} className="hover:bg-zinc-50/80 transition-colors">
+              {paginatedData.map((row: T, rowIdx: number) => (
+                <tr key={row?.id ?? rowIdx} className="hover:bg-zinc-50/80 transition-colors">
                   {columns.map((col, idx) => (
                     <td key={idx} className={`px-4 py-3.5 text-zinc-900 font-medium ${col.className || ''}`}>
                       {col.cell
                         ? col.cell(row)
-                        : col.accessorKey
+                        : col.accessorKey && row
                         ? String(row[col.accessorKey] ?? '--')
                         : '--'}
                     </td>

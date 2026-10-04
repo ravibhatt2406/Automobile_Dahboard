@@ -10,7 +10,7 @@ import { CurrentUser } from '@/common/decorators/current-user.decorator';
 @ApiTags('Dashboards')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard, TenantScopeGuard)
-@Controller('api/v1/dashboards')
+@Controller('dashboards')
 export class DashboardsController {
   constructor(private readonly dashboardsService: DashboardsService) {}
 

@@ -21,7 +21,7 @@ import { InvoiceStatus } from '@prisma/client';
 @ApiTags('Invoices')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard, TenantScopeGuard)
-@Controller('api/v1/invoices')
+@Controller('invoices')
 export class InvoicesController {
   constructor(private readonly invoicesService: InvoicesService) {}
 

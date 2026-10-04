@@ -1,12 +1,29 @@
 import { Branch } from '@/types/domain';
 import { FilterParams, PaginatedResponse } from '@/types/common';
-import { apiFetch } from './apiClient';
+import { apiFetch, unwrapData } from './apiClient';
 
 export const branchService = {
   async getBranches(params?: FilterParams): Promise<PaginatedResponse<Branch>> {
     try {
-      const query = new URLSearchParams(params as Record<string, string>).toString();
-      return await apiFetch<PaginatedResponse<Branch>>(`/branches?${query}`);
+      const cleanParams: Record<string, string> = {};
+      if (params?.search) cleanParams.search = params.search;
+      if (params?.franchiseId) cleanParams.franchiseId = params.franchiseId;
+
+      const query = new URLSearchParams(cleanParams).toString();
+      const response = await apiFetch<any>(`/branches${query ? `?${query}` : ''}`);
+      const unwrapped = unwrapData<any>(response);
+
+      if (Array.isArray(unwrapped)) {
+        return {
+          data: unwrapped as Branch[],
+          total: unwrapped.length,
+          page: 1,
+          pageSize: unwrapped.length || 10,
+          totalPages: 1,
+        };
+      }
+
+      return unwrapped as PaginatedResponse<Branch>;
     } catch {
       return { data: [], total: 0, page: 1, pageSize: 10, totalPages: 0 };
     }
@@ -14,7 +31,8 @@ export const branchService = {
 
   async getBranchById(id: string): Promise<Branch | null> {
     try {
-      return await apiFetch<Branch>(`/branches/${id}`);
+      const res = await apiFetch<any>(`/branches/${id}`);
+      return unwrapData<Branch>(res);
     } catch {
       return null;
     }
@@ -29,9 +47,10 @@ export const branchService = {
       city: data.city || undefined,
       state: data.state || undefined,
     };
-    return await apiFetch<Branch>('/branches', {
+    const res = await apiFetch<any>('/branches', {
       method: 'POST',
       body: JSON.stringify(payload),
     });
+    return unwrapData<Branch>(res);
   },
 };

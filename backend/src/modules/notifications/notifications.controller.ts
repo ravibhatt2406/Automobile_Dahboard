@@ -17,7 +17,7 @@ import { CurrentUser } from '@/common/decorators/current-user.decorator';
 @ApiTags('Notifications')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard, TenantScopeGuard)
-@Controller('api/v1/notifications')
+@Controller('notifications')
 export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
 
@@ -27,10 +27,22 @@ export class NotificationsController {
     return this.notificationsService.send(payload);
   }
 
-  @Get('my-notifications')
+  @Get()
   @ApiOperation({ summary: 'List notifications for logged in user' })
+  findAllForUser(@CurrentUser('id') userId: string) {
+    return this.notificationsService.findByUser(userId);
+  }
+
+  @Get('my-notifications')
+  @ApiOperation({ summary: 'List notifications for logged in user (alias)' })
   findMyNotifications(@CurrentUser('id') userId: string) {
     return this.notificationsService.findByUser(userId);
+  }
+
+  @Get('unread-count')
+  @ApiOperation({ summary: 'Get unread notifications count for logged in user' })
+  getUnreadCount(@CurrentUser('id') userId: string) {
+    return this.notificationsService.getUnreadCount(userId);
   }
 
   @Patch(':id/read')

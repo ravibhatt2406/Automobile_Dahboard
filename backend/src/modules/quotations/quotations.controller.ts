@@ -12,7 +12,7 @@ import { QuotationStatus } from '@prisma/client';
 @ApiTags('Quotations')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard, TenantScopeGuard)
-@Controller('api/v1/quotations')
+@Controller('quotations')
 export class QuotationsController {
   constructor(private readonly quotationsService: QuotationsService) {}
 

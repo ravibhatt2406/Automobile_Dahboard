@@ -20,7 +20,7 @@ import { DeliveryStatus } from '@prisma/client';
 @ApiTags('Deliveries')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard, TenantScopeGuard)
-@Controller('api/v1/deliveries')
+@Controller('deliveries')
 export class DeliveriesController {
   constructor(private readonly deliveriesService: DeliveriesService) {}
 

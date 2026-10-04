@@ -18,7 +18,7 @@ import { CurrentUser } from '@/common/decorators/current-user.decorator';
 @ApiTags('Service Quality Control')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard, TenantScopeGuard)
-@Controller('api/v1')
+@Controller('')
 export class ServiceQcController {
   constructor(private readonly qcService: ServiceQcService) {}
 

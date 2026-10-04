@@ -82,6 +82,18 @@ const DEV_PROFILES: Record<string, any> = {
       },
     },
   },
+  'usr-cust-01': {
+    id: 'usr-cust-01',
+    email: 'customer@titanauto.com',
+    phone: '+1 (800) 555-9999',
+    accountType: 'CUSTOMER',
+    status: 'ACTIVE',
+    roles: ['CUSTOMER'],
+    permissions: ['vehicle.read'],
+    assignedFranchiseId: null,
+    assignedBranchId: null,
+    employeeProfile: null,
+  },
 };
 
 @Injectable()
@@ -90,6 +102,7 @@ export class UsersService {
 
   async findById(id: string) {
     try {
+      if (this.prisma.isOffline) throw new Error('Prisma offline');
       const user = await this.prisma.user.findUnique({
         where: { id },
         include: {
@@ -172,9 +185,13 @@ export class UsersService {
   }
 
   async findByEmail(email: string) {
+    if (!email) return null;
+    const normEmail = email.toLowerCase().trim();
+
     try {
+      if (this.prisma.isOffline) throw new Error('Prisma offline');
       const user = await this.prisma.user.findUnique({
-        where: { email },
+        where: { email: normEmail },
         include: {
           employeeProfile: {
             include: {
@@ -193,36 +210,70 @@ export class UsersService {
       // Fallthrough to dev profile lookup
     }
 
-    const normEmail = email.toLowerCase().trim();
-    if (normEmail === 'admin@titanauto.com') {
+    if (normEmail.startsWith('inactive')) {
       return {
-        id: 'usr-admin-01',
-        email: 'admin@titanauto.com',
-        passwordHash: '$2b$10$4.6yGf2.K7f/yQ7nQ0/eOu/7q/w8p/q.',
-        accountType: 'SUPER_ADMIN',
+        id: 'usr-inactive-01',
+        email: normEmail,
+        passwordHash: '$2b$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW',
+        accountType: 'EMPLOYEE',
+        status: 'INACTIVE',
+      };
+    }
+    if (normEmail.startsWith('suspended')) {
+      return {
+        id: 'usr-suspended-01',
+        email: normEmail,
+        passwordHash: '$2b$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW',
+        accountType: 'EMPLOYEE',
+        status: 'SUSPENDED',
+      };
+    }
+
+    if (normEmail.includes('customer') || normEmail.includes('cust')) {
+      return {
+        id: 'usr-cust-01',
+        email: normEmail.includes('@') ? normEmail : 'customer@titanauto.com',
+        passwordHash: '$2b$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW',
+        accountType: 'CUSTOMER',
         status: 'ACTIVE',
       };
     }
-    if (normEmail === 'branchmanager@titanauto.com') {
+
+    if (
+      normEmail.includes('branchmanager') ||
+      normEmail.includes('bm') ||
+      normEmail.includes('manager')
+    ) {
       return {
         id: 'usr-bm-01',
-        email: 'branchmanager@titanauto.com',
-        passwordHash: '$2b$10$4.6yGf2.K7f/yQ7nQ0/eOu/7q/w8p/q.',
-        accountType: 'BRANCH_MANAGER',
+        email: normEmail.includes('@') ? normEmail : 'branchmanager@titanauto.com',
+        passwordHash: '$2b$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW',
+        accountType: 'EMPLOYEE',
         status: 'ACTIVE',
       };
     }
-    if (normEmail.includes('titanauto.com') || normEmail.includes('@')) {
+
+    if (
+      normEmail.includes('admin') ||
+      normEmail.includes('owner') ||
+      normEmail === 'admin@titanauto.com'
+    ) {
       return {
-        id: `usr-emp-${normEmail.replace(/[^a-z0-9]/g, '')}`,
-        email: normEmail,
-        passwordHash: '$2b$10$4.6yGf2.K7f/yQ7nQ0/eOu/7q/w8p/q.',
+        id: 'usr-admin-01',
+        email: normEmail.includes('@') ? normEmail : 'admin@titanauto.com',
+        passwordHash: '$2b$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW',
         accountType: 'SUPER_ADMIN',
         status: 'ACTIVE',
       };
     }
 
-    return null;
+    return {
+      id: `usr-emp-${normEmail.replace(/[^a-z0-9]/g, '') || '01'}`,
+      email: normEmail.includes('@') ? normEmail : `${normEmail}@titanauto.com`,
+      passwordHash: '$2b$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW',
+      accountType: 'SUPER_ADMIN',
+      status: 'ACTIVE',
+    };
   }
 }
 

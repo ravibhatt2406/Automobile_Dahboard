@@ -1,8 +1,21 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useAuth } from './AuthContext';
+import { UserRole } from '@/types/roles';
+
+// Roles that are strictly locked to their assigned branch
+const BRANCH_SCOPED_ROLES: UserRole[] = [
+  'BRANCH_MANAGER',
+  'DEPARTMENT_MANAGER',
+  'SALES_EMPLOYEE',
+  'MECHANIC',
+];
 
 interface ScopeContextType {
   selectedFranchiseId: string | 'ALL';
   selectedBranchId: string | 'ALL';
+  isBranchLocked: boolean;
+  activeBranchName: string;
+  activeFranchiseName: string;
   setSelectedFranchiseId: (id: string | 'ALL') => void;
   setSelectedBranchId: (id: string | 'ALL') => void;
   resetScope: () => void;
@@ -11,12 +24,54 @@ interface ScopeContextType {
 const ScopeContext = createContext<ScopeContextType | undefined>(undefined);
 
 export const ScopeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [selectedFranchiseId, setSelectedFranchiseId] = useState<string | 'ALL'>('ALL');
-  const [selectedBranchId, setSelectedBranchId] = useState<string | 'ALL'>('ALL');
+  const { user, activeRole } = useAuth();
+  
+  const isBranchLocked = BRANCH_SCOPED_ROLES.includes(activeRole);
+  
+  const assignedBranchId = user?.assignedBranchId || 'br-jaipur';
+  const assignedBranchName = user?.assignedBranchName || 'Jaipur Branch';
+  const assignedFranchiseId = user?.assignedFranchiseId || 'fr-ashok-leyland';
+  const assignedFranchiseName = user?.assignedFranchiseName || 'Ashok Leyland';
+
+  const [selectedFranchiseId, setSelectedFranchiseState] = useState<string | 'ALL'>(
+    isBranchLocked ? assignedFranchiseId : 'ALL'
+  );
+  const [selectedBranchId, setSelectedBranchState] = useState<string | 'ALL'>(
+    isBranchLocked ? assignedBranchId : 'ALL'
+  );
+
+  // Automatically sync scope when user or activeRole changes
+  useEffect(() => {
+    if (isBranchLocked) {
+      setSelectedFranchiseState(assignedFranchiseId);
+      setSelectedBranchState(assignedBranchId);
+    }
+  }, [isBranchLocked, assignedBranchId, assignedFranchiseId, activeRole]);
+
+  const setSelectedBranchId = (id: string | 'ALL') => {
+    if (isBranchLocked) {
+      console.warn(`Branch scope is locked for operational role (${activeRole}). Cannot switch branch.`);
+      return; // Ignore branch change for branch-scoped employee
+    }
+    setSelectedBranchState(id);
+  };
+
+  const setSelectedFranchiseId = (id: string | 'ALL') => {
+    if (isBranchLocked) {
+      console.warn(`Franchise scope is locked for operational role (${activeRole}). Cannot switch franchise.`);
+      return;
+    }
+    setSelectedFranchiseState(id);
+  };
 
   const resetScope = () => {
-    setSelectedFranchiseId('ALL');
-    setSelectedBranchId('ALL');
+    if (isBranchLocked) {
+      setSelectedFranchiseState(assignedFranchiseId);
+      setSelectedBranchState(assignedBranchId);
+    } else {
+      setSelectedFranchiseState('ALL');
+      setSelectedBranchState('ALL');
+    }
   };
 
   return (
@@ -24,6 +79,9 @@ export const ScopeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       value={{
         selectedFranchiseId,
         selectedBranchId,
+        isBranchLocked,
+        activeBranchName: isBranchLocked ? assignedBranchName : selectedBranchId === 'ALL' ? 'All Branches' : assignedBranchName,
+        activeFranchiseName: isBranchLocked ? assignedFranchiseName : selectedFranchiseId === 'ALL' ? 'Ashok Leyland Franchises' : assignedFranchiseName,
         setSelectedFranchiseId,
         setSelectedBranchId,
         resetScope,
@@ -41,3 +99,4 @@ export const useScope = () => {
   }
   return context;
 };
+

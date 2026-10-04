@@ -18,7 +18,7 @@ import { CurrentUser } from '@/common/decorators/current-user.decorator';
 @ApiTags('Files')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard, TenantScopeGuard)
-@Controller('api/v1/files')
+@Controller('files')
 export class FilesController {
   constructor(private readonly filesService: FilesService) {}
 

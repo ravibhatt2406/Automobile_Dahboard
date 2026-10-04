@@ -13,7 +13,7 @@ import { LeadStatus } from '@prisma/client';
 @ApiTags('CRM & Leads')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard, TenantScopeGuard)
-@Controller('api/v1/leads')
+@Controller('leads')
 export class CrmController {
   constructor(private readonly crmService: CrmService) {}
 

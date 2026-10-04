@@ -47,6 +47,7 @@ export class BranchesService {
 
   async create(dto: CreateBranchDto, actorUserId: string) {
     try {
+      if (this.prisma.isOffline) throw new Error('Offline');
       const existing = await this.prisma.branch.findUnique({
         where: { code: dto.code },
       });
@@ -102,6 +103,7 @@ export class BranchesService {
 
   async findAll(franchiseId?: string) {
     try {
+      if (this.prisma.isOffline) throw new Error('Offline');
       const branches = await this.prisma.branch.findMany({
         where: franchiseId ? { franchiseId } : undefined,
         include: {
@@ -126,6 +128,7 @@ export class BranchesService {
 
   async findOne(id: string) {
     try {
+      if (this.prisma.isOffline) throw new Error('Offline');
       const branch = await this.prisma.branch.findUnique({
         where: { id },
         include: {
@@ -202,5 +205,71 @@ export class BranchesService {
         `Business Rule Violation: A branch cannot have more than 2 active Branch Managers (Current active count: ${count}).`,
       );
     }
+  }
+
+  async update(id: string, dto: Partial<CreateBranchDto>, actorUserId: string) {
+    try {
+      const branch = await this.prisma.branch.update({
+        where: { id },
+        data: {
+          name: dto.name,
+          address: dto.address,
+          city: dto.city,
+          state: dto.state,
+        },
+      });
+
+      try {
+        await this.auditService.log({
+          actorUserId,
+          action: 'BRANCH_UPDATED',
+          entityType: 'Branch',
+          entityId: branch.id,
+          metadata: { name: branch.name },
+        }).catch(() => {});
+      } catch {}
+
+      return branch;
+    } catch {}
+
+    const devBranch = DEV_BRANCHES.find((b) => b.id === id || b.code === id);
+    if (devBranch) {
+      if (dto.name) devBranch.name = dto.name;
+      if (dto.address) devBranch.address = dto.address;
+      if (dto.city) devBranch.city = dto.city;
+      if (dto.state) devBranch.state = dto.state;
+      return devBranch;
+    }
+
+    throw new NotFoundException(`Branch ID '${id}' not found`);
+  }
+
+  async updateStatus(id: string, status: string, actorUserId: string) {
+    try {
+      const branch = await this.prisma.branch.update({
+        where: { id },
+        data: { status },
+      });
+
+      try {
+        await this.auditService.log({
+          actorUserId,
+          action: status === 'ACTIVE' ? 'BRANCH_ACTIVATED' : 'BRANCH_DEACTIVATED',
+          entityType: 'Branch',
+          entityId: branch.id,
+          metadata: { status },
+        }).catch(() => {});
+      } catch {}
+
+      return branch;
+    } catch {}
+
+    const devBranch = DEV_BRANCHES.find((b) => b.id === id || b.code === id);
+    if (devBranch) {
+      devBranch.status = status;
+      return devBranch;
+    }
+
+    throw new NotFoundException(`Branch ID '${id}' not found`);
   }
 }

@@ -51,9 +51,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
     if (isCustomer) {
       return [
         { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-        { label: 'My Vehicles', path: '/inventory/vehicles', icon: Truck },
-        { label: 'Enquiries & Bookings', path: '/sales/bookings', icon: ShoppingBag },
+        { label: 'Browse Trucks', path: '/inventory/browse-trucks', icon: Truck },
+        { label: 'My Vehicles', path: '/inventory/vehicles', icon: ShieldCheck },
+        { label: 'My Enquiries & Bookings', path: '/sales/bookings', icon: ShoppingBag },
         { label: 'Payments', path: '/payments', icon: CreditCard },
+        { label: 'Insurance & PUC', path: '/insurance', icon: ShieldCheck },
         { label: 'Documents & Invoices', path: '/billing/invoices', icon: FileText },
         { label: 'Service Booking & History', path: '/service/jobs', icon: Wrench },
         { label: 'Notifications', path: '/notifications', icon: Bell },

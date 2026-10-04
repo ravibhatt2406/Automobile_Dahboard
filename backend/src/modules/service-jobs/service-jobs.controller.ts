@@ -21,7 +21,7 @@ import { ServiceJobStatus } from '@prisma/client';
 @ApiTags('Service Jobs')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard, TenantScopeGuard)
-@Controller('api/v1/service-jobs')
+@Controller('service-jobs')
 export class ServiceJobsController {
   constructor(private readonly serviceJobsService: ServiceJobsService) {}
 

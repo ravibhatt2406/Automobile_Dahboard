@@ -81,6 +81,9 @@ const LeadsListPage = lazy(() => import('@/features/crm/LeadsListPage').then((m)
 const LeadDetailPage = lazy(() => import('@/features/crm/LeadDetailPage').then((m) => ({ default: m.LeadDetailPage })));
 
 // Inventory & Vehicle Studio
+const BrowseTrucksPage = lazy(() =>
+  import('@/features/inventory/BrowseTrucksPage').then((m) => ({ default: m.BrowseTrucksPage }))
+);
 const VehiclesListPage = lazy(() =>
   import('@/features/inventory/VehiclesListPage').then((m) => ({ default: m.VehiclesListPage }))
 );
@@ -275,6 +278,7 @@ export const AppRouter: React.FC = () => {
             </Route>
 
             {/* Inventory */}
+            <Route path="/inventory/browse-trucks" element={<BrowseTrucksPage />} />
             <Route path="/inventory/vehicles" element={<VehiclesListPage />} />
             <Route path="/inventory/vehicles/new" element={<VehicleStudioPage />} />
             <Route path="/inventory/vehicles/:id" element={<VehicleDetailPage />} />

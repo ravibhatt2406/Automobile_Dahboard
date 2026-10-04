@@ -10,12 +10,12 @@ import { Roles } from '@/common/decorators/roles.decorator';
 import { Public } from '@/common/decorators/public.decorator';
 
 @ApiTags('Truck Catalogue')
-@Controller('api/v1/catalogue')
+@Controller()
 export class CatalogueController {
   constructor(private readonly catalogueService: CatalogueService) {}
 
-  // Manufacturers
-  @Post('manufacturers')
+  // Manufacturers (Supports both /catalogue/manufacturers and /manufacturers)
+  @Post(['catalogue/manufacturers', 'manufacturers'])
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('SUPER_ADMIN')
   @ApiBearerAuth()
@@ -25,14 +25,14 @@ export class CatalogueController {
   }
 
   @Public()
-  @Get('manufacturers')
+  @Get(['catalogue/manufacturers', 'manufacturers'])
   @ApiOperation({ summary: 'Get list of truck manufacturers' })
   async findAllManufacturers() {
     return this.catalogueService.findAllManufacturers();
   }
 
-  // Models
-  @Post('truck-models')
+  // Models (Supports both /catalogue/truck-models and /truck-models)
+  @Post(['catalogue/truck-models', 'truck-models'])
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('SUPER_ADMIN')
   @ApiBearerAuth()
@@ -42,14 +42,14 @@ export class CatalogueController {
   }
 
   @Public()
-  @Get('truck-models')
+  @Get(['catalogue/truck-models', 'truck-models'])
   @ApiOperation({ summary: 'Get list of truck models (filtered by manufacturerId)' })
   async findAllModels(@Query('manufacturerId') manufacturerId?: string) {
     return this.catalogueService.findAllModels(manufacturerId);
   }
 
-  // Variants
-  @Post('truck-variants')
+  // Variants (Supports both /catalogue/truck-variants and /truck-variants)
+  @Post(['catalogue/truck-variants', 'truck-variants'])
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('SUPER_ADMIN')
   @ApiBearerAuth()
@@ -59,7 +59,7 @@ export class CatalogueController {
   }
 
   @Public()
-  @Get('truck-variants')
+  @Get(['catalogue/truck-variants', 'truck-variants'])
   @ApiOperation({ summary: 'Get list of truck variants and specifications' })
   async findAllVariants(
     @Query('modelId') modelId?: string,
@@ -69,7 +69,7 @@ export class CatalogueController {
   }
 
   @Public()
-  @Get('truck-variants/:id')
+  @Get(['catalogue/truck-variants/:id', 'truck-variants/:id'])
   @ApiOperation({ summary: 'Get details and specs for a specific truck variant' })
   async findOneVariant(@Param('id') id: string) {
     return this.catalogueService.findOneVariant(id);

@@ -4,17 +4,24 @@ import { PrismaClient } from '@prisma/client';
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PrismaService.name);
+  public isOffline = false;
 
   async onModuleInit() {
     try {
-      await this.$connect();
+      await Promise.race([
+        this.$connect(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Database connection timeout')), 1000)),
+      ]);
       this.logger.log('✅ Connected to PostgreSQL database successfully.');
     } catch (error: any) {
-      this.logger.warn(`⚠️  Database connection waiting: ${error?.message || error}`);
+      this.isOffline = true;
+      this.logger.warn(`⚠️  Database connection waiting (running in offline dev mode): ${error?.message || error}`);
     }
   }
 
   async onModuleDestroy() {
-    await this.$disconnect();
+    if (!this.isOffline) {
+      await this.$disconnect().catch(() => {});
+    }
   }
 }

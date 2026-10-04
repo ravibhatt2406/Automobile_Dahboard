@@ -12,7 +12,7 @@ import { VehicleStatus } from '@prisma/client';
 @ApiTags('Physical Vehicle Inventory')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard, TenantScopeGuard)
-@Controller('api/v1/vehicles')
+@Controller('vehicles')
 export class InventoryController {
   constructor(private readonly inventoryService: InventoryService) {}
 
@@ -49,5 +49,16 @@ export class InventoryController {
     @CurrentUser('id') actorUserId: string,
   ) {
     return this.inventoryService.updateStatus(id, status, actorUserId);
+  }
+
+  @Post(':id/allocate')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER')
+  @ApiOperation({ summary: 'Allocate reserved vehicle to a customer booking' })
+  async allocateVehicle(
+    @Param('id') id: string,
+    @Body('bookingId') bookingId: string,
+    @CurrentUser('id') actorUserId: string,
+  ) {
+    return this.inventoryService.allocateVehicle(id, bookingId, actorUserId);
   }
 }

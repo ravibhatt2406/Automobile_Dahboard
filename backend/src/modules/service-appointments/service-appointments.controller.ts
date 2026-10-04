@@ -21,7 +21,7 @@ import { AppointmentStatus } from '@prisma/client';
 @ApiTags('Service Appointments')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard, TenantScopeGuard)
-@Controller('api/v1/service-appointments')
+@Controller('service-appointments')
 export class ServiceAppointmentsController {
   constructor(private readonly appointmentsService: ServiceAppointmentsService) {}
 

@@ -21,6 +21,7 @@ import { vehicleService } from '@/services/vehicle.service';
 import { salesService } from '@/services/sales.service';
 import { insuranceService } from '@/services/insurance.service';
 import { serviceService } from '@/services/service.service';
+import { apiFetch, unwrapData } from '@/services/apiClient';
 import { Vehicle, Quotation, Booking, InsurancePolicy, ServiceJob } from '@/types/domain';
 
 export const CustomerDashboard: React.FC = () => {
@@ -41,31 +42,31 @@ export const CustomerDashboard: React.FC = () => {
   const loadDashboardData = async () => {
     setLoading(true);
     try {
-      const [vehRes, quotRes, bookRes, insRes, servRes] = await Promise.allSettled([
-        vehicleService.getVehicles(),
-        salesService.getQuotations(),
-        salesService.getBookings(),
-        insuranceService.getPolicies(),
-        serviceService.getServiceJobs(),
-      ]);
+      const res = await apiFetch<any>('/dashboards/customer');
+      const custData = unwrapData<any>(res);
+      if (custData && (custData.id || custData.email)) {
+        if (Array.isArray(custData.vehicles)) setVehicles(custData.vehicles);
+        if (Array.isArray(custData.quotations)) setQuotations(custData.quotations);
+        if (Array.isArray(custData.bookings)) setBookings(custData.bookings);
+        if (Array.isArray(custData.insurancePolicies)) setPolicies(custData.insurancePolicies);
+        if (Array.isArray(custData.serviceJobs)) setServiceJobs(custData.serviceJobs);
+      } else {
+        const [vehRes, quotRes, bookRes, insRes, servRes] = await Promise.allSettled([
+          vehicleService.getVehicles(),
+          salesService.getQuotations(),
+          salesService.getBookings(),
+          insuranceService.getPolicies(),
+          serviceService.getServiceJobs(),
+        ]);
 
-      if (vehRes.status === 'fulfilled' && vehRes.value?.data) {
-        setVehicles(vehRes.value.data);
-      }
-      if (quotRes.status === 'fulfilled' && quotRes.value?.data) {
-        setQuotations(quotRes.value.data);
-      }
-      if (bookRes.status === 'fulfilled' && bookRes.value?.data) {
-        setBookings(bookRes.value.data);
-      }
-      if (insRes.status === 'fulfilled' && insRes.value?.data) {
-        setPolicies(insRes.value.data);
-      }
-      if (servRes.status === 'fulfilled' && servRes.value?.data) {
-        setServiceJobs(servRes.value.data);
+        if (vehRes.status === 'fulfilled' && vehRes.value?.data) setVehicles(vehRes.value.data);
+        if (quotRes.status === 'fulfilled' && quotRes.value?.data) setQuotations(quotRes.value.data);
+        if (bookRes.status === 'fulfilled' && bookRes.value?.data) setBookings(bookRes.value.data);
+        if (insRes.status === 'fulfilled' && insRes.value?.data) setPolicies(insRes.value.data);
+        if (servRes.status === 'fulfilled' && servRes.value?.data) setServiceJobs(servRes.value.data);
       }
     } catch (err) {
-      console.warn('Dashboard data fetch error:', err);
+      console.warn('Customer Dashboard data fetch error:', err);
     } finally {
       setLoading(false);
     }

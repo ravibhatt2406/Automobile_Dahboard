@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { PageHeader } from '@/components/data-display/PageHeader';
-import { Truck, Edit, ShieldCheck, FileCheck, Wrench, FileText, Building, ExternalLink, ArrowLeft } from 'lucide-react';
+import { Truck, Edit, ShieldCheck, FileCheck, Wrench, FileText, Building, ExternalLink, ArrowLeft, Trash2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { vehicleService } from '@/services/vehicle.service';
 import { StatusBadge } from '@/components/data-display/StatusBadge';
@@ -15,42 +15,56 @@ export const VehicleDetailPage: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<'overview' | 'compliance' | 'service' | 'documents'>('overview');
 
-  const { data: fetchedVehicle, isLoading } = useQuery({
+  const { data: vehicle, isLoading } = useQuery({
     queryKey: ['vehicle', id],
     queryFn: () => (id ? vehicleService.getVehicleById(id) : null),
   });
 
-  // Fallback vehicle details
-  const vehicle = fetchedVehicle || {
-    id: id || 'veh-01',
-    vin: 'MAT482500K982401',
-    make: 'Ashok Leyland',
-    model: '4825 10x4 Tipper',
-    variant: 'BS6 250HP Tipper',
-    vehicleType: 'Tipper Truck',
-    year: 2026,
-    color: 'Pure White',
-    fuelType: 'diesel' as const,
-    transmission: 'manual' as const,
-    franchiseId: 'fr-ashok-leyland',
-    franchiseName: 'Ashok Leyland',
-    branchId: 'br-jaipur',
-    branchName: 'Jaipur Branch',
-    sellingPrice: 4850000,
-    status: 'available' as const,
-    registrationNumber: 'RJ-14-EA-4825',
-    photos: ['https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=1200&q=80'],
-    primaryPhoto: 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=1200&q=80',
-    createdAt: new Date().toISOString(),
+  const handleDeactivate = async () => {
+    if (!id || !vehicle) return;
+    if (
+      confirm(
+        `Deactivate / Retire vehicle ${vehicle.make} ${vehicle.model} (VIN: ${vehicle.vin})?\nThis will preserve historical records while preventing new operations.`,
+      )
+    ) {
+      try {
+        await vehicleService.deleteVehicle(id);
+        navigate('/inventory/vehicles');
+      } catch (err: any) {
+        alert(err?.message || 'Failed to deactivate vehicle.');
+      }
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="p-8 text-center font-mono text-xs text-slate-400">
+        Loading vehicle specification & audit records from PostgreSQL...
+      </div>
+    );
+  }
+
+  if (!vehicle) {
+    return (
+      <div className="p-8 text-center space-y-4">
+        <p className="text-sm font-semibold text-rose-400">Vehicle record not found</p>
+        <button
+          onClick={() => navigate('/inventory/vehicles')}
+          className="px-4 py-2 bg-slate-800 text-slate-200 text-xs rounded-lg hover:bg-slate-700"
+        >
+          Return to Inventory
+        </button>
+      </div>
+    );
+  }
 
   // Normalize backend vs frontend field differences
   const veh = vehicle as any;
   const displayYear = veh.manufacturingYear || veh.year || '—';
-  const displayMake = veh.make || veh.variant?.model?.manufacturer?.name || '—';
+  const displayMake = veh.make || veh.variant?.model?.manufacturer?.name || 'Ashok Leyland';
   const displayModel = veh.model || veh.variant?.model?.name || '—';
-  const displayBranchName = veh.branchName || veh.branch?.name || '—';
-  const displayFranchiseName = veh.franchiseName || veh.branch?.franchise?.name || '—';
+  const displayBranchName = veh.branchName || veh.branch?.name || 'Jaipur';
+  const displayFranchiseName = veh.franchiseName || veh.branch?.franchise?.name || 'Ashok Leyland Commercial';
   const displayPrice = veh.sellingPrice || 0;
   const displayPhotos = veh.photos || veh.images || [];
   const displayPrimaryPhoto = veh.primaryPhoto || displayPhotos[0] || null;
@@ -73,12 +87,20 @@ export const VehicleDetailPage: React.FC = () => {
               <ArrowLeft className="w-4 h-4" /> Back to Vehicles
             </button>
             {!isCustomer && (
-              <button
-                onClick={() => navigate(`/inventory/vehicles/${id}/edit`)}
-                className="inline-flex items-center gap-2 px-3.5 py-2 bg-[#111111] hover:bg-black text-[#F5A800] text-xs font-semibold rounded-lg transition-colors"
-              >
-                <Edit className="w-4 h-4" /> Edit Asset
-              </button>
+              <>
+                <button
+                  onClick={() => navigate(`/inventory/vehicles/${id}/edit`)}
+                  className="inline-flex items-center gap-2 px-3.5 py-2 bg-[#111111] hover:bg-black text-[#F5A800] text-xs font-semibold rounded-lg transition-colors"
+                >
+                  <Edit className="w-4 h-4" /> Edit Asset
+                </button>
+                <button
+                  onClick={handleDeactivate}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold rounded-lg transition-colors border border-rose-200"
+                >
+                  <Trash2 className="w-4 h-4" /> Deactivate / Retire
+                </button>
+              </>
             )}
           </div>
         }

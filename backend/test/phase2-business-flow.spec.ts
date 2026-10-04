@@ -50,8 +50,7 @@ describe('Titan Auto Backend Phase 2 — Complete End-to-End Business Operations
 
     prisma = moduleFixture.get<PrismaService>(PrismaService);
 
-    try {
-      const hashedPass = await bcrypt.hash('AdminSecret123!', 10);
+    const hashedPass = await bcrypt.hash('AdminSecret123!', 10);
 
     // Ensure Super Admin Role
     const superAdminRole = await prisma.role.upsert({
@@ -118,22 +117,10 @@ describe('Titan Auto Backend Phase 2 — Complete End-to-End Business Operations
       .send({
         email: adminUser.email,
         password: 'AdminSecret123!',
-      })
-      .expect(200);
+      });
 
     adminToken = loginRes.body.accessToken || loginRes.body.data?.accessToken;
-    } catch (e) {
-      console.warn('Prisma DB setup skipped during offline testing');
-      franchiseId = 'FR-DEV-01';
-      branchId = 'BR-DEV-01';
-      employeeId = 'emp-admin-01';
-      adminUserId = 'usr-admin-01';
-
-      const loginRes = await request(app.getHttpServer())
-        .post('/api/v1/auth/login')
-        .send({ email: 'admin@titanauto.com', password: 'password123' });
-      adminToken = loginRes.body.data?.accessToken;
-    }
+    expect(adminToken).toBeDefined();
   });
 
   afterAll(async () => {

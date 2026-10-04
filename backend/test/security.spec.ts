@@ -48,9 +48,8 @@ describe('Titan Auto Backend Phase 1 — Security, Auth & RBAC Suite', () => {
 
     prisma = moduleFixture.get<PrismaService>(PrismaService);
 
-    try {
-      // Setup Test Database Fixtures
-      const hashedPass = await bcrypt.hash('TestPassword123!', 10);
+    // Setup Test Database Fixtures
+    const hashedPass = await bcrypt.hash('TestPassword123!', 10);
 
     // 1. Roles & Permissions setup
     const superAdminRole = await prisma.role.upsert({
@@ -213,47 +212,22 @@ describe('Titan Auto Backend Phase 1 — Security, Auth & RBAC Suite', () => {
     const adminRes = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
       .send({ email: adminUser.email, password: 'TestPassword123!' });
-    superAdminToken = adminRes.body.data.accessToken;
+    superAdminToken = adminRes.body.data?.accessToken || adminRes.body.accessToken;
 
     const bmRes = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
       .send({ email: bmUser.email, password: 'TestPassword123!' });
-    branchManagerToken = bmRes.body.data.accessToken;
+    branchManagerToken = bmRes.body.data?.accessToken || bmRes.body.accessToken;
 
     const mechRes = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
       .send({ email: mechUser.email, password: 'TestPassword123!' });
-    mechanicToken = mechRes.body.data.accessToken;
+    mechanicToken = mechRes.body.data?.accessToken || mechRes.body.accessToken;
 
     const custRes = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
       .send({ email: custUser.email, password: 'TestPassword123!' });
-    customerToken = custRes.body.data.accessToken;
-    } catch (e) {
-      console.warn('Prisma DB setup skipped during offline testing');
-      superAdminUserId = 'usr-admin-01';
-      branchManagerUserId = 'usr-bm-01';
-      testFranchiseId = 'FR-DEV-01';
-      testBranchId = 'BR-DEV-01';
-      foreignBranchId = 'BR-DEV-02';
-      inactiveUserId = 'usr-inactive-01';
-      suspendedUserId = 'usr-suspended-01';
-
-      const adminRes = await request(app.getHttpServer())
-        .post('/api/v1/auth/login')
-        .send({ email: 'admin@titanauto.com', password: 'password123' });
-      superAdminToken = adminRes.body.data?.accessToken;
-
-      const bmRes = await request(app.getHttpServer())
-        .post('/api/v1/auth/login')
-        .send({ email: 'branchmanager@titanauto.com', password: 'password123' });
-      branchManagerToken = bmRes.body.data?.accessToken;
-
-      const custRes = await request(app.getHttpServer())
-        .post('/api/v1/auth/login')
-        .send({ email: 'customer@titanauto.com', password: 'password123' });
-      customerToken = custRes.body.data?.accessToken;
-    }
+    customerToken = custRes.body.data?.accessToken || custRes.body.accessToken;
   });
 
   afterAll(async () => {
@@ -267,7 +241,7 @@ describe('Titan Auto Backend Phase 1 — Security, Auth & RBAC Suite', () => {
       .post('/api/v1/auth/login')
       .send({
         email,
-        password: 'password123',
+        password: 'TestPassword123!',
       });
 
     expect(res.status).toBe(201);
@@ -355,7 +329,7 @@ describe('Titan Auto Backend Phase 1 — Security, Auth & RBAC Suite', () => {
       .post('/api/v1/auth/login')
       .send({
         email,
-        password: 'password123',
+        password: 'TestPassword123!',
       });
 
     const refreshToken = loginRes.body.data.refreshToken;

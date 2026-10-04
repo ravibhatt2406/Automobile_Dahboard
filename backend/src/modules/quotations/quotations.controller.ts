@@ -31,7 +31,7 @@ export class QuotationsController {
     @Query('limit') limit = 50,
     @Query('offset') offset = 0,
   ) {
-    return this.quotationsService.findAll(branchId, status, Number(limit), Number(offset));
+    return this.quotationsService.findAll(branchId, undefined, status, Number(limit), Number(offset));
   }
 
   @Get(':id')

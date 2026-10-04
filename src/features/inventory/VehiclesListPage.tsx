@@ -42,56 +42,7 @@ export const VehiclesListPage: React.FC = () => {
     }
   };
 
-  // Default demo vehicles when backend has 0 registered vehicles for user view
-  const defaultCustomerVehicles: Vehicle[] = [
-    {
-      id: 'veh-01',
-      vin: 'MAT482500K982401',
-      make: 'Ashok Leyland',
-      model: '4825 10x4 Tipper',
-      variant: 'BS6 Heavy Tipper',
-      vehicleType: 'Tipper Truck',
-      year: 2026,
-      color: 'White',
-      fuelType: 'diesel',
-      transmission: 'manual',
-      franchiseId: 'fr-ashok-leyland',
-      franchiseName: 'Ashok Leyland',
-      branchId: 'br-jaipur',
-      branchName: 'Jaipur Branch',
-      sellingPrice: 4850000,
-      status: 'available',
-      registrationNumber: 'RJ-14-EA-4825',
-      photos: ['https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=1200&q=80'],
-      primaryPhoto: 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=1200&q=80',
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: 'veh-02',
-      vin: 'MAT553000K110482',
-      make: 'Tata Motors',
-      model: 'Prima 5530.S Trailer',
-      variant: 'Cummins 300HP',
-      vehicleType: 'Tractor Trailer',
-      year: 2026,
-      color: 'Yellow',
-      fuelType: 'diesel',
-      transmission: 'manual',
-      franchiseId: 'fr-tata',
-      franchiseName: 'Tata Motors',
-      branchId: 'br-jodhpur',
-      branchName: 'Jodhpur Branch',
-      sellingPrice: 5100000,
-      status: 'available',
-      registrationNumber: 'RJ-14-GA-5530',
-      photos: ['https://images.unsplash.com/photo-1591768793355-74d04bb6608f?auto=format&fit=crop&w=1200&q=80'],
-      primaryPhoto: 'https://images.unsplash.com/photo-1591768793355-74d04bb6608f?auto=format&fit=crop&w=1200&q=80',
-      createdAt: new Date().toISOString(),
-    },
-  ];
-
-  const fetchedVehicles = data?.data || [];
-  const vehicles = fetchedVehicles.length > 0 ? fetchedVehicles : defaultCustomerVehicles;
+  const vehicles = data?.data || [];
 
   const filteredVehicles = vehicles.filter((v) => {
     if (filterMake !== 'ALL' && v.make !== filterMake) return false;

@@ -41,4 +41,9 @@ export class CreateInsurancePolicyDto {
   @IsString()
   @IsOptional()
   documentKey?: string;
+
+  @ApiProperty({ example: 'POL-12345', required: false })
+  @IsString()
+  @IsOptional()
+  policyNumber?: string;
 }

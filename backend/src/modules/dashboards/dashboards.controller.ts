@@ -24,21 +24,27 @@ export class DashboardsController {
   @Get('branch-manager')
   @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER')
   @ApiOperation({ summary: 'Branch Manager Operational Dashboard' })
-  getBranchManagerDashboard(@Query('branchId') branchId: string) {
+  getBranchManagerDashboard(
+    @Query('branchId') queryBranchId: string,
+    @CurrentUser() user: any,
+  ) {
+    const branchId = queryBranchId || user?.assignedBranchId;
     return this.dashboardsService.getBranchManagerDashboard(branchId);
   }
 
   @Get('sales')
   @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE')
   @ApiOperation({ summary: 'Sales Executive Workload Dashboard' })
-  getSalesDashboard(@CurrentUser('employeeId') employeeId: string) {
+  getSalesDashboard(@CurrentUser() user: any) {
+    const employeeId = user?.employeeProfile?.id || user?.id;
     return this.dashboardsService.getSalesDashboard(employeeId);
   }
 
   @Get('mechanic')
   @Roles('SUPER_ADMIN', 'BRANCH_MANAGER', 'MECHANIC')
   @ApiOperation({ summary: 'Mechanic Workstation & Active Job Dashboard' })
-  getMechanicDashboard(@CurrentUser('employeeId') mechanicEmployeeId: string) {
+  getMechanicDashboard(@CurrentUser() user: any) {
+    const mechanicEmployeeId = user?.employeeProfile?.id || user?.id;
     return this.dashboardsService.getMechanicDashboard(mechanicEmployeeId);
   }
 

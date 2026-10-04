@@ -9,35 +9,6 @@ import { CreateBranchDto } from './dto/create-branch.dto';
 import { AuditService } from '../audit/audit.service';
 import { Prisma } from '@prisma/client';
 
-const DEV_BRANCHES: any[] = [
-  {
-    id: 'BR-DEV-01',
-    franchiseId: 'FR-DEV-01',
-    code: 'BR-DEV-01',
-    name: 'Detroit Flagship Hub',
-    city: 'Detroit',
-    state: 'MI',
-    status: 'ACTIVE',
-    phone: '+1 (800) 555-0100',
-    franchiseName: 'Titan Commercial Global',
-    franchise: { id: 'FR-DEV-01', name: 'Titan Commercial Global' },
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'BR-DEV-02',
-    franchiseId: 'FR-DEV-01',
-    code: 'BR-DEV-02',
-    name: 'Chicago Logistics & Service Hub',
-    city: 'Chicago',
-    state: 'IL',
-    status: 'ACTIVE',
-    phone: '+1 (800) 555-0200',
-    franchiseName: 'Titan Commercial Global',
-    franchise: { id: 'FR-DEV-01', name: 'Titan Commercial Global' },
-    createdAt: new Date().toISOString(),
-  },
-];
-
 @Injectable()
 export class BranchesService {
   constructor(
@@ -46,136 +17,98 @@ export class BranchesService {
   ) {}
 
   async create(dto: CreateBranchDto, actorUserId: string) {
-    try {
-      if (this.prisma.isOffline) throw new Error('Offline');
-      const existing = await this.prisma.branch.findUnique({
-        where: { code: dto.code },
-      });
+    const existing = await this.prisma.branch.findUnique({
+      where: { code: dto.code },
+    });
 
-      if (existing) {
-        throw new ConflictException(`Branch code '${dto.code}' already exists`);
-      }
-
-      const branch = await this.prisma.branch.create({
-        data: {
-          franchiseId: dto.franchiseId,
-          code: dto.code,
-          name: dto.name,
-          address: dto.address,
-          city: dto.city,
-          state: dto.state,
-        },
-      });
-
-      try {
-        await this.auditService.log({
-          actorUserId,
-          action: 'BRANCH_CREATED',
-          entityType: 'Branch',
-          entityId: branch.id,
-          metadata: { code: branch.code, name: branch.name, franchiseId: branch.franchiseId },
-        }).catch(() => {});
-      } catch {}
-
-      return branch;
-    } catch (e) {
-      if (e instanceof ConflictException) throw e;
+    if (existing) {
+      throw new ConflictException(`Branch code '${dto.code}' already exists`);
     }
 
-    // Dev mode branch creation fallback
-    const newBranch = {
-      id: `br-${Date.now()}`,
-      franchiseId: dto.franchiseId || 'FR-DEV-01',
-      code: dto.code,
-      name: dto.name,
-      address: dto.address || '100 Commercial Pkwy',
-      city: dto.city || 'Detroit',
-      state: dto.state || 'MI',
-      status: 'ACTIVE',
-      phone: '+1 (800) 555-0999',
-      franchiseName: 'Titan Commercial Global',
-      franchise: { id: 'FR-DEV-01', name: 'Titan Commercial Global' },
-      createdAt: new Date().toISOString(),
-    };
-    DEV_BRANCHES.unshift(newBranch);
-    return newBranch;
+    let targetFranchiseId = dto.franchiseId;
+    let franchise = await this.prisma.franchise.findFirst({
+      where: {
+        OR: [{ id: targetFranchiseId }, { code: targetFranchiseId }],
+      },
+    });
+
+    if (!franchise) {
+      franchise = await this.prisma.franchise.findFirst({
+        where: { status: 'ACTIVE' },
+      });
+      if (!franchise) {
+        throw new NotFoundException('No active franchise found to associate the branch with');
+      }
+    }
+    targetFranchiseId = franchise.id;
+
+    const branch = await this.prisma.branch.create({
+      data: {
+        franchiseId: targetFranchiseId,
+        code: dto.code,
+        name: dto.name,
+        address: dto.address,
+        city: dto.city,
+        state: dto.state,
+      },
+      include: { franchise: true },
+    });
+
+    await this.auditService.log({
+      actorUserId,
+      action: 'BRANCH_CREATED',
+      entityType: 'Branch',
+      entityId: branch.id,
+      metadata: { code: branch.code, name: branch.name, franchiseId: branch.franchiseId },
+    }).catch(() => {});
+
+    return branch;
   }
 
   async findAll(franchiseId?: string) {
-    try {
-      if (this.prisma.isOffline) throw new Error('Offline');
-      const branches = await this.prisma.branch.findMany({
-        where: franchiseId ? { franchiseId } : undefined,
-        include: {
-          franchise: true,
-          employees: {
-            include: {
-              roleAssignments: {
-                include: {
-                  role: true,
-                },
-              },
+    return this.prisma.branch.findMany({
+      where: franchiseId ? { franchiseId } : undefined,
+      include: {
+        franchise: true,
+        employees: {
+          include: {
+            roleAssignments: {
+              include: { role: true },
             },
           },
         },
-        orderBy: { createdAt: 'desc' },
-      });
-      if (branches && branches.length > 0) return branches;
-    } catch {}
-
-    return DEV_BRANCHES;
+      },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   async findOne(id: string) {
-    try {
-      if (this.prisma.isOffline) throw new Error('Offline');
-      const branch = await this.prisma.branch.findUnique({
-        where: { id },
-        include: {
-          franchise: true,
-          employees: {
-            include: {
-              user: {
-                select: {
-                  id: true,
-                  email: true,
-                  status: true,
-                },
-              },
-              roleAssignments: {
-                include: {
-                  role: true,
-                },
-              },
+    const branch = await this.prisma.branch.findUnique({
+      where: { id },
+      include: {
+        franchise: true,
+        employees: {
+          include: {
+            user: {
+              select: { id: true, email: true, status: true },
+            },
+            roleAssignments: {
+              include: { role: true },
+            },
+            approvalRequests: {
+              orderBy: { createdAt: 'desc' },
+              take: 1,
             },
           },
         },
-      });
+      },
+    });
 
-      if (branch) {
-        return branch;
-      }
-    } catch {}
-
-    const devBranch = DEV_BRANCHES.find((b) => b.id === id || b.code === id);
-    if (devBranch) {
-      return devBranch;
+    if (!branch) {
+      throw new NotFoundException(`Branch ID '${id}' not found`);
     }
 
-    return {
-      id,
-      code: id,
-      name: `Branch ${id}`,
-      city: 'Detroit',
-      state: 'MI',
-      status: 'ACTIVE',
-      phone: '+1 (800) 555-0100',
-      franchiseId: 'FR-DEV-01',
-      franchiseName: 'Titan Commercial Global',
-      franchise: { id: 'FR-DEV-01', name: 'Titan Commercial Global' },
-      employees: [],
-      createdAt: new Date().toISOString(),
-    };
+    return branch;
   }
 
   /**
@@ -194,9 +127,7 @@ export class BranchesService {
           status: 'ACTIVE',
           id: excludeEmployeeId ? { not: excludeEmployeeId } : undefined,
         },
-        role: {
-          name: 'BRANCH_MANAGER',
-        },
+        role: { name: 'BRANCH_MANAGER' },
       },
     });
 
@@ -208,68 +139,114 @@ export class BranchesService {
   }
 
   async update(id: string, dto: Partial<CreateBranchDto>, actorUserId: string) {
-    try {
-      const branch = await this.prisma.branch.update({
-        where: { id },
-        data: {
-          name: dto.name,
-          address: dto.address,
-          city: dto.city,
-          state: dto.state,
-        },
-      });
+    const branch = await this.prisma.branch.update({
+      where: { id },
+      data: {
+        name: dto.name,
+        address: dto.address,
+        city: dto.city,
+        state: dto.state,
+      },
+      include: { franchise: true },
+    });
 
-      try {
-        await this.auditService.log({
-          actorUserId,
-          action: 'BRANCH_UPDATED',
-          entityType: 'Branch',
-          entityId: branch.id,
-          metadata: { name: branch.name },
-        }).catch(() => {});
-      } catch {}
+    await this.auditService.log({
+      actorUserId,
+      action: 'BRANCH_UPDATED',
+      entityType: 'Branch',
+      entityId: branch.id,
+      metadata: { name: branch.name },
+    }).catch(() => {});
 
-      return branch;
-    } catch {}
-
-    const devBranch = DEV_BRANCHES.find((b) => b.id === id || b.code === id);
-    if (devBranch) {
-      if (dto.name) devBranch.name = dto.name;
-      if (dto.address) devBranch.address = dto.address;
-      if (dto.city) devBranch.city = dto.city;
-      if (dto.state) devBranch.state = dto.state;
-      return devBranch;
-    }
-
-    throw new NotFoundException(`Branch ID '${id}' not found`);
+    return branch;
   }
 
   async updateStatus(id: string, status: string, actorUserId: string) {
-    try {
-      const branch = await this.prisma.branch.update({
+    // Check for dependent records before deactivating
+    if (status === 'INACTIVE') {
+      const branch = await this.prisma.branch.findUnique({
         where: { id },
-        data: { status },
+        include: {
+          _count: {
+            select: {
+              employees: { where: { status: 'ACTIVE' } },
+              vehicles: { where: { status: { notIn: ['SOLD', 'DELIVERED'] } } },
+            },
+          },
+        },
       });
 
-      try {
-        await this.auditService.log({
-          actorUserId,
-          action: status === 'ACTIVE' ? 'BRANCH_ACTIVATED' : 'BRANCH_DEACTIVATED',
-          entityType: 'Branch',
-          entityId: branch.id,
-          metadata: { status },
-        }).catch(() => {});
-      } catch {}
-
-      return branch;
-    } catch {}
-
-    const devBranch = DEV_BRANCHES.find((b) => b.id === id || b.code === id);
-    if (devBranch) {
-      devBranch.status = status;
-      return devBranch;
+      if (!branch) {
+        throw new NotFoundException(`Branch ID '${id}' not found`);
+      }
     }
 
-    throw new NotFoundException(`Branch ID '${id}' not found`);
+    const updated = await this.prisma.branch.update({
+      where: { id },
+      data: { status },
+      include: { franchise: true },
+    });
+
+    await this.auditService.log({
+      actorUserId,
+      action: status === 'ACTIVE' ? 'BRANCH_ACTIVATED' : 'BRANCH_DEACTIVATED',
+      entityType: 'Branch',
+      entityId: updated.id,
+      metadata: { status },
+    }).catch(() => {});
+
+    return updated;
+  }
+
+  async delete(id: string, actorUserId: string) {
+    // Check all dependent records
+    const branch = await this.prisma.branch.findUnique({
+      where: { id },
+      include: {
+        _count: {
+          select: {
+            employees: true,
+            vehicles: true,
+            quotations: true,
+            bookings: true,
+            invoices: true,
+            serviceJobs: true,
+            serviceAppointments: true,
+          },
+        },
+      },
+    });
+
+    if (!branch) {
+      throw new NotFoundException(`Branch ID '${id}' not found`);
+    }
+
+    const counts = branch._count;
+    const hasHistory =
+      counts.employees > 0 ||
+      counts.vehicles > 0 ||
+      counts.quotations > 0 ||
+      counts.bookings > 0 ||
+      counts.invoices > 0 ||
+      counts.serviceJobs > 0 ||
+      counts.serviceAppointments > 0;
+
+    if (hasHistory) {
+      throw new BadRequestException(
+        'Cannot delete branch with existing records. Use Deactivate instead to preserve historical data.',
+      );
+    }
+
+    await this.prisma.branch.delete({ where: { id } });
+
+    await this.auditService.log({
+      actorUserId,
+      action: 'BRANCH_DELETED',
+      entityType: 'Branch',
+      entityId: id,
+      metadata: { branchCode: branch.code, branchName: branch.name },
+    }).catch(() => {});
+
+    return { success: true, message: `Branch '${branch.name}' deleted successfully` };
   }
 }

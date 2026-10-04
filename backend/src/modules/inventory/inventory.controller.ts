@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { InventoryService } from './inventory.service';
 import { CreateVehicleDto } from './dto/create-vehicle.dto';
@@ -49,6 +49,24 @@ export class InventoryController {
     @CurrentUser('id') actorUserId: string,
   ) {
     return this.inventoryService.updateStatus(id, status, actorUserId);
+  }
+
+  @Patch(':id')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER')
+  @ApiOperation({ summary: 'Update physical vehicle details (color, pricing, images)' })
+  async update(
+    @Param('id') id: string,
+    @Body() dto: Partial<CreateVehicleDto>,
+    @CurrentUser('id') actorUserId: string,
+  ) {
+    return this.inventoryService.update(id, dto, actorUserId);
+  }
+
+  @Delete(':id')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER')
+  @ApiOperation({ summary: 'Deactivate or safely delete physical vehicle from inventory' })
+  async deactivate(@Param('id') id: string, @CurrentUser('id') actorUserId: string) {
+    return this.inventoryService.deactivate(id, actorUserId);
   }
 
   @Post(':id/allocate')

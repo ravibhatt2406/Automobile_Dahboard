@@ -46,4 +46,24 @@ export class CreateVehicleDto {
   @IsArray()
   @IsOptional()
   images?: string[];
+
+  @ApiProperty({ example: 'Ashok Leyland', required: false })
+  @IsString()
+  @IsOptional()
+  make?: string;
+
+  @ApiProperty({ example: 'AVTR 5525.T', required: false })
+  @IsString()
+  @IsOptional()
+  model?: string;
+
+  @ApiProperty({ example: 'Heavy Commercial Vehicle', required: false })
+  @IsString()
+  @IsOptional()
+  vehicleType?: string;
+
+  @ApiProperty({ example: 'diesel', required: false })
+  @IsString()
+  @IsOptional()
+  fuelType?: string;
 }

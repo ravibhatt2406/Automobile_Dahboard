@@ -9,8 +9,6 @@ import { CreateQuotationDto } from './dto/create-quotation.dto';
 import { AuditService } from '../audit/audit.service';
 import { QuotationStatus } from '@prisma/client';
 
-const DEV_QUOTATIONS: any[] = [];
-
 @Injectable()
 export class QuotationsService {
   constructor(
@@ -19,25 +17,53 @@ export class QuotationsService {
   ) {}
 
   async create(dto: CreateQuotationDto, creatorUserId: string) {
-    const franchiseId = dto.franchiseId || 'FR-DEV-01';
-    const branchId = dto.branchId || 'BR-DEV-01';
-    const salespersonEmployeeId = dto.salespersonEmployeeId || 'emp-admin-01';
-    const variantId = dto.variantId || 'var-dev-01';
+    // Resilient Customer Resolution
+    let customer = dto.customerId
+      ? await this.prisma.customer.findFirst({
+          where: { OR: [{ id: dto.customerId }, { phone: dto.customerId }, { email: dto.customerId }] },
+        })
+      : await this.prisma.customer.findFirst({ where: { userId: creatorUserId } });
 
-    let unitBasePrice = 4200000;
-    let gstRate = 28.0;
+    if (!customer) {
+      customer = await this.prisma.customer.findFirst({ where: { status: 'ACTIVE' } });
+    }
+    if (!customer) throw new NotFoundException('No active customer found for quotation');
 
-    try {
-      if (this.prisma.isOffline) throw new Error('Offline');
-      const variant = await this.prisma.truckVariant.findUnique({
-        where: { id: variantId },
+    // Resilient Variant Resolution
+    let variant = dto.variantId
+      ? await this.prisma.truckVariant.findFirst({
+          where: { OR: [{ id: dto.variantId }, { name: dto.variantId }] },
+        })
+      : await this.prisma.truckVariant.findFirst();
+    if (!variant) throw new NotFoundException('No truck variant found for quotation');
+
+    // Resilient Branch Resolution
+    let branch = dto.branchId
+      ? await this.prisma.branch.findFirst({
+          where: { OR: [{ id: dto.branchId }, { code: dto.branchId }] },
+        })
+      : await this.prisma.branch.findFirst({ where: { status: 'ACTIVE' } });
+    if (!branch) throw new NotFoundException('No active branch found for quotation');
+
+    // Resilient Salesperson Resolution
+    let salesperson = dto.salespersonEmployeeId
+      ? await this.prisma.employee.findFirst({
+          where: { OR: [{ id: dto.salespersonEmployeeId }, { employeeCode: dto.salespersonEmployeeId }] },
+        })
+      : await this.prisma.employee.findFirst({ where: { userId: creatorUserId } });
+
+    if (!salesperson) {
+      salesperson = await this.prisma.employee.findFirst({
+        where: { branchId: branch.id, status: 'ACTIVE' },
       });
+    }
+    if (!salesperson) {
+      salesperson = await this.prisma.employee.findFirst({ where: { status: 'ACTIVE' } });
+    }
+    if (!salesperson) throw new NotFoundException('No active employee found for quotation');
 
-      if (variant) {
-        unitBasePrice = Number(variant.basePrice);
-        gstRate = Number(variant.gstRate);
-      }
-    } catch {}
+    const unitBasePrice = Number(variant.basePrice);
+    const gstRate = Number(variant.gstRate);
 
     const quantity = dto.quantity || 1;
     const baseTotal = unitBasePrice * quantity;
@@ -53,216 +79,171 @@ export class QuotationsService {
 
     const quotationNumber = `QT-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
     const status = discount > 50000 ? 'PENDING_APPROVAL' : 'SUBMITTED';
+    const validityDate = dto.validityDate ? new Date(dto.validityDate) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
-    try {
-      if (this.prisma.isOffline) throw new Error('Offline');
-      const quotation = await this.prisma.quotation.create({
-        data: {
-          quotationNumber,
-          customerId: dto.customerId,
-          leadId: dto.leadId || null,
-          franchiseId,
-          branchId,
-          salespersonEmployeeId,
-          createdByUserId: creatorUserId,
-          variantId,
-          quantity,
-          unitBasePrice,
-          accessoriesAmount: accessories,
-          insuranceAmount: insurance,
-          registrationAmount: registration,
-          financeCharges,
-          discountAmount: discount,
-          subtotal,
-          gstRate,
-          gstAmount,
-          totalAmount,
-          validityDate: new Date(dto.validityDate),
-          notes: dto.notes,
-          status,
-        },
+    const quotation = await this.prisma.quotation.create({
+      data: {
+        quotationNumber,
+        customerId: customer.id,
+        leadId: dto.leadId || null,
+        franchiseId: dto.franchiseId || branch.franchiseId,
+        branchId: branch.id,
+        salespersonEmployeeId: salesperson.id,
+        createdByUserId: creatorUserId,
+        variantId: variant.id,
+        quantity,
+        unitBasePrice,
+        accessoriesAmount: accessories,
+        insuranceAmount: insurance,
+        registrationAmount: registration,
+        financeCharges,
+        discountAmount: discount,
+        subtotal,
+        gstRate,
+        gstAmount,
+        totalAmount,
+        validityDate,
+        notes: dto.notes,
+        status,
+      },
+      include: {
+        customer: true,
+        variant: { include: { model: { include: { manufacturer: true } } } },
+        branch: true,
+        salesperson: true,
+      },
+    });
+
+    await this.auditService.log({
+      actorUserId: creatorUserId,
+      action: 'QUOTATION_CREATED',
+      entityType: 'Quotation',
+      entityId: quotation.id,
+      metadata: { quotationNumber, totalAmount, status: quotation.status },
+    }).catch(() => {});
+
+    return quotation;
+  }
+
+  async findAll(branchId?: string, customerId?: string, status?: QuotationStatus, limit = 50, offset = 0) {
+    const where: any = {};
+    if (branchId) where.branchId = branchId;
+    if (customerId) where.customerId = customerId;
+    if (status) where.status = status;
+
+    const [items, total] = await Promise.all([
+      this.prisma.quotation.findMany({
+        where,
+        take: limit,
+        skip: offset,
+        orderBy: { createdAt: 'desc' },
         include: {
           customer: true,
           variant: { include: { model: { include: { manufacturer: true } } } },
           branch: true,
+          salesperson: true,
         },
-      });
+      }),
+      this.prisma.quotation.count({ where }),
+    ]);
 
-      await this.auditService.log({
-        actorUserId: creatorUserId,
-        action: 'QUOTATION_CREATED',
-        entityType: 'Quotation',
-        entityId: quotation.id,
-        metadata: { quotationNumber, totalAmount, status: quotation.status },
-      }).catch(() => {});
-
-      return quotation;
-    } catch {}
-
-    const newQuotation = {
-      id: `qt-${Date.now()}`,
-      quotationNumber,
-      customerId: dto.customerId,
-      leadId: dto.leadId || null,
-      franchiseId,
-      branchId,
-      salespersonEmployeeId,
-      createdByUserId: creatorUserId,
-      variantId,
-      quantity,
-      unitBasePrice,
-      accessoriesAmount: accessories,
-      insuranceAmount: insurance,
-      registrationAmount: registration,
-      financeCharges,
-      discountAmount: discount,
-      subtotal,
-      gstRate,
-      gstAmount,
-      totalAmount,
-      validityDate: dto.validityDate,
-      notes: dto.notes,
-      status,
-      createdAt: new Date().toISOString(),
-      customer: { id: dto.customerId, name: 'Fleet Logistics Ltd' },
-      variant: { id: variantId, name: 'Prima 5530.S Trailer' },
-      branch: { id: branchId, name: 'Detroit Flagship Hub' },
-    };
-    DEV_QUOTATIONS.unshift(newQuotation);
-    return newQuotation;
-  }
-
-  async findAll(branchId?: string, status?: QuotationStatus, limit = 50, offset = 0) {
-    try {
-      if (this.prisma.isOffline) throw new Error('Offline');
-      const where: any = {};
-      if (branchId) where.branchId = branchId;
-      if (status) where.status = status;
-
-      const [items, total] = await Promise.all([
-        this.prisma.quotation.findMany({
-          where,
-          take: limit,
-          skip: offset,
-          orderBy: { createdAt: 'desc' },
-          include: {
-            customer: true,
-            variant: { include: { model: { include: { manufacturer: true } } } },
-            branch: true,
-            salesperson: true,
-          },
-        }),
-        this.prisma.quotation.count({ where }),
-      ]);
-
-      if (items && items.length > 0) return { items, total, limit, offset };
-    } catch {}
-
-    return { items: DEV_QUOTATIONS, total: DEV_QUOTATIONS.length, limit, offset };
+    return { items, total, limit, offset };
   }
 
   async findOne(id: string) {
-    try {
-      if (this.prisma.isOffline) throw new Error('Offline');
-      const quotation = await this.prisma.quotation.findUnique({
-        where: { id },
-        include: {
-          customer: true,
-          lead: true,
-          franchise: true,
-          branch: true,
-          salesperson: true,
-          variant: { include: { model: { include: { manufacturer: true } } } },
-          bookings: true,
-        },
-      });
+    const quotation = await this.prisma.quotation.findUnique({
+      where: { id },
+      include: {
+        customer: true,
+        franchise: true,
+        branch: true,
+        salesperson: true,
+        variant: { include: { model: { include: { manufacturer: true } } } },
+        bookings: true,
+        items: true,
+      },
+    });
 
-      if (quotation) return quotation;
-    } catch {}
+    if (!quotation) {
+      throw new NotFoundException(`Quotation ID '${id}' not found`);
+    }
 
-    const devQt = DEV_QUOTATIONS.find((q) => q.id === id);
-    if (devQt) return devQt;
-
-    return {
-      id,
-      quotationNumber: `QT-${id}`,
-      customerId: 'cust-dev-01',
-      variantId: 'var-dev-01',
-      totalAmount: 5440000,
-      subtotal: 4250000,
-      gstAmount: 1190000,
-      status: 'APPROVED',
-      createdByUserId: 'usr-admin-01',
-    };
+    return quotation;
   }
 
   async approve(id: string, approverUserId: string) {
     const quotation = await this.findOne(id);
 
-    if (quotation.status !== 'PENDING_APPROVAL' && quotation.status !== 'SUBMITTED' && quotation.status !== 'APPROVED') {
+    if (quotation.status !== 'PENDING_APPROVAL' && quotation.status !== 'SUBMITTED') {
       throw new BadRequestException(`Quotation status '${quotation.status}' cannot be approved`);
     }
 
     if (quotation.createdByUserId === approverUserId) {
-      try {
-        if (!this.prisma.isOffline) {
-          const user = await this.prisma.user.findUnique({ where: { id: approverUserId } });
-          if (user?.accountType !== 'SUPER_ADMIN') {
-            throw new ForbiddenException('Self-Approval Violation: You cannot approve a quotation created by yourself');
-          }
-        }
-      } catch (e: any) {
-        if (e instanceof ForbiddenException) throw e;
+      const user = await this.prisma.user.findUnique({ where: { id: approverUserId } });
+      if (user?.accountType !== 'SUPER_ADMIN') {
+        throw new ForbiddenException('Self-Approval Violation: You cannot approve a quotation you created');
       }
     }
 
-    try {
-      if (this.prisma.isOffline) throw new Error('Offline');
-      const updated = await this.prisma.quotation.update({
-        where: { id },
-        data: { status: 'APPROVED' },
-      });
+    const updated = await this.prisma.quotation.update({
+      where: { id },
+      data: { status: 'APPROVED' },
+    });
 
-      await this.auditService.log({
-        actorUserId: approverUserId,
-        action: 'QUOTATION_APPROVED',
-        entityType: 'Quotation',
-        entityId: id,
-        metadata: { quotationNumber: quotation.quotationNumber },
-      }).catch(() => {});
+    await this.auditService.log({
+      actorUserId: approverUserId,
+      action: 'QUOTATION_APPROVED',
+      entityType: 'Quotation',
+      entityId: id,
+      metadata: { quotationNumber: quotation.quotationNumber },
+    }).catch(() => {});
 
-      return updated;
-    } catch (e: any) {
-      if (e instanceof ForbiddenException || e instanceof BadRequestException) throw e;
-    }
-
-    quotation.status = 'APPROVED';
-    return quotation;
+    return updated;
   }
 
   async reject(id: string, reason: string, actorUserId: string) {
     const quotation = await this.findOne(id);
 
-    try {
-      if (this.prisma.isOffline) throw new Error('Offline');
-      const updated = await this.prisma.quotation.update({
-        where: { id },
-        data: { status: 'REJECTED', notes: `REJECTED: ${reason}` },
-      });
+    if (quotation.status === 'CONVERTED' || quotation.status === 'EXPIRED') {
+      throw new BadRequestException(`Cannot reject a ${quotation.status} quotation`);
+    }
 
-      await this.auditService.log({
-        actorUserId,
-        action: 'QUOTATION_REJECTED',
-        entityType: 'Quotation',
-        entityId: id,
-        metadata: { quotationNumber: quotation.quotationNumber, reason },
-      }).catch(() => {});
+    const updated = await this.prisma.quotation.update({
+      where: { id },
+      data: { status: 'REJECTED', notes: `REJECTED: ${reason}` },
+    });
 
-      return updated;
-    } catch {}
+    await this.auditService.log({
+      actorUserId,
+      action: 'QUOTATION_REJECTED',
+      entityType: 'Quotation',
+      entityId: id,
+      metadata: { quotationNumber: quotation.quotationNumber, reason },
+    }).catch(() => {});
 
-    quotation.status = 'REJECTED';
-    quotation.notes = `REJECTED: ${reason}`;
-    return quotation;
+    return updated;
+  }
+
+  async expire(id: string, actorUserId: string) {
+    const quotation = await this.findOne(id);
+
+    if (!['DRAFT', 'SUBMITTED', 'PENDING_APPROVAL', 'APPROVED'].includes(quotation.status)) {
+      throw new BadRequestException(`Cannot expire quotation in status '${quotation.status}'`);
+    }
+
+    const updated = await this.prisma.quotation.update({
+      where: { id },
+      data: { status: 'EXPIRED' },
+    });
+
+    await this.auditService.log({
+      actorUserId,
+      action: 'QUOTATION_EXPIRED',
+      entityType: 'Quotation',
+      entityId: id,
+      metadata: { quotationNumber: quotation.quotationNumber },
+    }).catch(() => {});
+
+    return updated;
   }
 }

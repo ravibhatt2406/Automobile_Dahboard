@@ -8,8 +8,6 @@ import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { AuditService } from '../audit/audit.service';
 import { InvoiceStatus } from '@prisma/client';
 
-const DEV_INVOICES: any[] = [];
-
 @Injectable()
 export class InvoicesService {
   constructor(
@@ -18,8 +16,43 @@ export class InvoicesService {
   ) {}
 
   async create(dto: CreateInvoiceDto, actorUserId: string) {
-    const franchiseId = dto.franchiseId || 'FR-DEV-01';
-    const branchId = dto.branchId || 'BR-DEV-01';
+    const customer = await this.prisma.customer.findUnique({
+      where: { id: dto.customerId },
+    });
+    if (!customer) {
+      throw new NotFoundException(`Customer with ID ${dto.customerId} not found`);
+    }
+
+    let branchId = dto.branchId;
+    let franchiseId = dto.franchiseId;
+
+    if (dto.bookingId) {
+      const booking = await this.prisma.booking.findUnique({
+        where: { id: dto.bookingId },
+        include: { branch: true },
+      });
+      if (booking) {
+        branchId = branchId || booking.branchId;
+        franchiseId = franchiseId || booking.branch?.franchiseId;
+      }
+    }
+
+    if (!branchId) {
+      const firstBranch = await this.prisma.branch.findFirst();
+      if (!firstBranch) {
+        throw new BadRequestException('No branches available for invoice generation');
+      }
+      branchId = firstBranch.id;
+      franchiseId = franchiseId || firstBranch.franchiseId;
+    }
+
+    if (!franchiseId) {
+      const branch = await this.prisma.branch.findUnique({ where: { id: branchId } });
+      if (!branch) {
+        throw new NotFoundException(`Branch with ID ${branchId} not found`);
+      }
+      franchiseId = branch.franchiseId;
+    }
 
     let subtotal = 0;
     let totalCgst = 0;
@@ -60,73 +93,45 @@ export class InvoicesService {
 
     const invoiceNumber = `INV-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
 
-    try {
-      if (this.prisma.isOffline) throw new Error('Offline');
-      const invoice = await this.prisma.invoice.create({
-        data: {
-          invoiceNumber,
-          customerId: dto.customerId,
-          bookingId: dto.bookingId || null,
-          vehicleId: dto.vehicleId || null,
-          franchiseId,
-          branchId,
-          billingAddress: dto.billingAddress,
-          gstin: dto.gstin || null,
-          subtotal,
-          discount,
-          taxableAmount,
-          cgstAmount: totalCgst,
-          sgstAmount: totalSgst,
-          igstAmount: totalIgst,
-          totalAmount,
-          status: 'ISSUED',
-          issuedAt: new Date(),
-          items: {
-            create: computedItems,
-          },
+    const invoice = await this.prisma.invoice.create({
+      data: {
+        invoiceNumber,
+        customerId: dto.customerId,
+        bookingId: dto.bookingId || null,
+        vehicleId: dto.vehicleId || null,
+        franchiseId,
+        branchId,
+        billingAddress: dto.billingAddress,
+        gstin: dto.gstin || null,
+        subtotal,
+        discount,
+        taxableAmount,
+        cgstAmount: totalCgst,
+        sgstAmount: totalSgst,
+        igstAmount: totalIgst,
+        totalAmount,
+        status: 'ISSUED',
+        issuedAt: new Date(),
+        items: {
+          create: computedItems,
         },
-        include: {
-          customer: true,
-          items: true,
-          branch: true,
-        },
-      });
+      },
+      include: {
+        customer: true,
+        items: true,
+        branch: true,
+      },
+    });
 
-      await this.auditService.log({
-        actorUserId,
-        action: 'INVOICE_ISSUED',
-        entityType: 'Invoice',
-        entityId: invoice.id,
-        metadata: { invoiceNumber, totalAmount, gstin: dto.gstin },
-      }).catch(() => {});
+    await this.auditService.log({
+      actorUserId,
+      action: 'INVOICE_ISSUED',
+      entityType: 'Invoice',
+      entityId: invoice.id,
+      metadata: { invoiceNumber, totalAmount, gstin: dto.gstin },
+    }).catch(() => {});
 
-      return invoice;
-    } catch {}
-
-    const newInvoice = {
-      id: `inv-${Date.now()}`,
-      invoiceNumber,
-      customerId: dto.customerId,
-      bookingId: dto.bookingId || null,
-      vehicleId: dto.vehicleId || null,
-      franchiseId,
-      branchId,
-      billingAddress: dto.billingAddress,
-      gstin: dto.gstin || null,
-      subtotal,
-      discount,
-      taxableAmount,
-      cgstAmount: totalCgst,
-      sgstAmount: totalSgst,
-      igstAmount: totalIgst,
-      totalAmount,
-      status: 'ISSUED',
-      issuedAt: new Date().toISOString(),
-      items: computedItems,
-      createdAt: new Date().toISOString(),
-    };
-    DEV_INVOICES.unshift(newInvoice);
-    return newInvoice;
+    return invoice;
   }
 
   async cancel(id: string, reason: string, actorUserId: string) {
@@ -136,28 +141,20 @@ export class InvoicesService {
       throw new BadRequestException('Invoice is already cancelled');
     }
 
-    try {
-      if (this.prisma.isOffline) throw new Error('Offline');
-      const updated = await this.prisma.invoice.update({
-        where: { id },
-        data: { status: 'CANCELLED' },
-      });
+    const updated = await this.prisma.invoice.update({
+      where: { id },
+      data: { status: 'CANCELLED' },
+    });
 
-      await this.auditService.log({
-        actorUserId,
-        action: 'INVOICE_CANCELLED',
-        entityType: 'Invoice',
-        entityId: id,
-        metadata: { invoiceNumber: invoice.invoiceNumber, reason },
-      }).catch(() => {});
+    await this.auditService.log({
+      actorUserId,
+      action: 'INVOICE_CANCELLED',
+      entityType: 'Invoice',
+      entityId: id,
+      metadata: { invoiceNumber: invoice.invoiceNumber, reason },
+    }).catch(() => {});
 
-      return updated;
-    } catch (e: any) {
-      if (e instanceof BadRequestException) throw e;
-    }
-
-    invoice.status = 'CANCELLED';
-    return invoice;
+    return updated;
   }
 
   async generatePdfData(id: string) {
@@ -178,51 +175,41 @@ export class InvoicesService {
   }
 
   async findAll(branchId?: string, status?: InvoiceStatus, limit = 50, offset = 0) {
-    try {
-      if (this.prisma.isOffline) throw new Error('Offline');
-      const where: any = {};
-      if (branchId) where.branchId = branchId;
-      if (status) where.status = status;
+    const where: any = {};
+    if (branchId) where.branchId = branchId;
+    if (status) where.status = status;
 
-      const [items, total] = await Promise.all([
-        this.prisma.invoice.findMany({
-          where,
-          take: limit,
-          skip: offset,
-          orderBy: { createdAt: 'desc' },
-          include: { customer: true, items: true, branch: true },
-        }),
-        this.prisma.invoice.count({ where }),
-      ]);
+    const [items, total] = await Promise.all([
+      this.prisma.invoice.findMany({
+        where,
+        take: limit,
+        skip: offset,
+        orderBy: { createdAt: 'desc' },
+        include: { customer: true, items: true, branch: true },
+      }),
+      this.prisma.invoice.count({ where }),
+    ]);
 
-      if (items && items.length > 0) return { items, total, limit, offset };
-    } catch {}
-
-    return { items: DEV_INVOICES, total: DEV_INVOICES.length, limit, offset };
+    return { items, total, limit, offset };
   }
 
   async findOne(id: string) {
-    try {
-      if (this.prisma.isOffline) throw new Error('Offline');
-      const invoice = await this.prisma.invoice.findUnique({
-        where: { id },
-        include: { customer: true, items: true, branch: true, payments: true, vehicle: true, booking: true },
-      });
+    const invoice = await this.prisma.invoice.findUnique({
+      where: { id },
+      include: {
+        customer: true,
+        items: true,
+        branch: true,
+        payments: true,
+        vehicle: true,
+        booking: true,
+      },
+    });
 
-      if (invoice) return invoice;
-    } catch {}
+    if (!invoice) {
+      throw new NotFoundException(`Invoice with ID ${id} not found`);
+    }
 
-    const devInv = DEV_INVOICES.find((i) => i.id === id);
-    if (devInv) return devInv;
-
-    return {
-      id,
-      invoiceNumber: `INV-${id}`,
-      customerId: 'cust-dev-01',
-      subtotal: 4200000,
-      totalAmount: 5376000,
-      status: 'ISSUED',
-      items: [],
-    };
+    return invoice;
   }
 }

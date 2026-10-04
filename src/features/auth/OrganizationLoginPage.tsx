@@ -8,8 +8,8 @@ export const OrganizationLoginPage: React.FC = () => {
   const { login, isLoading } = useAuth();
   const navigate = useNavigate();
 
-  const [emailOrPhone, setEmailOrPhone] = useState('branchmanager@titanauto.com');
-  const [password, setPassword] = useState('••••••••••••');
+  const [emailOrPhone, setEmailOrPhone] = useState('admin@titanauto.com');
+  const [password, setPassword] = useState('Admin123!');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {

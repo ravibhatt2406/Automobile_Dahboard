@@ -46,4 +46,13 @@ export class CustomersController {
   ) {
     return this.customersService.update(id, dto, actorUserId);
   }
+
+  @Patch(':id/deactivate')
+  @ApiOperation({ summary: 'Deactivate customer while preserving historical relationships' })
+  async deactivate(
+    @Param('id') id: string,
+    @CurrentUser('id') actorUserId: string,
+  ) {
+    return this.customersService.deactivate(id, actorUserId);
+  }
 }

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { BranchesService } from './branches.service';
 import { CreateBranchDto } from './dto/create-branch.dto';
@@ -22,14 +22,36 @@ export class BranchesController {
   }
 
   @Get()
-  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'FRANCHISE_MANAGER', 'BRANCH_OWNER', 'BRANCH_MANAGER')
+  @Roles(
+    'SUPER_ADMIN',
+    'FRANCHISE_OWNER',
+    'FRANCHISE_MANAGER',
+    'BRANCH_OWNER',
+    'BRANCH_MANAGER',
+    'DEPARTMENT_MANAGER',
+    'SALES_EMPLOYEE',
+    'SERVICE_ADVISOR',
+    'MECHANIC',
+    'EMPLOYEE',
+  )
   @ApiOperation({ summary: 'Get list of branches (optionally filtered by franchiseId)' })
   async findAll(@Query('franchiseId') franchiseId?: string) {
     return this.branchesService.findAll(franchiseId);
   }
 
   @Get(':id')
-  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'FRANCHISE_MANAGER', 'BRANCH_OWNER', 'BRANCH_MANAGER')
+  @Roles(
+    'SUPER_ADMIN',
+    'FRANCHISE_OWNER',
+    'FRANCHISE_MANAGER',
+    'BRANCH_OWNER',
+    'BRANCH_MANAGER',
+    'DEPARTMENT_MANAGER',
+    'SALES_EMPLOYEE',
+    'SERVICE_ADVISOR',
+    'MECHANIC',
+    'EMPLOYEE',
+  )
   @ApiOperation({ summary: 'Get branch details by ID' })
   async findOne(@Param('id') id: string) {
     return this.branchesService.findOne(id);
@@ -55,5 +77,12 @@ export class BranchesController {
     @CurrentUser('id') actorUserId: string,
   ) {
     return this.branchesService.updateStatus(id, status, actorUserId);
+  }
+
+  @Delete(':id')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER')
+  @ApiOperation({ summary: 'Delete empty branch without historical records (Super Admin / Franchise Owner)' })
+  async delete(@Param('id') id: string, @CurrentUser('id') actorUserId: string) {
+    return this.branchesService.delete(id, actorUserId);
   }
 }

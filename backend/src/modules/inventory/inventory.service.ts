@@ -22,8 +22,6 @@ const ALLOWED_STATUS_TRANSITIONS: Record<VehicleStatus, VehicleStatus[]> = {
   BLOCKED: ['IN_STOCK'],
 };
 
-export const DEV_VEHICLES: any[] = [];
-
 @Injectable()
 export class InventoryService {
   constructor(
@@ -32,136 +30,166 @@ export class InventoryService {
   ) {}
 
   async create(dto: CreateVehicleDto, actorUserId: string) {
-    const branchId = dto.branchId || 'BR-DEV-01';
-    const variantId = dto.variantId || 'var-dev-01';
-
-    try {
-      if (this.prisma.isOffline) throw new Error('Offline');
-      const existingVin = await this.prisma.vehicle.findUnique({
-        where: { vin: dto.vin },
-      });
-      if (existingVin) {
-        throw new ConflictException(`VIN/Chassis '${dto.vin}' already exists in inventory`);
-      }
-
-      const existingEngine = await this.prisma.vehicle.findUnique({
-        where: { engineNumber: dto.engineNumber },
-      });
-      if (existingEngine) {
-        throw new ConflictException(`Engine Number '${dto.engineNumber}' already exists`);
-      }
-
-      const vehicle = await this.prisma.vehicle.create({
-        data: {
-          vin: dto.vin,
-          engineNumber: dto.engineNumber,
-          variantId,
-          branchId,
-          manufacturingYear: dto.manufacturingYear,
-          color: dto.color,
-          baseCost: dto.baseCost,
-          sellingPrice: dto.sellingPrice,
-          images: dto.images || [],
-          status: 'IN_STOCK',
-        },
-        include: {
-          variant: { include: { model: { include: { manufacturer: true } } } },
-          branch: true,
-        },
-      });
-
-      await this.auditService.log({
-        actorUserId,
-        action: 'VEHICLE_CREATED',
-        entityType: 'Vehicle',
-        entityId: vehicle.id,
-        metadata: { vin: vehicle.vin, branchId: vehicle.branchId },
-      }).catch(() => {});
-
-      return vehicle;
-    } catch (e: any) {
-      if (e instanceof ConflictException) throw e;
+    const existingVin = await this.prisma.vehicle.findUnique({
+      where: { vin: dto.vin },
+    });
+    if (existingVin) {
+      throw new ConflictException(`VIN/Chassis '${dto.vin}' already exists in inventory`);
     }
 
-    const newVehicle = {
-      id: `veh-${Date.now()}`,
-      vin: dto.vin,
-      engineNumber: dto.engineNumber,
-      variantId,
-      branchId,
-      manufacturingYear: dto.manufacturingYear,
-      color: dto.color,
-      baseCost: dto.baseCost,
-      sellingPrice: dto.sellingPrice,
-      status: 'IN_STOCK',
-      createdAt: new Date().toISOString(),
-      variant: { id: variantId, name: 'Prima 5530.S Trailer' },
-      branch: { id: branchId, name: 'Detroit Flagship Hub' },
-    };
-    DEV_VEHICLES.unshift(newVehicle);
-    return newVehicle;
+    const existingEngine = await this.prisma.vehicle.findUnique({
+      where: { engineNumber: dto.engineNumber },
+    });
+    if (existingEngine) {
+      throw new ConflictException(`Engine Number '${dto.engineNumber}' already exists`);
+    }
+
+    // Validate branch exists and is active
+    let branch = await this.prisma.branch.findFirst({
+      where: {
+        OR: [{ id: dto.branchId }, { code: dto.branchId }],
+      },
+    });
+    if (!branch) {
+      branch = await this.prisma.branch.findFirst({ where: { status: 'ACTIVE' } });
+    }
+    if (!branch) {
+      throw new NotFoundException(`No active branch found for vehicle assignment`);
+    }
+    if (branch.status !== 'ACTIVE') {
+      throw new BadRequestException(`Cannot add vehicle to inactive branch '${branch.name}'`);
+    }
+
+    // Validate variant exists
+    let variant: any = null;
+    if (dto.variantId) {
+      variant = await this.prisma.truckVariant.findFirst({
+        where: {
+          OR: [{ id: dto.variantId }, { name: dto.variantId }],
+        },
+      });
+    }
+    if (!variant && dto.model) {
+      variant = await this.prisma.truckVariant.findFirst({
+        where: {
+          OR: [
+            { name: { contains: dto.model, mode: 'insensitive' } },
+            { model: { name: { contains: dto.model, mode: 'insensitive' } } },
+          ],
+        },
+      });
+    }
+    if (!variant) {
+      variant = await this.prisma.truckVariant.findFirst();
+    }
+    if (!variant) {
+      throw new NotFoundException(`No truck variant found for vehicle`);
+    }
+
+    const vehicle = await this.prisma.vehicle.create({
+      data: {
+        vin: dto.vin,
+        engineNumber: dto.engineNumber,
+        variantId: variant.id,
+        branchId: branch.id,
+        manufacturingYear: dto.manufacturingYear,
+        color: dto.color,
+        baseCost: dto.baseCost,
+        sellingPrice: dto.sellingPrice,
+        images: dto.images || [],
+        status: 'IN_STOCK',
+      },
+      include: {
+        variant: { include: { model: { include: { manufacturer: true } } } },
+        branch: true,
+      },
+    });
+
+    await this.auditService.log({
+      actorUserId,
+      action: 'VEHICLE_CREATED',
+      entityType: 'Vehicle',
+      entityId: vehicle.id,
+      metadata: { vin: vehicle.vin, branchId: vehicle.branchId },
+    }).catch(() => {});
+
+    return vehicle;
   }
 
   async findAll(branchId?: string, status?: VehicleStatus, limit = 50, offset = 0) {
-    try {
-      if (this.prisma.isOffline) throw new Error('Offline');
-      const where: any = {};
-      if (branchId) where.branchId = branchId;
-      if (status) where.status = status;
+    const where: any = {};
+    if (branchId) where.branchId = branchId;
+    if (status) where.status = status;
 
-      const [items, total] = await Promise.all([
-        this.prisma.vehicle.findMany({
-          where,
-          take: limit,
-          skip: offset,
-          orderBy: { createdAt: 'desc' },
-          include: {
-            variant: { include: { model: { include: { manufacturer: true } } } },
-            branch: true,
-            customer: true,
-          },
-        }),
-        this.prisma.vehicle.count({ where }),
-      ]);
+    const [items, total] = await Promise.all([
+      this.prisma.vehicle.findMany({
+        where,
+        take: limit,
+        skip: offset,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          variant: { include: { model: { include: { manufacturer: true } } } },
+          branch: true,
+          customer: true,
+        },
+      }),
+      this.prisma.vehicle.count({ where }),
+    ]);
 
-      if (items && items.length > 0) return { items, total, limit, offset };
-    } catch {}
-
-    return { items: DEV_VEHICLES, total: DEV_VEHICLES.length, limit, offset };
+    return { items, total, limit, offset };
   }
 
   async findOne(id: string) {
-    try {
-      if (this.prisma.isOffline) throw new Error('Offline');
-      const vehicle = await this.prisma.vehicle.findUnique({
-        where: { id },
-        include: {
-          variant: { include: { model: { include: { manufacturer: true } } } },
-          branch: { include: { franchise: true } },
-          customer: true,
-          bookings: { include: { customer: true } },
-          pdiInspections: { orderBy: { inspectionDate: 'desc' } },
-          allocations: { orderBy: { allocatedAt: 'desc' } },
-          deliveries: true,
-        },
-      });
+    const vehicle = await this.prisma.vehicle.findUnique({
+      where: { id },
+      include: {
+        variant: { include: { model: { include: { manufacturer: true } } } },
+        branch: { include: { franchise: true } },
+        customer: true,
+        bookings: { include: { customer: true } },
+        pdiInspections: { orderBy: { inspectionDate: 'desc' } },
+        allocations: { orderBy: { allocatedAt: 'desc' } },
+        deliveries: true,
+      },
+    });
 
-      if (vehicle) return vehicle;
-    } catch {}
+    if (!vehicle) {
+      throw new NotFoundException(`Vehicle ID '${id}' not found`);
+    }
 
-    const devVeh = DEV_VEHICLES.find((v) => v.id === id || v.vin === id);
-    if (devVeh) return devVeh;
+    return vehicle;
+  }
 
-    return {
-      id,
-      vin: `VIN${id}`,
-      engineNumber: `ENG${id}`,
-      status: 'IN_STOCK',
-      variantId: 'var-dev-01',
-      branchId: 'BR-DEV-01',
-      variant: { name: 'Prima 5530.S Trailer' },
-      branch: { name: 'Detroit Flagship Hub' },
-    };
+  async update(id: string, dto: Partial<CreateVehicleDto>, actorUserId: string) {
+    const vehicle = await this.findOne(id);
+
+    if (['SOLD', 'DELIVERED'].includes(vehicle.status) && (dto.sellingPrice || dto.baseCost)) {
+      throw new BadRequestException('Cannot modify pricing on a sold/delivered vehicle');
+    }
+
+    const updated = await this.prisma.vehicle.update({
+      where: { id },
+      data: {
+        color: dto.color,
+        sellingPrice: dto.sellingPrice,
+        baseCost: dto.baseCost,
+        images: dto.images,
+      },
+      include: {
+        variant: { include: { model: { include: { manufacturer: true } } } },
+        branch: true,
+      },
+    });
+
+    await this.auditService.log({
+      actorUserId,
+      action: 'VEHICLE_UPDATED',
+      entityType: 'Vehicle',
+      entityId: id,
+      metadata: { vin: vehicle.vin },
+    }).catch(() => {});
+
+    return updated;
   }
 
   async updateStatus(id: string, newStatus: VehicleStatus, actorUserId: string) {
@@ -178,30 +206,84 @@ export class InventoryService {
       );
     }
 
-    try {
-      if (this.prisma.isOffline) throw new Error('Offline');
+    const updated = await this.prisma.vehicle.update({
+      where: { id },
+      data: { status: newStatus },
+    });
+
+    await this.auditService.log({
+      actorUserId,
+      action: 'VEHICLE_STATUS_CHANGED',
+      entityType: 'Vehicle',
+      entityId: id,
+      metadata: { previousStatus: vehicle.status, newStatus },
+    }).catch(() => {});
+
+    return updated;
+  }
+
+  async deactivate(id: string, actorUserId: string) {
+    const vehicle = await this.prisma.vehicle.findUnique({
+      where: { id },
+      include: {
+        _count: {
+          select: {
+            bookings: true,
+            pdiInspections: true,
+            deliveries: true,
+            serviceJobs: true,
+            invoices: true,
+          },
+        },
+      },
+    });
+
+    if (!vehicle) {
+      throw new NotFoundException(`Vehicle ID '${id}' not found`);
+    }
+
+    const counts = vehicle._count;
+    const hasHistory =
+      counts.bookings > 0 ||
+      counts.pdiInspections > 0 ||
+      counts.deliveries > 0 ||
+      counts.serviceJobs > 0 ||
+      counts.invoices > 0;
+
+    if (hasHistory) {
+      // Soft deactivate - mark as BLOCKED
       const updated = await this.prisma.vehicle.update({
         where: { id },
-        data: { status: newStatus },
+        data: { status: 'BLOCKED' },
       });
 
       await this.auditService.log({
         actorUserId,
-        action: 'VEHICLE_STATUS_CHANGED',
+        action: 'VEHICLE_DEACTIVATED',
         entityType: 'Vehicle',
         entityId: id,
-        metadata: { previousStatus: vehicle.status, newStatus },
+        metadata: { vin: vehicle.vin, reason: 'Has historical records, soft deactivated' },
       }).catch(() => {});
 
-      return updated;
-    } catch (e: any) {
-      if (e instanceof BadRequestException) throw e;
+      return {
+        success: true,
+        message: `Vehicle '${vehicle.vin}' deactivated (has historical records, preserved)`,
+        vehicle: updated,
+      };
     }
 
-    vehicle.status = newStatus;
-    const devVeh = DEV_VEHICLES.find((v) => v.id === id || v.vin === id);
-    if (devVeh) devVeh.status = newStatus;
-    return vehicle;
+    // Safe to hard delete if no history
+    await this.prisma.vehicle.delete({ where: { id } });
+
+    await this.auditService.log({
+      actorUserId,
+      action: 'VEHICLE_DELETED',
+      entityType: 'Vehicle',
+      entityId: id,
+      metadata: { vin: vehicle.vin },
+    }).catch(() => {});
+
+    return { success: true, message: `Vehicle '${vehicle.vin}' permanently removed` };
   }
 
   async allocateVehicle(id: string, bookingId: string, actorUserId: string) {
@@ -210,24 +292,23 @@ export class InventoryService {
       throw new BadRequestException(`Cannot allocate vehicle in status '${vehicle.status}'`);
     }
 
-    try {
-      if (this.prisma.isOffline) throw new Error('Offline');
-      const allocation = await this.prisma.vehicleAllocation.create({
+    return await this.prisma.$transaction(async (tx) => {
+      const allocation = await tx.vehicleAllocation.create({
         data: {
           vehicleId: id,
           bookingId,
-          allocatedByUserId: actorUserId || 'emp-admin-01',
+          allocatedByUserId: actorUserId,
           previousVehicleStatus: vehicle.status,
         },
       });
 
-      await this.prisma.vehicle.update({
+      await tx.vehicle.update({
         where: { id },
         data: { status: 'ALLOCATED' },
       });
 
       if (bookingId) {
-        await this.prisma.booking.update({
+        await tx.booking.update({
           where: { id: bookingId },
           data: { vehicleId: id, status: 'CONFIRMED' },
         }).catch(() => {});
@@ -242,21 +323,6 @@ export class InventoryService {
       }).catch(() => {});
 
       return { ...allocation, status: 'ALLOCATED' };
-    } catch (e: any) {
-      if (e instanceof BadRequestException) throw e;
-    }
-
-    vehicle.status = 'ALLOCATED';
-    const devVeh = DEV_VEHICLES.find((v) => v.id === id || v.vin === id);
-    if (devVeh) devVeh.status = 'ALLOCATED';
-
-    return {
-      id: `alloc-${Date.now()}`,
-      vehicleId: id,
-      bookingId,
-      status: 'ALLOCATED',
-      allocatedByUserId: actorUserId || 'emp-admin-01',
-      allocatedAt: new Date().toISOString(),
-    };
+    });
   }
 }

@@ -11,4 +11,9 @@ export class CreateManufacturerDto {
   @IsString()
   @IsOptional()
   country?: string;
+
+  @ApiProperty({ example: 'ACTIVE', required: false })
+  @IsString()
+  @IsOptional()
+  status?: string;
 }

@@ -16,17 +16,54 @@ export interface CreateEmployeePayload {
 
 export interface ApprovalRequest {
   id: string;
-  requestType: string;
+  requestType?: string;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
-  requesterId: string;
-  targetId?: string;
-  details?: any;
+  employeeId?: string;
+  requestedByUserId?: string;
+  assignedRoleId?: string;
   createdAt: string;
+  employee?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    employeeCode: string;
+    designation?: string;
+    user?: { id: string; email: string; phone?: string };
+    branch?: { name: string; franchise?: { name: string } };
+  };
+  requestedByUser?: { id: string; email: string };
+  approvedByUser?: { id: string; email: string };
+  assignedRole?: { id: string; name: string };
   requester?: {
     id: string;
     email: string;
     firstName?: string;
     lastName?: string;
+  };
+  details?: any;
+}
+
+function normalizeEmployee(e: any): Employee {
+  const roles = Array.isArray(e.roles)
+    ? e.roles
+    : (e.roleAssignments?.map((ra: any) => ra.role?.name).filter(Boolean) || []);
+
+  return {
+    id: e.id,
+    employeeCode: e.employeeCode || '',
+    firstName: e.firstName || '',
+    lastName: e.lastName || '',
+    email: e.email || e.user?.email || '',
+    phone: e.phone || e.user?.phone || '',
+    roles: roles.length > 0 ? roles : ['EMPLOYEE'],
+    franchiseId: e.franchiseId || e.branch?.franchiseId,
+    franchiseName: e.franchiseName || e.branch?.franchise?.name || 'Ashok Leyland Commercial',
+    branchId: e.branchId,
+    branchName: e.branchName || e.branch?.name || 'Jaipur',
+    department: e.department || e.designation || 'Operations',
+    designation: e.designation || 'Operational Staff',
+    status: (e.status || 'ACTIVE').toLowerCase() as any,
+    joinedAt: e.hiredAt || e.createdAt || new Date().toISOString(),
   };
 }
 
@@ -42,16 +79,24 @@ export const employeeService = {
       const unwrapped = unwrapData<any>(response);
 
       if (Array.isArray(unwrapped)) {
+        const mapped = unwrapped.map(normalizeEmployee);
         return {
-          data: unwrapped as Employee[],
-          total: unwrapped.length,
+          data: mapped,
+          total: mapped.length,
           page: 1,
-          pageSize: unwrapped.length || 10,
+          pageSize: mapped.length || 10,
           totalPages: 1,
         };
       }
 
-      return unwrapped as PaginatedResponse<Employee>;
+      const items = Array.isArray(unwrapped?.data) ? unwrapped.data.map(normalizeEmployee) : [];
+      return {
+        data: items,
+        total: unwrapped?.total ?? items.length,
+        page: unwrapped?.page ?? 1,
+        pageSize: unwrapped?.pageSize ?? 10,
+        totalPages: unwrapped?.totalPages ?? 1,
+      };
     } catch {
       return { data: [], total: 0, page: 1, pageSize: 10, totalPages: 0 };
     }
@@ -60,7 +105,8 @@ export const employeeService = {
   async getEmployeeById(id: string): Promise<Employee | null> {
     try {
       const res = await apiFetch<any>(`/employees/${id}`);
-      return unwrapData<Employee>(res);
+      const unwrapped = unwrapData<any>(res);
+      return unwrapped ? normalizeEmployee(unwrapped) : null;
     } catch {
       return null;
     }
@@ -74,11 +120,33 @@ export const employeeService = {
     return unwrapData<Employee>(res);
   },
 
+  async updateEmployee(id: string, payload: Partial<CreateEmployeePayload>): Promise<Employee> {
+    const res = await apiFetch<any>(`/employees/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+    return unwrapData<Employee>(res);
+  },
+
   async deactivateEmployee(id: string): Promise<{ success: boolean; message: string }> {
     const res = await apiFetch<any>(`/employees/${id}/deactivate`, {
       method: 'PATCH',
     });
     return unwrapData<{ success: boolean; message: string }>(res);
+  },
+
+  async getAllApprovals(params?: { branchId?: string; franchiseId?: string }): Promise<ApprovalRequest[]> {
+    try {
+      const queryParams = new URLSearchParams();
+      if (params?.branchId) queryParams.set('branchId', params.branchId);
+      if (params?.franchiseId) queryParams.set('franchiseId', params.franchiseId);
+
+      const res = await apiFetch<any>(`/approvals${queryParams.toString() ? `?${queryParams.toString()}` : ''}`);
+      const unwrapped = unwrapData<any>(res);
+      return Array.isArray(unwrapped) ? unwrapped : [];
+    } catch {
+      return [];
+    }
   },
 
   async getPendingApprovals(): Promise<ApprovalRequest[]> {

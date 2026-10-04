@@ -54,62 +54,7 @@ export const EmployeesListPage: React.FC = () => {
     }
   };
 
-  // Fallback demo employee list if DB has 0 employee records
-  const defaultEmployees: Employee[] = [
-    {
-      id: 'emp-01',
-      employeeCode: 'EMP-JPR-001',
-      firstName: 'Rajesh',
-      lastName: 'Sharma',
-      email: 'branchmanager@titanauto.com',
-      phone: '+91 98290 12345',
-      roles: ['BRANCH_MANAGER', 'SALES_EMPLOYEE'],
-      franchiseId: 'fr-ashok-leyland',
-      franchiseName: 'Ashok Leyland',
-      branchId: 'br-jaipur',
-      branchName: 'Jaipur Branch',
-      department: 'Branch Operations',
-      designation: 'Branch Manager',
-      status: 'active',
-      joinedAt: '2025-01-15',
-    },
-    {
-      id: 'emp-02',
-      employeeCode: 'EMP-JPR-002',
-      firstName: 'Sarah',
-      lastName: 'Jenkins',
-      email: 'sales@titanauto.com',
-      phone: '+91 98290 54321',
-      roles: ['SALES_EMPLOYEE'],
-      franchiseId: 'fr-ashok-leyland',
-      franchiseName: 'Ashok Leyland',
-      branchId: 'br-jaipur',
-      branchName: 'Jaipur Branch',
-      department: 'Sales',
-      designation: 'Senior Sales Executive',
-      status: 'active',
-      joinedAt: '2025-03-10',
-    },
-    {
-      id: 'emp-03',
-      employeeCode: 'EMP-JPR-003',
-      firstName: 'Marcus',
-      lastName: 'Vance',
-      email: 'mechanic@titanauto.com',
-      phone: '+91 98290 67890',
-      roles: ['MECHANIC'],
-      franchiseId: 'fr-ashok-leyland',
-      franchiseName: 'Ashok Leyland',
-      branchId: 'br-jaipur',
-      branchName: 'Jaipur Branch',
-      department: 'Service Workshop',
-      designation: 'Master Commercial Mechanic',
-      status: 'active',
-      joinedAt: '2025-02-01',
-    },
-  ];
-
-  const employeesList = (data?.data && data.data.length > 0) ? data.data : defaultEmployees;
+  const employeesList = data?.data || [];
 
   const columns: Column<Employee>[] = [
     { header: 'Emp Code', accessorKey: 'employeeCode', className: 'font-mono text-xs font-bold text-zinc-900' },

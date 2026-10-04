@@ -78,7 +78,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     if (isSales) {
       return [
         { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-        { label: 'CRM & Leads', path: '/crm/leads', icon: Target },
         { label: 'Customers', path: '/customers', icon: UserCheck },
         { label: 'Sales & Quotations', path: '/sales', icon: ShoppingBag },
         { label: 'Available Inventory', path: '/inventory/vehicles', icon: Truck },
@@ -126,12 +125,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         path: '/customers',
         icon: UserCheck,
         show: permissions.canViewAllCustomers,
-      },
-      {
-        label: 'CRM & Leads',
-        path: '/crm/leads',
-        icon: Target,
-        show: permissions.canViewLeads,
       },
       {
         label: 'Sales Overview',

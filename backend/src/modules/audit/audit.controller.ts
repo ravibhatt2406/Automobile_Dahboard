@@ -15,8 +15,8 @@ export class AuditController {
   @Get()
   @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER')
   @ApiOperation({ summary: 'Get system audit trail logs (Super Admin / Franchise Owner)' })
-  async getAuditLogs(@Query('limit') limit = 50, @Query('offset') offset = 0) {
-    const logs = await this.auditService.findAll(Number(limit), Number(offset));
+  async getAuditLogs(@Query('limit') limit = 50, @Query('offset') offset = 0, @Query('entityType') entityType?: string) {
+    const logs = await this.auditService.findAll(entityType, Number(limit), Number(offset));
     return { logs };
   }
 }

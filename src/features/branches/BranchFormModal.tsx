@@ -6,6 +6,9 @@ import { Branch } from '@/types/domain';
 import { X, Store, Save } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+import { useQuery } from '@tanstack/react-query';
+import { franchiseService } from '@/services/franchise.service';
+
 const branchSchema = z.object({
   franchiseId: z.string().min(1, 'Franchise selection required'),
   name: z.string().min(2, 'Branch name required'),
@@ -13,9 +16,9 @@ const branchSchema = z.object({
   address: z.string().min(2, 'Address required'),
   city: z.string().min(2, 'City required'),
   state: z.string().min(2, 'State required'),
-  pincode: z.string().min(3, 'Pincode required'),
-  phone: z.string().min(5, 'Phone number required'),
-  email: z.string().email('Valid email required'),
+  pincode: z.string().optional(),
+  phone: z.string().optional(),
+  email: z.string().optional(),
   status: z.enum(['active', 'inactive']),
 });
 
@@ -36,14 +39,21 @@ export const BranchFormModal: React.FC<BranchFormModalProps> = ({
 }) => {
   const isEditing = Boolean(initialData);
 
+  const { data: franchisesRes } = useQuery({
+    queryKey: ['franchises'],
+    queryFn: () => franchiseService.getFranchises(),
+  });
+  const franchises = franchisesRes?.data || [];
+
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<BranchFormData>({
-    resolver: zodResolver(branchSchema),
+    resolver: zodResolver(branchSchema) as any,
     defaultValues: {
-      franchiseId: initialData?.franchiseId || 'FR-DEV-01',
+      franchiseId: initialData?.franchiseId || (franchises[0]?.id ?? ''),
       name: initialData?.name || '',
       code: initialData?.code || '',
       address: initialData?.address || '',
@@ -52,15 +62,22 @@ export const BranchFormModal: React.FC<BranchFormModalProps> = ({
       pincode: initialData?.pincode || '',
       phone: initialData?.phone || '',
       email: initialData?.email || '',
-      status: initialData?.status || 'active',
+      status: (initialData?.status?.toLowerCase() === 'inactive' ? 'inactive' : 'active') as 'active' | 'inactive',
     },
   });
 
+  React.useEffect(() => {
+    if (!initialData?.franchiseId && franchises.length > 0) {
+      setValue('franchiseId', franchises[0].id);
+    }
+  }, [franchises, initialData, setValue]);
+
   const handleFormSubmit = (data: BranchFormData) => {
+    const selectedFranchise = franchises.find((f) => f.id === data.franchiseId);
     onSubmit({
       ...initialData,
       ...data,
-      franchiseName: 'Titan Commercial Global',
+      franchiseName: selectedFranchise?.name || 'Ashok Leyland Commercial',
       createdAt: initialData?.createdAt || new Date().toISOString(),
     });
     onClose();
@@ -93,8 +110,17 @@ export const BranchFormModal: React.FC<BranchFormModalProps> = ({
                   {...register('franchiseId')}
                   className="w-full h-9 px-3 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 focus:border-blue-500"
                 >
-                  <option value="FR-DEV-01">Titan Commercial Global</option>
+                  {franchises.length === 0 ? (
+                    <option value="">No franchise available</option>
+                  ) : (
+                    franchises.map((f) => (
+                      <option key={f.id} value={f.id}>
+                        {f.name} ({f.code})
+                      </option>
+                    ))
+                  )}
                 </select>
+                {errors.franchiseId && <p className="text-rose-400 text-[11px] mt-1">{errors.franchiseId.message}</p>}
               </div>
 
               <div className="grid grid-cols-2 gap-3">

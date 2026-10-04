@@ -8,7 +8,7 @@ export const CustomerLoginPage: React.FC = () => {
   const navigate = useNavigate();
 
   const [emailOrPhone, setEmailOrPhone] = useState('customer@titanauto.com');
-  const [password, setPassword] = useState('••••••••••••');
+  const [password, setPassword] = useState('Customer123!');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {

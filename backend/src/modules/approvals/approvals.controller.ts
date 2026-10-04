@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { ApprovalsService } from './approvals.service';
 import { ProcessApprovalDto } from './dto/process-approval.dto';
@@ -13,6 +13,16 @@ import { CurrentUser } from '@/common/decorators/current-user.decorator';
 @Controller('approvals')
 export class ApprovalsController {
   constructor(private readonly approvalsService: ApprovalsService) {}
+
+  @Get()
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'FRANCHISE_MANAGER', 'BRANCH_OWNER', 'BRANCH_MANAGER')
+  @ApiOperation({ summary: 'Get list of all employee approval requests' })
+  async getAllRequests(
+    @Query('branchId') branchId?: string,
+    @Query('franchiseId') franchiseId?: string,
+  ) {
+    return this.approvalsService.findAll(branchId, franchiseId);
+  }
 
   @Get('pending')
   @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'FRANCHISE_MANAGER', 'BRANCH_OWNER', 'BRANCH_MANAGER')

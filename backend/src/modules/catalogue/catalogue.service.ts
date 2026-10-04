@@ -1,31 +1,8 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/database/prisma.service';
 import { CreateManufacturerDto } from './dto/create-manufacturer.dto';
 import { CreateTruckModelDto } from './dto/create-truck-model.dto';
 import { CreateTruckVariantDto } from './dto/create-truck-variant.dto';
-
-const DEV_MANUFACTURERS: any[] = [
-  { id: 'mfg-dev-01', name: 'Tata Motors', country: 'India', status: 'ACTIVE', truckModels: [] },
-];
-const DEV_MODELS: any[] = [
-  { id: 'model-dev-01', manufacturerId: 'mfg-dev-01', name: 'Prima Heavy Duty Series', category: 'HAULAGE', status: 'ACTIVE' },
-];
-const DEV_VARIANTS: any[] = [
-  {
-    id: 'var-dev-01',
-    modelId: 'model-dev-01',
-    name: 'Prima 5530.S Trailer',
-    engineDetails: 'Cummins ISBe 6.7L BS6',
-    horsepower: 300,
-    fuelType: 'DIESEL',
-    transmission: '9-Speed Manual',
-    payload: 55000,
-    basePrice: 4200000,
-    gstRate: 28.0,
-    description: 'Flagship heavy commercial tractor trailer',
-    status: 'ACTIVE',
-  },
-];
 
 @Injectable()
 export class CatalogueService {
@@ -33,180 +10,183 @@ export class CatalogueService {
 
   // Manufacturers
   async createManufacturer(dto: CreateManufacturerDto) {
-    try {
-      if (this.prisma.isOffline) throw new Error('Offline');
-      const existing = await this.prisma.manufacturer.findUnique({
-        where: { name: dto.name },
-      });
-      if (existing) {
-        throw new ConflictException(`Manufacturer '${dto.name}' already exists`);
-      }
-
-      return await this.prisma.manufacturer.create({
-        data: dto,
-      });
-    } catch (e: any) {
-      if (e instanceof ConflictException) throw e;
+    const existing = await this.prisma.manufacturer.findUnique({ where: { name: dto.name } });
+    if (existing) {
+      throw new ConflictException(`Manufacturer '${dto.name}' already exists`);
     }
 
-    const newMfg = {
-      id: `mfg-${Date.now()}`,
-      ...dto,
-      status: 'ACTIVE',
-      createdAt: new Date().toISOString(),
-      truckModels: [],
-    };
-    DEV_MANUFACTURERS.unshift(newMfg);
-    return newMfg;
+    return this.prisma.manufacturer.create({ data: dto });
   }
 
   async findAllManufacturers() {
-    try {
-      if (this.prisma.isOffline) throw new Error('Offline');
-      const items = await this.prisma.manufacturer.findMany({
-        include: { truckModels: { include: { truckVariants: true } } },
-        orderBy: { name: 'asc' },
-      });
-      if (items && items.length > 0) return items;
-    } catch {}
+    return this.prisma.manufacturer.findMany({
+      include: { truckModels: { include: { truckVariants: true } } },
+      orderBy: { name: 'asc' },
+    });
+  }
 
-    return DEV_MANUFACTURERS;
+  async findOneManufacturer(id: string) {
+    const manufacturer = await this.prisma.manufacturer.findUnique({
+      where: { id },
+      include: {
+        truckModels: {
+          include: { truckVariants: true },
+        },
+      },
+    });
+
+    if (!manufacturer) throw new NotFoundException(`Manufacturer ID '${id}' not found`);
+    return manufacturer;
+  }
+
+  async updateManufacturer(id: string, dto: Partial<CreateManufacturerDto>) {
+    const existing = await this.prisma.manufacturer.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException(`Manufacturer ID '${id}' not found`);
+
+    return this.prisma.manufacturer.update({
+      where: { id },
+      data: { name: dto.name, country: dto.country, status: dto.status },
+    });
+  }
+
+  async deactivateManufacturer(id: string) {
+    const existing = await this.prisma.manufacturer.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException(`Manufacturer ID '${id}' not found`);
+
+    return this.prisma.manufacturer.update({
+      where: { id },
+      data: { status: 'INACTIVE' },
+    });
   }
 
   // Models
   async createModel(dto: CreateTruckModelDto) {
-    try {
-      if (this.prisma.isOffline) throw new Error('Offline');
-      const existing = await this.prisma.truckModel.findFirst({
-        where: { manufacturerId: dto.manufacturerId, name: dto.name },
-      });
-      if (existing) {
-        throw new ConflictException(`Model '${dto.name}' already exists for this manufacturer`);
-      }
+    const manufacturer = await this.prisma.manufacturer.findUnique({ where: { id: dto.manufacturerId } });
+    if (!manufacturer) throw new NotFoundException(`Manufacturer ID '${dto.manufacturerId}' not found`);
 
-      return await this.prisma.truckModel.create({
-        data: dto,
-      });
-    } catch (e: any) {
-      if (e instanceof ConflictException) throw e;
+    const existing = await this.prisma.truckModel.findFirst({
+      where: { manufacturerId: dto.manufacturerId, name: dto.name },
+    });
+    if (existing) {
+      throw new ConflictException(`Model '${dto.name}' already exists for this manufacturer`);
     }
 
-    const newModel = {
-      id: `model-${Date.now()}`,
-      ...dto,
-      status: 'ACTIVE',
-      createdAt: new Date().toISOString(),
-      truckVariants: [],
-    };
-    DEV_MODELS.unshift(newModel);
-    return newModel;
+    return this.prisma.truckModel.create({
+      data: dto,
+      include: { manufacturer: true },
+    });
   }
 
   async findAllModels(manufacturerId?: string) {
-    try {
-      if (this.prisma.isOffline) throw new Error('Offline');
-      const items = await this.prisma.truckModel.findMany({
-        where: manufacturerId ? { manufacturerId } : undefined,
-        include: {
-          manufacturer: true,
-          truckVariants: true,
-        },
-        orderBy: { name: 'asc' },
-      });
-      if (items && items.length > 0) return items;
-    } catch {}
+    return this.prisma.truckModel.findMany({
+      where: manufacturerId ? { manufacturerId } : undefined,
+      include: {
+        manufacturer: true,
+        truckVariants: true,
+      },
+      orderBy: { name: 'asc' },
+    });
+  }
 
-    return DEV_MODELS;
+  async findOneModel(id: string) {
+    const model = await this.prisma.truckModel.findUnique({
+      where: { id },
+      include: { manufacturer: true, truckVariants: true },
+    });
+    if (!model) throw new NotFoundException(`Truck Model ID '${id}' not found`);
+    return model;
   }
 
   // Variants
   async createVariant(dto: CreateTruckVariantDto) {
-    try {
-      if (this.prisma.isOffline) throw new Error('Offline');
-      return await this.prisma.truckVariant.create({
-        data: {
-          modelId: dto.modelId,
-          name: dto.name,
-          engineDetails: dto.engineDetails,
-          horsepower: dto.horsepower,
-          fuelType: dto.fuelType,
-          transmission: dto.transmission,
-          payload: dto.payload,
-          basePrice: dto.basePrice,
-          gstRate: dto.gstRate || 28.0,
-          description: dto.description,
-          images: dto.images || [],
-        },
-      });
-    } catch {}
+    const model = await this.prisma.truckModel.findUnique({ where: { id: dto.modelId } });
+    if (!model) throw new NotFoundException(`Truck Model ID '${dto.modelId}' not found`);
 
-    const newVariant = {
-      id: `var-${Date.now()}`,
-      ...dto,
-      gstRate: dto.gstRate || 28.0,
-      status: 'ACTIVE',
-      createdAt: new Date().toISOString(),
-    };
-    DEV_VARIANTS.unshift(newVariant);
-    return newVariant;
+    return this.prisma.truckVariant.create({
+      data: {
+        modelId: dto.modelId,
+        name: dto.name,
+        engineDetails: dto.engineDetails,
+        horsepower: dto.horsepower,
+        fuelType: dto.fuelType,
+        transmission: dto.transmission,
+        payload: dto.payload,
+        basePrice: dto.basePrice,
+        gstRate: dto.gstRate || 28.0,
+        description: dto.description,
+        images: dto.images || [],
+      },
+      include: { model: { include: { manufacturer: true } } },
+    });
   }
 
   async findAllVariants(modelId?: string, search?: string) {
-    try {
-      if (this.prisma.isOffline) throw new Error('Offline');
-      const where: any = {};
-      if (modelId) where.modelId = modelId;
-      if (search) {
-        where.OR = [
-          { name: { contains: search, mode: 'insensitive' } },
-          { description: { contains: search, mode: 'insensitive' } },
-        ];
-      }
+    const where: any = {};
+    if (modelId) where.modelId = modelId;
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+      ];
+    }
 
-      const items = await this.prisma.truckVariant.findMany({
-        where,
-        include: {
-          model: {
-            include: {
-              manufacturer: true,
-            },
-          },
-        },
-        orderBy: { name: 'asc' },
-      });
-      if (items && items.length > 0) return items;
-    } catch {}
-
-    return DEV_VARIANTS;
+    return this.prisma.truckVariant.findMany({
+      where,
+      include: {
+        model: { include: { manufacturer: true } },
+      },
+      orderBy: { name: 'asc' },
+    });
   }
 
   async findOneVariant(id: string) {
-    try {
-      if (this.prisma.isOffline) throw new Error('Offline');
-      const variant = await this.prisma.truckVariant.findUnique({
+    const variant = await this.prisma.truckVariant.findUnique({
+      where: { id },
+      include: {
+        model: { include: { manufacturer: true } },
+      },
+    });
+
+    if (!variant) throw new NotFoundException(`Truck Variant ID '${id}' not found`);
+    return variant;
+  }
+
+  async updateVariant(id: string, dto: Partial<CreateTruckVariantDto>) {
+    const existing = await this.prisma.truckVariant.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException(`Truck Variant ID '${id}' not found`);
+
+    return this.prisma.truckVariant.update({
+      where: { id },
+      data: {
+        name: dto.name,
+        engineDetails: dto.engineDetails,
+        horsepower: dto.horsepower,
+        fuelType: dto.fuelType,
+        transmission: dto.transmission,
+        payload: dto.payload,
+        basePrice: dto.basePrice,
+        gstRate: dto.gstRate,
+        description: dto.description,
+        images: dto.images,
+      },
+      include: { model: { include: { manufacturer: true } } },
+    });
+  }
+
+  async deactivateVariant(id: string) {
+    const existing = await this.prisma.truckVariant.findUnique({
+      where: { id },
+      include: { _count: { select: { vehicles: true, quotations: true } } },
+    });
+    if (!existing) throw new NotFoundException(`Truck Variant ID '${id}' not found`);
+
+    if (existing._count.vehicles > 0 || existing._count.quotations > 0) {
+      return this.prisma.truckVariant.update({
         where: { id },
-        include: {
-          model: {
-            include: {
-              manufacturer: true,
-            },
-          },
-        },
+        data: { status: 'INACTIVE' },
       });
+    }
 
-      if (variant) return variant;
-    } catch {}
-
-    const devVar = DEV_VARIANTS.find((v) => v.id === id);
-    if (devVar) return devVar;
-
-    return {
-      id,
-      modelId: 'model-dev-01',
-      name: 'Prima 5530.S Trailer',
-      basePrice: 4200000,
-      gstRate: 28.0,
-      status: 'ACTIVE',
-    };
+    return this.prisma.truckVariant.delete({ where: { id } });
   }
 }

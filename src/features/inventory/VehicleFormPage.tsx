@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -6,12 +6,12 @@ import { PageHeader } from '@/components/data-display/PageHeader';
 import { useNavigate } from 'react-router-dom';
 import { Truck, Save, ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react';
 import { vehicleService } from '@/services/vehicle.service';
-import { useQueryClient } from '@tanstack/react-query';
-import { useQuery } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { branchService } from '@/services/branch.service';
+import { catalogueService } from '@/services/catalogue.service';
 
 const vehicleSchema = z.object({
-  vin: z.string().min(10, 'VIN/Chassis number required (min 10 chars)').max(20),
+  vin: z.string().min(10, 'VIN/Chassis number required (min 10 chars)').max(30),
   engineNumber: z.string().min(4, 'Engine number required'),
   make: z.string().min(2, 'Make/Manufacturer required'),
   model: z.string().min(2, 'Model required'),
@@ -39,9 +39,16 @@ export const VehicleFormPage: React.FC = () => {
   });
   const branches = branchesRes?.data || [];
 
+  const { data: variants = [] } = useQuery({
+    queryKey: ['catalogVariants'],
+    queryFn: () => catalogueService.getVariants(),
+  });
+
   const {
     register,
     handleSubmit,
+    setValue,
+    watch,
     reset,
     formState: { errors, isSubmitting },
   } = useForm<VehicleFormData>({
@@ -49,18 +56,39 @@ export const VehicleFormPage: React.FC = () => {
     defaultValues: {
       vin: '',
       engineNumber: '',
-      make: 'Tata Motors',
-      model: 'Prima 5530.S',
+      make: 'Ashok Leyland',
+      model: 'AVTR 5525.T',
       manufacturingYear: 2026,
-      vehicleType: 'Tractor Trailer',
+      vehicleType: 'Heavy Commercial Vehicle',
       fuelType: 'diesel',
-      color: 'White',
-      sellingPrice: 5100000,
-      baseCost: 4500000,
+      color: 'Signal White',
+      sellingPrice: 3850000,
+      baseCost: 3500000,
       branchId: '',
-      variantId: 'var-dev-01',
+      variantId: '',
     },
   });
+
+  // Set default branch when loaded
+  useEffect(() => {
+    if (branches.length > 0 && !watch('branchId')) {
+      setValue('branchId', branches[0].id);
+    }
+  }, [branches, setValue, watch]);
+
+  // Handle variant selection to auto-fill specs
+  const handleVariantChange = (variantId: string) => {
+    setValue('variantId', variantId);
+    const selected = variants.find((v) => v.id === variantId);
+    if (selected) {
+      if (selected.manufacturerName) setValue('make', selected.manufacturerName);
+      if (selected.modelName) setValue('model', selected.modelName);
+      if (selected.basePrice) {
+        setValue('sellingPrice', selected.basePrice);
+        setValue('baseCost', Math.round(selected.basePrice * 0.9));
+      }
+    }
+  };
 
   const onSubmit = async (data: VehicleFormData) => {
     setSubmitError(null);
@@ -76,13 +104,12 @@ export const VehicleFormPage: React.FC = () => {
         color: data.color,
         sellingPrice: data.sellingPrice,
         baseCost: data.baseCost,
-        branchId: data.branchId || branches[0]?.id || 'BR-DEV-01',
-        variantId: data.variantId || 'var-dev-01',
+        branchId: data.branchId || branches[0]?.id,
+        variantId: data.variantId || variants[0]?.id,
       });
       await queryClient.invalidateQueries({ queryKey: ['vehicles'] });
       setSubmitSuccess(true);
       reset();
-      // Navigate back after short delay to show success
       setTimeout(() => navigate('/inventory/vehicles'), 1500);
     } catch (err: any) {
       setSubmitError(err?.message || 'Failed to add vehicle to inventory. Please try again.');
@@ -93,39 +120,63 @@ export const VehicleFormPage: React.FC = () => {
     <div>
       <PageHeader
         title="Register Commercial Vehicle"
-        subtitle="Add new truck/commercial vehicle asset into inventory stock database"
+        subtitle="Add new Ashok Leyland truck/commercial vehicle asset into inventory stock database"
         breadcrumbItems={[
           { label: 'Inventory', href: '/inventory/vehicles' },
           { label: 'New Vehicle' },
         ]}
       />
 
-      <div className="cockpit-card p-6 md:p-8 rounded-xl border border-slate-800 max-w-3xl">
+      <div className="max-w-3xl">
         {submitSuccess && (
-          <div className="mb-4 p-3 rounded-lg bg-emerald-950/80 border border-emerald-800 text-emerald-300 text-xs flex items-center gap-2">
-            <CheckCircle className="w-4 h-4 flex-shrink-0" />
-            Vehicle added to inventory successfully! Redirecting...
-          </div>
-        )}
-        {submitError && (
-          <div className="mb-4 p-3 rounded-lg bg-rose-950/80 border border-rose-800 text-rose-300 text-xs flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 flex-shrink-0" />
-            {submitError}
+          <div className="mb-6 p-4 rounded-xl bg-emerald-950/40 border border-emerald-800/60 flex items-center gap-3 text-emerald-300 text-xs">
+            <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />
+            <div>
+              <p className="font-semibold">Vehicle successfully added to inventory!</p>
+              <p className="text-emerald-400/80">Vehicle record persisted in PostgreSQL database. Redirecting...</p>
+            </div>
           </div>
         )}
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="flex items-center gap-2 pb-4 border-b border-slate-800">
-            <Truck className="w-5 h-5 text-blue-400" />
+        {submitError && (
+          <div className="mb-6 p-4 rounded-xl bg-rose-950/40 border border-rose-800/60 flex items-center gap-3 text-rose-300 text-xs">
+            <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />
+            <div>
+              <p className="font-semibold">Registration Failed</p>
+              <p className="text-rose-400/80">{submitError}</p>
+            </div>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit(onSubmit)} className="cockpit-card p-6 rounded-xl border border-slate-800 space-y-6">
+          <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
+            <Truck className="w-5 h-5 text-cyan-400" />
             <h3 className="text-sm font-semibold text-slate-200">Vehicle Identification & Specs</h3>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+            {variants.length > 0 && (
+              <div className="md:col-span-2">
+                <label className="block text-slate-400 mb-1">Truck Model & Variant Selection</label>
+                <select
+                  onChange={(e) => handleVariantChange(e.target.value)}
+                  className="w-full h-9 px-3 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 focus:border-blue-500"
+                >
+                  <option value="">-- Choose Truck Model / Variant --</option>
+                  {variants.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.name} ({v.manufacturerName || 'Ashok Leyland'} - ₹{v.basePrice?.toLocaleString('en-IN')})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <div>
               <label className="block text-slate-400 mb-1 font-mono">VIN / Chassis Number *</label>
               <input
                 {...register('vin')}
-                placeholder="e.g. MAT553000K110482"
+                placeholder="e.g. MB1A2B3C4D5E6F709"
                 className="w-full h-9 px-3 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 font-mono focus:border-blue-500 uppercase"
               />
               {errors.vin && <p className="text-rose-400 text-[11px] mt-1">{errors.vin.message}</p>}
@@ -135,7 +186,7 @@ export const VehicleFormPage: React.FC = () => {
               <label className="block text-slate-400 mb-1 font-mono">Engine Number *</label>
               <input
                 {...register('engineNumber')}
-                placeholder="e.g. ENG-2026-K1104"
+                placeholder="e.g. ENG-AL-2026-09"
                 className="w-full h-9 px-3 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 font-mono focus:border-blue-500"
               />
               {errors.engineNumber && <p className="text-rose-400 text-[11px] mt-1">{errors.engineNumber.message}</p>}
@@ -145,7 +196,7 @@ export const VehicleFormPage: React.FC = () => {
               <label className="block text-slate-400 mb-1">Make / Manufacturer *</label>
               <input
                 {...register('make')}
-                placeholder="Tata Motors, Ashok Leyland..."
+                placeholder="Ashok Leyland"
                 className="w-full h-9 px-3 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 focus:border-blue-500"
               />
               {errors.make && <p className="text-rose-400 text-[11px] mt-1">{errors.make.message}</p>}
@@ -155,7 +206,7 @@ export const VehicleFormPage: React.FC = () => {
               <label className="block text-slate-400 mb-1">Model Name *</label>
               <input
                 {...register('model')}
-                placeholder="Prima 5530.S, 4825 Tipper..."
+                placeholder="AVTR 5525.T, Ecomet 1215 HE..."
                 className="w-full h-9 px-3 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 focus:border-blue-500"
               />
               {errors.model && <p className="text-rose-400 text-[11px] mt-1">{errors.model.message}</p>}
@@ -175,7 +226,7 @@ export const VehicleFormPage: React.FC = () => {
               <label className="block text-slate-400 mb-1">Body Configuration / Type *</label>
               <input
                 {...register('vehicleType')}
-                placeholder="Tractor Trailer, Tipper, Dump Truck..."
+                placeholder="Heavy Commercial Vehicle, ICV, LCV..."
                 className="w-full h-9 px-3 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 focus:border-blue-500"
               />
             </div>
@@ -186,7 +237,7 @@ export const VehicleFormPage: React.FC = () => {
                 {...register('fuelType')}
                 className="w-full h-9 px-3 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 focus:border-blue-500"
               >
-                <option value="diesel">Clean Diesel</option>
+                <option value="diesel">Clean Diesel (i-Gen6)</option>
                 <option value="electric">EV Heavy Battery</option>
                 <option value="hybrid">Hybrid Powertrain</option>
                 <option value="cng">Compressed Natural Gas (CNG)</option>
@@ -197,7 +248,7 @@ export const VehicleFormPage: React.FC = () => {
               <label className="block text-slate-400 mb-1">Exterior Colour *</label>
               <input
                 {...register('color')}
-                placeholder="White, Red, Yellow..."
+                placeholder="Signal White, Royal Blue, Golden Yellow..."
                 className="w-full h-9 px-3 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 focus:border-blue-500"
               />
             </div>
@@ -228,14 +279,15 @@ export const VehicleFormPage: React.FC = () => {
                 {...register('branchId')}
                 className="w-full h-9 px-3 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 focus:border-blue-500"
               >
-                {branches.length === 0 && (
-                  <option value="BR-DEV-01">Detroit Flagship Hub (Default)</option>
+                {branches.length === 0 ? (
+                  <option value="">No branch available</option>
+                ) : (
+                  branches.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name} ({b.code})
+                    </option>
+                  ))
                 )}
-                {branches.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name} ({b.code})
-                  </option>
-                ))}
               </select>
               {errors.branchId && <p className="text-rose-400 text-[11px] mt-1">{errors.branchId.message}</p>}
             </div>
@@ -251,11 +303,10 @@ export const VehicleFormPage: React.FC = () => {
             </button>
             <button
               type="submit"
-              disabled={isSubmitting || submitSuccess}
-              className="inline-flex items-center gap-2 px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg shadow-lg shadow-blue-600/20 disabled:opacity-60"
+              disabled={isSubmitting}
+              className="inline-flex items-center gap-2 px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg shadow-lg shadow-blue-500/20 disabled:opacity-50"
             >
-              <Save className="w-4 h-4" />
-              {isSubmitting ? 'Saving...' : 'Add to Inventory'}
+              <Save className="w-4 h-4" /> {isSubmitting ? 'Registering...' : 'Register Vehicle Asset'}
             </button>
           </div>
         </form>

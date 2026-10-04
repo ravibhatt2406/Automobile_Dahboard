@@ -38,7 +38,6 @@ describe('Employee Approval Notification E2E Suite', () => {
     prisma = moduleFixture.get<PrismaService>(PrismaService);
 
     try {
-      if (prisma.isOffline) throw new Error('Offline');
       const hashedPass = await bcrypt.hash('TestPassword123!', 10);
 
       const superAdminRole = await prisma.role.upsert({
@@ -227,7 +226,7 @@ describe('Employee Approval Notification E2E Suite', () => {
     createdEmployeeId = data.employeeId;
     approvalRequestId = data.approvalRequestId;
 
-    if (!prisma.isOffline) {
+    if (createdEmployeeId) {
       const empInDb = await prisma.employee.findUnique({ where: { id: createdEmployeeId } });
       expect(empInDb?.status).toBe('PENDING_APPROVAL');
 
@@ -301,7 +300,7 @@ describe('Employee Approval Notification E2E Suite', () => {
 
     expect(res.status).toBe(201);
 
-    if (!prisma.isOffline && createdEmployeeId) {
+    if (createdEmployeeId) {
       const emp = await prisma.employee.findUnique({
         where: { id: createdEmployeeId },
         include: { user: true },
@@ -327,8 +326,7 @@ describe('Employee Approval Notification E2E Suite', () => {
   });
 
   it('8. Marking notification as read updates notification status to READ', async () => {
-    if (!prisma.isOffline) {
-      const notif = await prisma.notification.create({
+    const notif = await prisma.notification.create({
         data: {
           userId: superAdminUserId,
           channel: 'IN_APP',
@@ -345,12 +343,5 @@ describe('Employee Approval Notification E2E Suite', () => {
       expect(patchRes.status).toBe(200);
       const updatedNotif = await prisma.notification.findUnique({ where: { id: notif.id } });
       expect(updatedNotif?.status).toBe('READ');
-    } else {
-      const patchRes = await request(app.getHttpServer())
-        .patch('/api/v1/notifications/notif-dev-01/read')
-        .set('Authorization', `Bearer ${superAdminToken}`);
-
-      expect(patchRes.status).toBe(200);
-    }
   });
 });

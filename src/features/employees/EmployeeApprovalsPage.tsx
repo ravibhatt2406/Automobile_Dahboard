@@ -11,23 +11,35 @@ export const EmployeeApprovalsPage: React.FC = () => {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'PENDING' | 'APPROVED' | 'REJECTED'>('PENDING');
 
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+
   const { data: approvalsList = [], isLoading } = useQuery({
-    queryKey: ['pendingApprovals'],
-    queryFn: () => employeeService.getPendingApprovals(),
+    queryKey: ['allApprovals'],
+    queryFn: () => employeeService.getAllApprovals(),
   });
 
   const processMutation = useMutation({
     mutationFn: ({ id, action, comments }: { id: string; action: 'APPROVED' | 'REJECTED'; comments?: string }) =>
       employeeService.processApproval(id, action, comments),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
+      setActionError(null);
+      setActionSuccess(`Employee request successfully ${variables.action === 'APPROVED' ? 'approved' : 'rejected'}.`);
+      queryClient.invalidateQueries({ queryKey: ['allApprovals'] });
       queryClient.invalidateQueries({ queryKey: ['pendingApprovals'] });
       queryClient.invalidateQueries({ queryKey: ['employees'] });
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
       queryClient.invalidateQueries({ queryKey: ['unreadNotificationCount'] });
+      setTimeout(() => setActionSuccess(null), 5000);
+    },
+    onError: (err: any) => {
+      setActionSuccess(null);
+      setActionError(err?.message || 'Failed to process approval request. Ensure you have the required managerial role.');
     },
   });
 
   const handleAction = (id: string, newStatus: 'APPROVED' | 'REJECTED') => {
+    setActionError(null);
     processMutation.mutate({ id, action: newStatus });
   };
 
@@ -39,33 +51,48 @@ export const EmployeeApprovalsPage: React.FC = () => {
 
   const columns: Column<ApprovalRequest>[] = [
     {
-      header: 'Requester Name',
+      header: 'Employee Personnel',
+      cell: (row) => {
+        const emp = row.employee;
+        const name = emp
+          ? `${emp.firstName} ${emp.lastName}`
+          : row.requester
+          ? `${row.requester.firstName || ''} ${row.requester.lastName || ''}`.trim()
+          : 'N/A';
+        const email = emp?.user?.email || row.requester?.email || 'N/A';
+        const code = emp?.employeeCode;
+        return (
+          <div>
+            <span className="font-semibold text-slate-100 block">{name}</span>
+            <span className="text-[11px] text-slate-400 font-mono">
+              {code ? `${code} • ` : ''}
+              {email}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
+      header: 'Branch Location',
       cell: (row) => (
-        <span className="font-semibold text-slate-100">
-          {row.requester?.firstName} {row.requester?.lastName} ({row.requester?.email || 'N/A'})
+        <span className="text-xs text-slate-300 font-medium">
+          {row.employee?.branch?.name || 'Jaipur Branch'}
         </span>
       ),
     },
     {
-      header: 'Request Type',
-      cell: (row) => (
-        <span className="font-mono text-xs text-blue-400 font-medium">
-          {row.requestType}
-        </span>
-      ),
+      header: 'Assigned Role',
+      cell: (row) => {
+        const role = row.assignedRole?.name || row.details?.roleName || 'EMPLOYEE';
+        return (
+          <span className="px-2 py-0.5 rounded bg-blue-950/70 text-blue-300 border border-blue-800/60 text-xs font-mono font-medium">
+            {ROLE_LABELS[role as UserRole] || role}
+          </span>
+        );
+      },
     },
     {
-      header: 'Target Role / Details',
-      cell: (row) => (
-        <span className="text-xs text-slate-300">
-          {row.details?.roleName
-            ? ROLE_LABELS[row.details.roleName as UserRole] || row.details.roleName
-            : JSON.stringify(row.details || {})}
-        </span>
-      ),
-    },
-    {
-      header: 'Date Created',
+      header: 'Submitted Date',
       cell: (row) => (
         <span className="font-mono text-xs text-slate-400">
           {new Date(row.createdAt).toLocaleDateString()}
@@ -97,7 +124,9 @@ export const EmployeeApprovalsPage: React.FC = () => {
             </button>
           </div>
         ) : (
-          <span className="text-xs text-slate-500 font-mono">Decision Finalized</span>
+          <span className="text-xs text-slate-500 font-mono">
+            {row.status === 'APPROVED' ? 'Approved' : 'Rejected'}
+          </span>
         ),
     },
   ];
@@ -106,9 +135,23 @@ export const EmployeeApprovalsPage: React.FC = () => {
     <div>
       <PageHeader
         title="Employee Role Approval Center"
-        subtitle="Review, approve, or reject requested employee role escalations and branch assignments"
+        subtitle="Review, approve, or reject requested employee onboarding requests and role assignments"
         breadcrumbItems={[{ label: 'Organization' }, { label: 'Approvals' }]}
       />
+
+      {actionError && (
+        <div className="mb-4 p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center justify-between animate-in fade-in duration-200">
+          <span>{actionError}</span>
+          <button onClick={() => setActionError(null)} className="text-rose-400 hover:text-white font-bold ml-2">✕</button>
+        </div>
+      )}
+
+      {actionSuccess && (
+        <div className="mb-4 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center justify-between animate-in fade-in duration-200">
+          <span>{actionSuccess}</span>
+          <button onClick={() => setActionSuccess(null)} className="text-emerald-400 hover:text-white font-bold ml-2">✕</button>
+        </div>
+      )}
 
       {/* Tabs Bar */}
       <div className="flex items-center gap-2 mb-6 border-b border-slate-800 pb-3">

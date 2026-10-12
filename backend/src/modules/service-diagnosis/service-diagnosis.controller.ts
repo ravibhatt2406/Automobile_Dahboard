@@ -30,16 +30,17 @@ export class ServiceDiagnosisController {
     @Param('id') serviceJobId: string,
     @Body() dto: CreateDiagnosisDto,
     @CurrentUser('id') actorUserId: string,
+    @CurrentUser() user: any,
   ) {
     dto.serviceJobId = serviceJobId;
-    return this.diagnosisService.create(dto, actorUserId);
+    return this.diagnosisService.create(dto, actorUserId, user);
   }
 
   @Get('service-jobs/:id/diagnosis')
   @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SERVICE_ADVISOR', 'MECHANIC', 'CUSTOMER')
   @ApiOperation({ summary: 'Get diagnoses for service job' })
-  findByJob(@Param('id') serviceJobId: string) {
-    return this.diagnosisService.findByJob(serviceJobId);
+  findByJob(@Param('id') serviceJobId: string, @CurrentUser() user: any) {
+    return this.diagnosisService.findByJob(serviceJobId, user);
   }
 
   @Patch('service-approvals/:id/respond')
@@ -50,7 +51,8 @@ export class ServiceDiagnosisController {
     @Body('decision') decision: 'APPROVED' | 'REJECTED',
     @Body('customerNotes') customerNotes?: string,
     @CurrentUser('id') actorUserId?: string,
+    @CurrentUser() user?: any,
   ) {
-    return this.diagnosisService.respondToApproval(approvalId, decision, customerNotes, actorUserId);
+    return this.diagnosisService.respondToApproval(approvalId, decision, customerNotes, actorUserId, user);
   }
 }

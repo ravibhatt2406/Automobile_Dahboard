@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '@/database/prisma.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { AuditService } from '../audit/audit.service';
@@ -10,9 +15,13 @@ export class CustomersService {
     private auditService: AuditService,
   ) {}
 
-  async create(dto: CreateCustomerDto, actorUserId: string) {
+  async create(dto: CreateCustomerDto, userOrId: any) {
+    const actorUserId = typeof userOrId === 'object' ? userOrId.id : userOrId;
+    const user = typeof userOrId === 'object' ? userOrId : null;
+
     const customer = await this.prisma.customer.create({
       data: {
+        userId: user?.accountType === 'CUSTOMER' ? user.id : undefined,
         name: dto.name,
         phone: dto.phone,
         email: dto.email,
@@ -37,7 +46,16 @@ export class CustomersService {
     return customer;
   }
 
-  async findAll(search?: string, franchiseId?: string, limit = 50, offset = 0) {
+  async findAll(search?: string, franchiseId?: string, limit = 50, offset = 0, user?: any) {
+    const roles: string[] = user?.roles || [];
+    const isSuperAdmin = user?.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN');
+    const isFranchiseLevel = roles.some((r) => ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r));
+    const isCustomer = user?.accountType === 'CUSTOMER' || (roles.includes('CUSTOMER') && !user?.employeeProfile);
+
+    if (user && isCustomer) {
+      throw new ForbiddenException('Unauthorized: Customers cannot enumerate customer list');
+    }
+
     const whereCondition: any = {};
 
     if (search) {
@@ -49,7 +67,17 @@ export class CustomersService {
       ];
     }
 
-    if (franchiseId) {
+    if (user && !isSuperAdmin) {
+      if (isFranchiseLevel) {
+        if (franchiseId && franchiseId !== user.assignedFranchiseId) {
+          throw new ForbiddenException('Multi-tenant scope violation: Unauthorized franchise access');
+        }
+        whereCondition.franchiseLinks = { some: { franchiseId: user.assignedFranchiseId } };
+      } else {
+        // Branch Level
+        whereCondition.OR = whereCondition.OR || [];
+      }
+    } else if (franchiseId) {
       whereCondition.franchiseLinks = { some: { franchiseId } };
     }
 
@@ -66,7 +94,7 @@ export class CustomersService {
     return { items, total, limit, offset };
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, user?: any) {
     const customer = await this.prisma.customer.findUnique({
       where: { id },
       include: {
@@ -84,6 +112,7 @@ export class CustomersService {
         insurancePolicies: true,
         serviceAppointments: true,
         serviceJobs: { include: { vehicle: true, branch: true } },
+        franchiseLinks: true,
       },
     });
 
@@ -91,17 +120,43 @@ export class CustomersService {
       throw new NotFoundException(`Customer ID '${id}' not found`);
     }
 
+    if (user) {
+      const roles: string[] = user.roles || [];
+      const isSuperAdmin = user.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN');
+      if (!isSuperAdmin) {
+        const isCustomer = user.accountType === 'CUSTOMER' || (roles.includes('CUSTOMER') && !user.employeeProfile);
+        if (isCustomer) {
+          const userCustId = user.customerProfile?.id || user.customerId;
+          const isOwner =
+            customer.id === userCustId ||
+            customer.userId === user.id ||
+            (user.email && customer.email && customer.email.toLowerCase() === user.email.toLowerCase());
+          if (!isOwner) {
+            throw new ForbiddenException('Multi-tenant scope violation: Unauthorized customer access attempt');
+          }
+        } else {
+          const isFranchiseLevel = roles.some((r) => ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r));
+          if (isFranchiseLevel) {
+            const hasFranchiseLink =
+              customer.franchiseLinks?.some((fl) => fl.franchiseId === user.assignedFranchiseId) ||
+              customer.bookings?.some((b: any) => b.branch?.franchiseId === user.assignedFranchiseId);
+            // If customer has any relation to franchise or is accessible
+          }
+        }
+      }
+    }
+
     return customer;
   }
 
-  async update(id: string, dto: Partial<CreateCustomerDto>, actorUserId: string) {
-    const existing = await this.prisma.customer.findUnique({ where: { id } });
-    if (!existing) {
-      throw new NotFoundException(`Customer ID '${id}' not found`);
-    }
+  async update(id: string, dto: Partial<CreateCustomerDto>, userOrId: any) {
+    const actorUserId = typeof userOrId === 'object' ? userOrId.id : userOrId;
+    const user = typeof userOrId === 'object' ? userOrId : null;
+
+    const existing = await this.findOne(id, user);
 
     const updated = await this.prisma.customer.update({
-      where: { id },
+      where: { id: existing.id },
       data: {
         name: dto.name,
         phone: dto.phone,
@@ -126,31 +181,18 @@ export class CustomersService {
     return updated;
   }
 
-  async deactivate(id: string, actorUserId: string) {
-    const customer = await this.prisma.customer.findUnique({
-      where: { id },
-      include: {
-        _count: {
-          select: {
-            bookings: true,
-            invoices: true,
-            vehicles: true,
-            serviceJobs: true,
-          },
-        },
-      },
-    });
+  async deactivate(id: string, userOrId: any) {
+    const actorUserId = typeof userOrId === 'object' ? userOrId.id : userOrId;
+    const user = typeof userOrId === 'object' ? userOrId : null;
 
-    if (!customer) {
-      throw new NotFoundException(`Customer ID '${id}' not found`);
-    }
+    const existing = await this.findOne(id, user);
 
-    if (customer.status === 'INACTIVE') {
-      throw new BadRequestException(`Customer '${customer.name}' is already inactive`);
+    if (existing.status === 'INACTIVE') {
+      throw new BadRequestException(`Customer '${existing.name}' is already inactive`);
     }
 
     const updated = await this.prisma.customer.update({
-      where: { id },
+      where: { id: existing.id },
       data: { status: 'INACTIVE' },
     });
 
@@ -159,12 +201,12 @@ export class CustomersService {
       action: 'CUSTOMER_DEACTIVATED',
       entityType: 'Customer',
       entityId: id,
-      metadata: { name: customer.name },
+      metadata: { name: existing.name },
     }).catch(() => {});
 
     return {
       success: true,
-      message: `Customer '${customer.name}' deactivated. Historical records preserved.`,
+      message: `Customer '${existing.name}' deactivated. Historical records preserved.`,
       customer: updated,
     };
   }

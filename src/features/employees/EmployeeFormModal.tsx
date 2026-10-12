@@ -75,13 +75,17 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
       password: '',
       department: initialData?.department || 'Operations',
       designation: initialData?.designation || 'Staff',
-      branchId: initialData?.branchId || branches[0]?.id || '',
+      branchId: initialData?.branchId || '',
       status: initialData?.status || 'active',
     },
   });
 
   const handleFormSubmit = async (data: EmployeeFormData) => {
     setFormError(null);
+    if (!data.branchId) {
+      setFormError('Please select a branch.');
+      return;
+    }
     try {
       await onSubmit({
         email: data.email,
@@ -89,7 +93,7 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
         password: data.password || 'Password123!',
         firstName: data.firstName,
         lastName: data.lastName,
-        branchId: data.branchId || branches[0]?.id,
+        branchId: data.branchId,
         employeeCode: data.employeeCode,
         roleName: selectedRole,
         designation: data.designation,

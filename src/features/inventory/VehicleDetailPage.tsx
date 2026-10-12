@@ -245,45 +245,40 @@ export const VehicleDetailPage: React.FC = () => {
             <h4 className="font-bold text-zinc-900 text-sm flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-emerald-600" /> Insurance Policy Status
             </h4>
-            <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-200 text-xs font-mono space-y-2">
-              <div className="flex justify-between">
-                <span className="text-zinc-400">Policy Number:</span>
-                <span className="font-bold text-zinc-900">POL-AL-9842-2026</span>
+            {veh.insurancePolicy ? (
+              <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-200 text-xs font-mono space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-zinc-400">Policy Number:</span>
+                  <span className="font-bold text-zinc-900">{veh.insurancePolicy.policyNumber}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-400">Provider:</span>
+                  <span className="font-semibold text-zinc-800">{veh.insurancePolicy.insurer}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-400">Expiry Date:</span>
+                  <span className="font-bold text-zinc-900">{new Date(veh.insurancePolicy.expiryDate).toLocaleDateString()}</span>
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-zinc-400">Provider:</span>
-                <span className="font-semibold text-zinc-800">ICICI Lombard General</span>
+            ) : (
+              <div className="p-4 bg-zinc-50 rounded-xl border border-zinc-200 text-xs text-zinc-500">
+                No active insurance policy directly registered for this VIN.
               </div>
-              <div className="flex justify-between">
-                <span className="text-zinc-400">Expiry Date:</span>
-                <span className="font-bold text-amber-700">16-Oct-2026 (Expiring Soon)</span>
-              </div>
-            </div>
+            )}
             <Link to="/insurance" className="text-xs text-[#111111] font-semibold underline block pt-1">
-              View Full Policy Details →
+              View All Fleet Policies →
             </Link>
           </div>
 
           <div className="cockpit-card p-6 rounded-xl border border-[#E5E5E5] bg-white space-y-3">
             <h4 className="font-bold text-zinc-900 text-sm flex items-center gap-2">
-              <FileCheck className="w-4 h-4 text-emerald-600" /> PUC Certificate Status
+              <FileCheck className="w-4 h-4 text-emerald-600" /> Emission & Compliance Status
             </h4>
-            <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-200 text-xs font-mono space-y-2">
-              <div className="flex justify-between">
-                <span className="text-zinc-400">Certificate #:</span>
-                <span className="font-bold text-zinc-900">PUC-RJ14-2026-8819</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-zinc-400">Authority:</span>
-                <span className="font-semibold text-zinc-800">Govt of Rajasthan</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-zinc-400">Status:</span>
-                <span className="font-bold text-amber-700">Valid (Expiring in 12 days)</span>
-              </div>
+            <div className="p-4 bg-zinc-50 rounded-xl border border-zinc-200 text-xs text-zinc-500">
+              Commercial vehicle compliance status is maintained according to regional transport guidelines.
             </div>
             <Link to="/insurance" className="text-xs text-[#111111] font-semibold underline block pt-1">
-              View Certificate →
+              View Fleet Compliance →
             </Link>
           </div>
         </div>
@@ -295,15 +290,25 @@ export const VehicleDetailPage: React.FC = () => {
           <h3 className="text-sm font-bold text-[#111111] flex items-center gap-2">
             <Wrench className="w-4 h-4 text-[#F5A800]" /> Vehicle Service History & Appointments
           </h3>
-          <div className="p-4 bg-zinc-50 rounded-xl border border-zinc-200 text-xs font-mono flex justify-between items-center">
-            <div>
-              <span className="font-bold text-zinc-900 block">Scheduled 10,000 KM Maintenance</span>
-              <span className="text-zinc-500 text-[11px]">Jaipur Central Service Workshop • Scheduled: 20-Oct-2026</span>
+          {Array.isArray(veh.serviceJobs) && veh.serviceJobs.length > 0 ? (
+            <div className="space-y-2">
+              {veh.serviceJobs.map((sj: any) => (
+                <div key={sj.id} className="p-4 bg-zinc-50 rounded-xl border border-zinc-200 text-xs font-mono flex justify-between items-center">
+                  <div>
+                    <span className="font-bold text-zinc-900 block">{sj.jobNumber} — {sj.complaint || 'Service Order'}</span>
+                    <span className="text-zinc-500 text-[11px]">Status: {sj.status}</span>
+                  </div>
+                  <span className="px-2.5 py-1 rounded bg-amber-100 text-amber-900 font-semibold text-[11px] uppercase">
+                    {sj.status}
+                  </span>
+                </div>
+              ))}
             </div>
-            <span className="px-2.5 py-1 rounded bg-amber-100 text-amber-900 font-semibold text-[11px]">
-              Scheduled
-            </span>
-          </div>
+          ) : (
+            <div className="p-4 text-center bg-zinc-50 rounded-xl border border-zinc-200 text-xs text-zinc-500">
+              No recent maintenance jobs recorded for this unit.
+            </div>
+          )}
         </div>
       )}
 
@@ -313,13 +318,8 @@ export const VehicleDetailPage: React.FC = () => {
           <h3 className="text-sm font-bold text-[#111111] flex items-center gap-2 font-sans mb-3">
             <FileText className="w-4 h-4 text-blue-600" /> Vehicle Document Vault
           </h3>
-          <div className="p-3 bg-zinc-50 rounded-lg border border-zinc-200 flex justify-between items-center">
-            <span>Vehicle Sales GST Invoice #INV-2026-001</span>
-            <Link to="/billing/invoices" className="text-zinc-900 font-semibold underline">View Invoice</Link>
-          </div>
-          <div className="p-3 bg-zinc-50 rounded-lg border border-zinc-200 flex justify-between items-center">
-            <span>Insurance Policy Certificate POL-AL-9842</span>
-            <Link to="/insurance" className="text-zinc-900 font-semibold underline">View Certificate</Link>
+          <div className="p-4 text-center bg-zinc-50 rounded-xl border border-zinc-200 text-xs text-zinc-500">
+            Registered vehicle documents, warranties, and purchase invoices are securely stored in the PostgreSQL database.
           </div>
         </div>
       )}

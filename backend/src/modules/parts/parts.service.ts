@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '@/database/prisma.service';
 import { CreatePartDto } from './dto/create-part.dto';
@@ -46,34 +47,66 @@ export class PartsService {
     return part;
   }
 
-  async updateStock(dto: UpdateStockDto, actorUserId: string) {
+  async updateStock(dto: UpdateStockDto, actorUserId: string, user?: any) {
     const part = await this.prisma.part.findUnique({ where: { id: dto.partId } });
     if (!part) {
       throw new NotFoundException(`Part ID '${dto.partId}' not found`);
     }
 
+    const branch = await this.prisma.branch.findUnique({ where: { id: dto.branchId } });
+    if (!branch) {
+      throw new NotFoundException(`Branch ID '${dto.branchId}' not found`);
+    }
+
+    if (user) {
+      const userRoles = Array.isArray(user?.roles) ? user.roles : [];
+      const isSuperAdmin = userRoles.includes('SUPER_ADMIN');
+      if (!isSuperAdmin) {
+        if (user.branchId && user.branchId !== dto.branchId) {
+          throw new ForbiddenException('Cannot update stock for another branch');
+        }
+        if (user.franchiseId && branch.franchiseId !== user.franchiseId) {
+          throw new ForbiddenException('Cannot update stock for another franchise');
+        }
+      }
+    }
+
     const result = await this.prisma.$transaction(async (tx) => {
-      const stock = await tx.partStock.upsert({
+      let stock = await tx.partStock.findUnique({
         where: {
           partId_branchId: { partId: dto.partId, branchId: dto.branchId },
         },
-        update: {},
-        create: {
-          partId: dto.partId,
-          branchId: dto.branchId,
-          quantityOnHand: 0,
-          quantityReserved: 0,
-        },
       });
 
-      let newOnHand = stock.quantityOnHand;
-      let newReserved = stock.quantityReserved;
+      if (!stock) {
+        stock = await tx.partStock.create({
+          data: {
+            partId: dto.partId,
+            branchId: dto.branchId,
+            quantityOnHand: 0,
+            quantityReserved: 0,
+          },
+        });
+      }
+
+      // Concurrency lock using PostgreSQL SELECT FOR UPDATE
+      const [lockedStock] = await tx.$queryRaw<any[]>`
+        SELECT id, quantity_on_hand, quantity_reserved
+        FROM part_stocks
+        WHERE id = ${stock.id}
+        FOR UPDATE
+      `;
+
+      let newOnHand = lockedStock ? Number(lockedStock.quantity_on_hand) : stock.quantityOnHand;
+      let newReserved = lockedStock ? Number(lockedStock.quantity_reserved) : stock.quantityReserved;
 
       if (dto.movementType === 'PURCHASE' || dto.movementType === 'RETURN') {
         newOnHand += dto.quantity;
       } else if (dto.movementType === 'ISSUE') {
         if (newOnHand < dto.quantity) {
-          throw new BadRequestException(`Insufficient stock for Part '${part.name}'. Available: ${newOnHand}, Requested: ${dto.quantity}`);
+          throw new BadRequestException(
+            `Insufficient stock for Part '${part.name}'. Available: ${newOnHand}, Requested: ${dto.quantity}`,
+          );
         }
         newOnHand -= dto.quantity;
       } else if (dto.movementType === 'RESERVATION') {
@@ -88,7 +121,7 @@ export class PartsService {
       }
 
       if (newOnHand < 0) {
-        throw new BadRequestException(`Stock change rejected: Would cause negative stock (${newOnHand})`);
+        throw new BadRequestException(`Stock change rejected: Negative stock not permitted (${newOnHand})`);
       }
 
       const updatedStock = await tx.partStock.update({
@@ -124,29 +157,75 @@ export class PartsService {
     return result;
   }
 
-  async issuePartToJob(dto: IssuePartToJobDto, actorUserId: string) {
-    const job = await this.prisma.serviceJob.findUnique({ where: { id: dto.serviceJobId } });
+  async issuePartToJob(dto: IssuePartToJobDto, actorUserId: string, user?: any) {
+    const job = await this.prisma.serviceJob.findUnique({
+      where: { id: dto.serviceJobId },
+      include: { branch: true },
+    });
     if (!job) {
       throw new NotFoundException(`Service Job ID '${dto.serviceJobId}' not found`);
+    }
+
+    if (user) {
+      const userRoles = Array.isArray(user?.roles) ? user.roles : [];
+      const isSuperAdmin = userRoles.includes('SUPER_ADMIN');
+      if (!isSuperAdmin) {
+        if (user.branchId && job.branchId !== user.branchId) {
+          throw new ForbiddenException('Cannot issue parts for a job in another branch');
+        }
+        if (user.franchiseId && job.branch?.franchiseId !== user.franchiseId) {
+          throw new ForbiddenException('Cannot issue parts for a job in another franchise');
+        }
+      }
     }
 
     const part = await this.prisma.part.findUnique({ where: { id: dto.partId } });
     if (!part) {
       throw new NotFoundException(`Part ID '${dto.partId}' not found`);
     }
+    if (part.status !== 'ACTIVE') {
+      throw new BadRequestException(`Part '${part.name}' is not ACTIVE`);
+    }
 
     const result = await this.prisma.$transaction(async (tx) => {
-      const stock = await tx.partStock.findUnique({
+      let stock = await tx.partStock.findUnique({
         where: { partId_branchId: { partId: dto.partId, branchId: job.branchId } },
       });
 
-      if (!stock || stock.quantityOnHand < dto.quantity) {
-        throw new BadRequestException(`Insufficient Stock in Branch for Part '${part.name}'. Available: ${stock?.quantityOnHand || 0}`);
+      if (!stock) {
+        stock = await tx.partStock.create({
+          data: {
+            partId: dto.partId,
+            branchId: job.branchId,
+            quantityOnHand: 0,
+            quantityReserved: 0,
+          },
+        });
+      }
+
+      // Row-level lock to prevent concurrency race conditions
+      const [lockedStock] = await tx.$queryRaw<any[]>`
+        SELECT id, quantity_on_hand, quantity_reserved
+        FROM part_stocks
+        WHERE id = ${stock.id}
+        FOR UPDATE
+      `;
+
+      const available = lockedStock ? Number(lockedStock.quantity_on_hand) : stock.quantityOnHand;
+      if (available < dto.quantity) {
+        throw new BadRequestException(
+          `Insufficient Stock in Branch for Part '${part.name}'. Available: ${available}, Requested: ${dto.quantity}`,
+        );
+      }
+
+      const newOnHand = available - dto.quantity;
+      if (newOnHand < 0) {
+        throw new BadRequestException(`Stock change rejected: Negative stock not permitted`);
       }
 
       await tx.partStock.update({
         where: { id: stock.id },
-        data: { quantityOnHand: stock.quantityOnHand - dto.quantity },
+        data: { quantityOnHand: newOnHand },
       });
 
       await tx.partStockMovement.create({
@@ -177,6 +256,16 @@ export class PartsService {
           status: 'ISSUED',
         },
         include: { part: true },
+      });
+
+      // Update job actualCost and transition from WAITING_FOR_PARTS to IN_PROGRESS if needed
+      const currentCost = Number(job.actualCost || 0);
+      await tx.serviceJob.update({
+        where: { id: dto.serviceJobId },
+        data: {
+          actualCost: currentCost + totalAmount,
+          status: job.status === 'WAITING_FOR_PARTS' ? 'IN_PROGRESS' : job.status,
+        },
       });
 
       return jobPart;
@@ -211,7 +300,17 @@ export class PartsService {
     return { items, total, limit, offset };
   }
 
-  async findStockByBranch(branchId: string) {
+  async findStockByBranch(branchId: string, user?: any) {
+    if (user) {
+      const userRoles = Array.isArray(user?.roles) ? user.roles : [];
+      const isSuperAdmin = userRoles.includes('SUPER_ADMIN');
+      if (!isSuperAdmin) {
+        if (user.branchId && user.branchId !== branchId) {
+          throw new ForbiddenException('Cannot view stock for another branch');
+        }
+      }
+    }
+
     return this.prisma.partStock.findMany({
       where: { branchId },
       include: { part: true },

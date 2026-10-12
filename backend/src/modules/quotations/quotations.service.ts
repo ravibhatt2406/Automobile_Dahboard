@@ -16,51 +16,100 @@ export class QuotationsService {
     private auditService: AuditService,
   ) {}
 
-  async create(dto: CreateQuotationDto, creatorUserId: string) {
-    // Resilient Customer Resolution
-    let customer = dto.customerId
-      ? await this.prisma.customer.findFirst({
-          where: { OR: [{ id: dto.customerId }, { phone: dto.customerId }, { email: dto.customerId }] },
-        })
-      : await this.prisma.customer.findFirst({ where: { userId: creatorUserId } });
+  async create(dto: CreateQuotationDto, userOrId: any) {
+    const creatorUserId = typeof userOrId === 'object' ? userOrId.id : userOrId;
+    const user = typeof userOrId === 'object' ? userOrId : null;
 
-    if (!customer) {
-      customer = await this.prisma.customer.findFirst({ where: { status: 'ACTIVE' } });
+    // Validate Customer - NO SILENT FALLBACK
+    let customer: any = null;
+    const isCustomer = user?.accountType === 'CUSTOMER' || (user?.roles?.includes('CUSTOMER') && !user?.employeeProfile);
+    if (isCustomer) {
+      const userCustId = user?.customerProfile?.id || user?.customerId;
+      if (userCustId) {
+        customer = await this.prisma.customer.findUnique({ where: { id: userCustId } });
+      } else {
+        customer = await this.prisma.customer.findFirst({ where: { userId: creatorUserId } });
+      }
+      if (!customer) {
+        throw new ForbiddenException('No customer profile associated with user account');
+      }
+    } else if (dto.customerId) {
+      customer = await this.prisma.customer.findFirst({
+        where: { OR: [{ id: dto.customerId }, { phone: dto.customerId }, { email: dto.customerId }] },
+      });
+      if (!customer) {
+        throw new NotFoundException(`Customer '${dto.customerId}' not found`);
+      }
+    } else if (creatorUserId) {
+      customer = await this.prisma.customer.findFirst({ where: { userId: creatorUserId } });
     }
-    if (!customer) throw new NotFoundException('No active customer found for quotation');
+    if (!customer) {
+      throw new BadRequestException('customerId is required for quotation');
+    }
 
-    // Resilient Variant Resolution
-    let variant = dto.variantId
-      ? await this.prisma.truckVariant.findFirst({
-          where: { OR: [{ id: dto.variantId }, { name: dto.variantId }] },
-        })
-      : await this.prisma.truckVariant.findFirst();
-    if (!variant) throw new NotFoundException('No truck variant found for quotation');
+    // Validate Variant - NO SILENT FALLBACK
+    if (!dto.variantId) {
+      throw new BadRequestException('variantId is required for quotation');
+    }
+    const variant = await this.prisma.truckVariant.findFirst({
+      where: { OR: [{ id: dto.variantId }, { name: dto.variantId }] },
+    });
+    if (!variant) {
+      throw new NotFoundException(`Truck variant '${dto.variantId}' not found`);
+    }
 
-    // Resilient Branch Resolution
-    let branch = dto.branchId
-      ? await this.prisma.branch.findFirst({
-          where: { OR: [{ id: dto.branchId }, { code: dto.branchId }] },
-        })
-      : await this.prisma.branch.findFirst({ where: { status: 'ACTIVE' } });
-    if (!branch) throw new NotFoundException('No active branch found for quotation');
+    // Validate Branch - NO SILENT FALLBACK
+    let branch: any = null;
+    const branchKey = dto.branchId || user?.assignedBranchId;
+    if (branchKey) {
+      branch = await this.prisma.branch.findFirst({
+        where: { OR: [{ id: branchKey }, { code: branchKey }] },
+      });
+      if (!branch) {
+        throw new NotFoundException(`Branch '${branchKey}' not found`);
+      }
+    } else {
+      throw new BadRequestException('branchId is required for quotation');
+    }
 
-    // Resilient Salesperson Resolution
-    let salesperson = dto.salespersonEmployeeId
-      ? await this.prisma.employee.findFirst({
-          where: { OR: [{ id: dto.salespersonEmployeeId }, { employeeCode: dto.salespersonEmployeeId }] },
-        })
-      : await this.prisma.employee.findFirst({ where: { userId: creatorUserId } });
+    // Scope check on branch for creator
+    if (user && !isCustomer) {
+      const roles: string[] = user.roles || [];
+      const isSuperAdmin = user.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN');
+      if (!isSuperAdmin) {
+        const isFranchiseLevel = roles.some((r) => ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r));
+        if (isFranchiseLevel) {
+          if (branch.franchiseId !== user.assignedFranchiseId) {
+            throw new ForbiddenException('Multi-tenant scope violation: Cannot create quotation in another franchise');
+          }
+        } else {
+          // Branch level
+          if (branch.id !== user.assignedBranchId && branch.code !== user.assignedBranchId) {
+            throw new ForbiddenException('Multi-tenant scope violation: Cannot create quotation in another branch');
+          }
+        }
+      }
+    }
 
-    if (!salesperson) {
+    // Validate Salesperson
+    let salesperson: any = null;
+    if (dto.salespersonEmployeeId) {
+      salesperson = await this.prisma.employee.findFirst({
+        where: { OR: [{ id: dto.salespersonEmployeeId }, { employeeCode: dto.salespersonEmployeeId }] },
+      });
+      if (!salesperson) {
+        throw new NotFoundException(`Salesperson '${dto.salespersonEmployeeId}' not found`);
+      }
+    } else if (user?.employeeProfile?.id) {
+      salesperson = user.employeeProfile;
+    } else {
       salesperson = await this.prisma.employee.findFirst({
         where: { branchId: branch.id, status: 'ACTIVE' },
       });
     }
     if (!salesperson) {
-      salesperson = await this.prisma.employee.findFirst({ where: { status: 'ACTIVE' } });
+      throw new BadRequestException('No active salesperson found for branch');
     }
-    if (!salesperson) throw new NotFoundException('No active employee found for quotation');
 
     const unitBasePrice = Number(variant.basePrice);
     const gstRate = Number(variant.gstRate);
@@ -103,8 +152,8 @@ export class QuotationsService {
         gstAmount,
         totalAmount,
         validityDate,
-        notes: dto.notes,
         status,
+        notes: dto.notes,
       },
       include: {
         customer: true,
@@ -125,11 +174,53 @@ export class QuotationsService {
     return quotation;
   }
 
-  async findAll(branchId?: string, customerId?: string, status?: QuotationStatus, limit = 50, offset = 0) {
+  async findAll(
+    branchId?: string,
+    customerId?: string,
+    status?: QuotationStatus,
+    limit = 50,
+    offset = 0,
+    user?: any,
+  ) {
+    const roles: string[] = user?.roles || [];
+    const isSuperAdmin = user?.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN');
+    const isFranchiseLevel = roles.some((r) => ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r));
+    const isCustomer = user?.accountType === 'CUSTOMER' || (roles.includes('CUSTOMER') && !user?.employeeProfile);
+
     const where: any = {};
-    if (branchId) where.branchId = branchId;
-    if (customerId) where.customerId = customerId;
     if (status) where.status = status;
+
+    if (user && !isSuperAdmin) {
+      if (isCustomer) {
+        const userCustId = user.customerProfile?.id || user.customerId;
+        where.customerId = userCustId;
+      } else if (isFranchiseLevel) {
+        if (branchId) {
+          const b = await this.prisma.branch.findFirst({
+            where: { OR: [{ id: branchId }, { code: branchId }] },
+          });
+          if (!b || b.franchiseId !== user.assignedFranchiseId) {
+            throw new ForbiddenException('Multi-tenant scope violation: Unauthorized branch access');
+          }
+          where.branchId = b.id;
+        } else {
+          where.branch = { franchiseId: user.assignedFranchiseId };
+        }
+      } else {
+        // Branch Level
+        if (
+          branchId &&
+          branchId !== user.assignedBranchId &&
+          branchId !== user.employeeProfile?.branch?.code
+        ) {
+          throw new ForbiddenException('Multi-tenant scope violation: Unauthorized branch access');
+        }
+        where.branchId = user.assignedBranchId;
+      }
+    } else {
+      if (branchId) where.branchId = branchId;
+      if (customerId) where.customerId = customerId;
+    }
 
     const [items, total] = await Promise.all([
       this.prisma.quotation.findMany({
@@ -150,7 +241,7 @@ export class QuotationsService {
     return { items, total, limit, offset };
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, user?: any) {
     const quotation = await this.prisma.quotation.findUnique({
       where: { id },
       include: {
@@ -168,19 +259,48 @@ export class QuotationsService {
       throw new NotFoundException(`Quotation ID '${id}' not found`);
     }
 
+    if (user) {
+      const roles: string[] = user.roles || [];
+      const isSuperAdmin = user.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN');
+      if (!isSuperAdmin) {
+        const isCustomer = user.accountType === 'CUSTOMER' || (roles.includes('CUSTOMER') && !user.employeeProfile);
+        if (isCustomer) {
+          const userCustId = user.customerProfile?.id || user.customerId;
+          if (quotation.customerId !== userCustId && quotation.customer?.userId !== user.id) {
+            throw new ForbiddenException('Multi-tenant scope violation: Unauthorized quotation access attempt');
+          }
+        } else {
+          const isFranchiseLevel = roles.some((r) => ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r));
+          if (isFranchiseLevel) {
+            if (quotation.branch?.franchiseId !== user.assignedFranchiseId) {
+              throw new ForbiddenException('Multi-tenant scope violation: Unauthorized franchise access');
+            }
+          } else {
+            // Branch level
+            if (quotation.branchId !== user.assignedBranchId) {
+              throw new ForbiddenException('Multi-tenant scope violation: Unauthorized branch access');
+            }
+          }
+        }
+      }
+    }
+
     return quotation;
   }
 
-  async approve(id: string, approverUserId: string) {
-    const quotation = await this.findOne(id);
+  async approve(id: string, userOrId: any) {
+    const approverUserId = typeof userOrId === 'object' ? userOrId.id : userOrId;
+    const user = typeof userOrId === 'object' ? userOrId : null;
+
+    const quotation = await this.findOne(id, user);
 
     if (quotation.status !== 'PENDING_APPROVAL' && quotation.status !== 'SUBMITTED') {
       throw new BadRequestException(`Quotation status '${quotation.status}' cannot be approved`);
     }
 
     if (quotation.createdByUserId === approverUserId) {
-      const user = await this.prisma.user.findUnique({ where: { id: approverUserId } });
-      if (user?.accountType !== 'SUPER_ADMIN') {
+      const approver = await this.prisma.user.findUnique({ where: { id: approverUserId } });
+      if (approver?.accountType !== 'SUPER_ADMIN') {
         throw new ForbiddenException('Self-Approval Violation: You cannot approve a quotation you created');
       }
     }
@@ -201,8 +321,11 @@ export class QuotationsService {
     return updated;
   }
 
-  async reject(id: string, reason: string, actorUserId: string) {
-    const quotation = await this.findOne(id);
+  async reject(id: string, reason: string, userOrId: any) {
+    const actorUserId = typeof userOrId === 'object' ? userOrId.id : userOrId;
+    const user = typeof userOrId === 'object' ? userOrId : null;
+
+    const quotation = await this.findOne(id, user);
 
     if (quotation.status === 'CONVERTED' || quotation.status === 'EXPIRED') {
       throw new BadRequestException(`Cannot reject a ${quotation.status} quotation`);
@@ -224,8 +347,11 @@ export class QuotationsService {
     return updated;
   }
 
-  async expire(id: string, actorUserId: string) {
-    const quotation = await this.findOne(id);
+  async expire(id: string, userOrId: any) {
+    const actorUserId = typeof userOrId === 'object' ? userOrId.id : userOrId;
+    const user = typeof userOrId === 'object' ? userOrId : null;
+
+    const quotation = await this.findOne(id, user);
 
     if (!['DRAFT', 'SUBMITTED', 'PENDING_APPROVAL', 'APPROVED'].includes(quotation.status)) {
       throw new BadRequestException(`Cannot expire quotation in status '${quotation.status}'`);

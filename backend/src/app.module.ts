@@ -8,6 +8,7 @@ import { DatabaseModule } from './database/database.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
+import { TenantScopeGuard } from './common/guards/tenant-scope.guard';
 
 // Feature Modules
 import { AuthModule } from './modules/auth/auth.module';
@@ -101,6 +102,10 @@ import { DashboardsModule } from './modules/dashboards/dashboards.module';
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: TenantScopeGuard,
     },
   ],
 })

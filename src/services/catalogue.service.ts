@@ -155,94 +155,46 @@ export const FALLBACK_CATALOG: CatalogVariantItem[] = [
 
 export const catalogueService = {
   async getManufacturers(): Promise<Manufacturer[]> {
-    try {
-      const res = await apiFetch<any>('/catalogue/manufacturers');
-      const unwrapped = unwrapData<any>(res);
-      if (Array.isArray(unwrapped) && unwrapped.length > 0) {
-        return unwrapped;
-      }
-    } catch {
-      // fallback
-    }
-    return [
-      { id: 'mfg-al', name: 'Ashok Leyland', country: 'India', status: 'ACTIVE', createdAt: '', updatedAt: '' },
-      { id: 'mfg-tm', name: 'Tata Motors', country: 'India', status: 'ACTIVE', createdAt: '', updatedAt: '' },
-    ];
+    const res = await apiFetch<any>('/catalogue/manufacturers');
+    const unwrapped = unwrapData<any>(res);
+    return Array.isArray(unwrapped) ? unwrapped : [];
   },
 
   async getModels(manufacturerId?: string): Promise<TruckModel[]> {
-    try {
-      const query = manufacturerId ? `?manufacturerId=${manufacturerId}` : '';
-      const res = await apiFetch<any>(`/catalogue/truck-models${query}`);
-      const unwrapped = unwrapData<any>(res);
-      if (Array.isArray(unwrapped) && unwrapped.length > 0) {
-        return unwrapped;
-      }
-    } catch {
-      // fallback
-    }
-    return [
-      { id: 'mdl-al-4825', manufacturerId: 'mfg-al', name: '4825 Haulage', category: 'Heavy Commercial', status: 'ACTIVE', createdAt: '', updatedAt: '' },
-      { id: 'mdl-al-3520', manufacturerId: 'mfg-al', name: '3520 Haulage', category: 'Medium Heavy Commercial', status: 'ACTIVE', createdAt: '', updatedAt: '' },
-      { id: 'mdl-tm-prima', manufacturerId: 'mfg-tm', name: 'Prima Series', category: 'Heavy Duty Tractor', status: 'ACTIVE', createdAt: '', updatedAt: '' },
-    ];
+    const query = manufacturerId ? `?manufacturerId=${encodeURIComponent(manufacturerId)}` : '';
+    const res = await apiFetch<any>(`/catalogue/truck-models${query}`);
+    const unwrapped = unwrapData<any>(res);
+    return Array.isArray(unwrapped) ? unwrapped : [];
   },
 
   async getVariants(search?: string, modelId?: string): Promise<CatalogVariantItem[]> {
-    try {
-      const cleanParams: Record<string, string> = {};
-      if (search) cleanParams.search = search;
-      if (modelId) cleanParams.modelId = modelId;
-      const query = new URLSearchParams(cleanParams).toString();
-      const res = await apiFetch<any>(`/catalogue/truck-variants${query ? `?${query}` : ''}`);
-      const unwrapped = unwrapData<any>(res);
+    const cleanParams: Record<string, string> = {};
+    if (search) cleanParams.search = search;
+    if (modelId) cleanParams.modelId = modelId;
+    const query = new URLSearchParams(cleanParams).toString();
+    const res = await apiFetch<any>(`/catalogue/truck-variants${query ? `?${query}` : ''}`);
+    const unwrapped = unwrapData<any>(res);
 
-      if (Array.isArray(unwrapped) && unwrapped.length > 0) {
-        return unwrapped.map((item: any) => ({
-          ...item,
-          manufacturerName: item.model?.manufacturer?.name || item.manufacturerName || 'Ashok Leyland',
-          modelName: item.model?.name || item.modelName || 'Commercial Truck',
-          availableBranches: item.availableBranches || [
-            { branchId: 'br-jaipur', branchName: 'Jaipur Branch', count: 2 },
-          ],
-        }));
-      }
-    } catch {
-      // fallback
+    if (Array.isArray(unwrapped)) {
+      return unwrapped.map((item: any) => ({
+        ...item,
+        manufacturerName: item.model?.manufacturer?.name || item.manufacturerName || 'Ashok Leyland',
+        modelName: item.model?.name || item.modelName || 'Commercial Truck',
+      }));
     }
-
-    let results = FALLBACK_CATALOG;
-    if (search) {
-      const lower = search.toLowerCase();
-      results = results.filter(
-        (v) =>
-          v.name.toLowerCase().includes(lower) ||
-          v.manufacturerName?.toLowerCase().includes(lower) ||
-          v.modelName?.toLowerCase().includes(lower) ||
-          v.engineDetails?.toLowerCase().includes(lower)
-      );
-    }
-    return results;
+    return [];
   },
 
   async getVariantById(id: string): Promise<CatalogVariantItem | null> {
-    try {
-      const res = await apiFetch<any>(`/catalogue/truck-variants/${id}`);
-      const item = unwrapData<any>(res);
-      if (item && item.id) {
-        return {
-          ...item,
-          manufacturerName: item.model?.manufacturer?.name || 'Ashok Leyland',
-          modelName: item.model?.name || 'Commercial Truck',
-          availableBranches: [
-            { branchId: 'br-jaipur', branchName: 'Jaipur Branch', count: 2 },
-            { branchId: 'br-jodhpur', branchName: 'Jodhpur Branch', count: 1 },
-          ],
-        };
-      }
-    } catch {
-      // fallback search
+    const res = await apiFetch<any>(`/catalogue/truck-variants/${id}`);
+    const item = unwrapData<any>(res);
+    if (item && item.id) {
+      return {
+        ...item,
+        manufacturerName: item.model?.manufacturer?.name || 'Ashok Leyland',
+        modelName: item.model?.name || 'Commercial Truck',
+      };
     }
-    return FALLBACK_CATALOG.find((v) => v.id === id) || FALLBACK_CATALOG[0];
+    return null;
   },
 };

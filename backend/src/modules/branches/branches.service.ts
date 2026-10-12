@@ -2,6 +2,7 @@ import {
   Injectable,
   ConflictException,
   NotFoundException,
+  ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '@/database/prisma.service';
@@ -16,7 +17,9 @@ export class BranchesService {
     private auditService: AuditService,
   ) {}
 
-  async create(dto: CreateBranchDto, actorUserId: string) {
+  async create(dto: CreateBranchDto, userOrId: any) {
+    const actorUserId = typeof userOrId === 'object' ? userOrId.id : userOrId;
+
     const existing = await this.prisma.branch.findUnique({
       where: { code: dto.code },
     });
@@ -25,26 +28,23 @@ export class BranchesService {
       throw new ConflictException(`Branch code '${dto.code}' already exists`);
     }
 
-    let targetFranchiseId = dto.franchiseId;
-    let franchise = await this.prisma.franchise.findFirst({
+    if (!dto.franchiseId) {
+      throw new BadRequestException('franchiseId is required');
+    }
+
+    const franchise = await this.prisma.franchise.findFirst({
       where: {
-        OR: [{ id: targetFranchiseId }, { code: targetFranchiseId }],
+        OR: [{ id: dto.franchiseId }, { code: dto.franchiseId }],
       },
     });
 
     if (!franchise) {
-      franchise = await this.prisma.franchise.findFirst({
-        where: { status: 'ACTIVE' },
-      });
-      if (!franchise) {
-        throw new NotFoundException('No active franchise found to associate the branch with');
-      }
+      throw new NotFoundException(`Franchise '${dto.franchiseId}' not found`);
     }
-    targetFranchiseId = franchise.id;
 
     const branch = await this.prisma.branch.create({
       data: {
-        franchiseId: targetFranchiseId,
+        franchiseId: franchise.id,
         code: dto.code,
         name: dto.name,
         address: dto.address,
@@ -65,7 +65,52 @@ export class BranchesService {
     return branch;
   }
 
-  async findAll(franchiseId?: string) {
+  async findAll(franchiseId?: string, user?: any) {
+    const roles: string[] = user?.roles || [];
+    const isSuperAdmin = user?.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN');
+    const isFranchiseLevel = roles.some((r) => ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r));
+
+    if (user && !isSuperAdmin) {
+      if (isFranchiseLevel) {
+        if (franchiseId && franchiseId !== user.assignedFranchiseId) {
+          throw new ForbiddenException('Multi-tenant scope violation: Unauthorized franchise access');
+        }
+        return this.prisma.branch.findMany({
+          where: { franchiseId: user.assignedFranchiseId },
+          include: {
+            franchise: true,
+            employees: {
+              include: {
+                roleAssignments: {
+                  include: { role: true },
+                },
+              },
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+        });
+      } else {
+        // Branch users cannot enumerate all branches
+        if (franchiseId && franchiseId !== user.assignedFranchiseId) {
+          throw new ForbiddenException('Multi-tenant scope violation: Unauthorized franchise access');
+        }
+        return this.prisma.branch.findMany({
+          where: { id: user.assignedBranchId },
+          include: {
+            franchise: true,
+            employees: {
+              include: {
+                roleAssignments: {
+                  include: { role: true },
+                },
+              },
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+        });
+      }
+    }
+
     return this.prisma.branch.findMany({
       where: franchiseId ? { franchiseId } : undefined,
       include: {
@@ -82,9 +127,11 @@ export class BranchesService {
     });
   }
 
-  async findOne(id: string) {
-    const branch = await this.prisma.branch.findUnique({
-      where: { id },
+  async findOne(id: string, user?: any) {
+    const branch = await this.prisma.branch.findFirst({
+      where: {
+        OR: [{ id }, { code: id }],
+      },
       include: {
         franchise: true,
         employees: {
@@ -106,6 +153,23 @@ export class BranchesService {
 
     if (!branch) {
       throw new NotFoundException(`Branch ID '${id}' not found`);
+    }
+
+    if (user) {
+      const roles: string[] = user.roles || [];
+      const isSuperAdmin = user.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN');
+      if (!isSuperAdmin) {
+        const isFranchiseLevel = roles.some((r) => ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r));
+        if (isFranchiseLevel) {
+          if (branch.franchiseId !== user.assignedFranchiseId) {
+            throw new ForbiddenException('Multi-tenant scope violation: Unauthorized franchise access');
+          }
+        } else {
+          if (branch.id !== user.assignedBranchId && branch.code !== user.assignedBranchId) {
+            throw new ForbiddenException('Multi-tenant scope violation: Unauthorized branch access');
+          }
+        }
+      }
     }
 
     return branch;
@@ -138,7 +202,12 @@ export class BranchesService {
     }
   }
 
-  async update(id: string, dto: Partial<CreateBranchDto>, actorUserId: string) {
+  async update(id: string, dto: Partial<CreateBranchDto>, userOrId: any) {
+    const actorUserId = typeof userOrId === 'object' ? userOrId.id : userOrId;
+    const user = typeof userOrId === 'object' ? userOrId : null;
+
+    await this.findOne(id, user);
+
     const branch = await this.prisma.branch.update({
       where: { id },
       data: {
@@ -161,7 +230,12 @@ export class BranchesService {
     return branch;
   }
 
-  async updateStatus(id: string, status: string, actorUserId: string) {
+  async updateStatus(id: string, status: string, userOrId: any) {
+    const actorUserId = typeof userOrId === 'object' ? userOrId.id : userOrId;
+    const user = typeof userOrId === 'object' ? userOrId : null;
+
+    await this.findOne(id, user);
+
     // Check for dependent records before deactivating
     if (status === 'INACTIVE') {
       const branch = await this.prisma.branch.findUnique({
@@ -198,10 +272,15 @@ export class BranchesService {
     return updated;
   }
 
-  async delete(id: string, actorUserId: string) {
+  async delete(id: string, userOrId: any) {
+    const actorUserId = typeof userOrId === 'object' ? userOrId.id : userOrId;
+    const user = typeof userOrId === 'object' ? userOrId : null;
+
+    const targetBranch = await this.findOne(id, user);
+
     // Check all dependent records
     const branch = await this.prisma.branch.findUnique({
-      where: { id },
+      where: { id: targetBranch.id },
       include: {
         _count: {
           select: {
@@ -237,13 +316,13 @@ export class BranchesService {
       );
     }
 
-    await this.prisma.branch.delete({ where: { id } });
+    await this.prisma.branch.delete({ where: { id: branch.id } });
 
     await this.auditService.log({
       actorUserId,
       action: 'BRANCH_DELETED',
       entityType: 'Branch',
-      entityId: id,
+      entityId: branch.id,
       metadata: { branchCode: branch.code, branchName: branch.name },
     }).catch(() => {});
 

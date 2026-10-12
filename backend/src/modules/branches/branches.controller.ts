@@ -4,21 +4,22 @@ import { BranchesService } from './branches.service';
 import { CreateBranchDto } from './dto/create-branch.dto';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
+import { TenantScopeGuard } from '@/common/guards/tenant-scope.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 
 @ApiTags('Branches')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, TenantScopeGuard)
 @Controller('branches')
 export class BranchesController {
   constructor(private readonly branchesService: BranchesService) {}
 
   @Post()
-  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER')
-  @ApiOperation({ summary: 'Create new branch under a franchise (Super Admin / Franchise Owner)' })
-  async create(@Body() dto: CreateBranchDto, @CurrentUser('id') actorUserId: string) {
-    return this.branchesService.create(dto, actorUserId);
+  @Roles('SUPER_ADMIN')
+  @ApiOperation({ summary: 'Create new branch under a franchise (Super Admin Only)' })
+  async create(@Body() dto: CreateBranchDto, @CurrentUser() user: any) {
+    return this.branchesService.create(dto, user);
   }
 
   @Get()
@@ -35,8 +36,8 @@ export class BranchesController {
     'EMPLOYEE',
   )
   @ApiOperation({ summary: 'Get list of branches (optionally filtered by franchiseId)' })
-  async findAll(@Query('franchiseId') franchiseId?: string) {
-    return this.branchesService.findAll(franchiseId);
+  async findAll(@Query('franchiseId') franchiseId: string | undefined, @CurrentUser() user: any) {
+    return this.branchesService.findAll(franchiseId, user);
   }
 
   @Get(':id')
@@ -53,8 +54,8 @@ export class BranchesController {
     'EMPLOYEE',
   )
   @ApiOperation({ summary: 'Get branch details by ID' })
-  async findOne(@Param('id') id: string) {
-    return this.branchesService.findOne(id);
+  async findOne(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.branchesService.findOne(id, user);
   }
 
   @Patch(':id')
@@ -63,9 +64,9 @@ export class BranchesController {
   async update(
     @Param('id') id: string,
     @Body() dto: Partial<CreateBranchDto>,
-    @CurrentUser('id') actorUserId: string,
+    @CurrentUser() user: any,
   ) {
-    return this.branchesService.update(id, dto, actorUserId);
+    return this.branchesService.update(id, dto, user);
   }
 
   @Patch(':id/status')
@@ -74,15 +75,15 @@ export class BranchesController {
   async updateStatus(
     @Param('id') id: string,
     @Body('status') status: string,
-    @CurrentUser('id') actorUserId: string,
+    @CurrentUser() user: any,
   ) {
-    return this.branchesService.updateStatus(id, status, actorUserId);
+    return this.branchesService.updateStatus(id, status, user);
   }
 
   @Delete(':id')
   @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER')
   @ApiOperation({ summary: 'Delete empty branch without historical records (Super Admin / Franchise Owner)' })
-  async delete(@Param('id') id: string, @CurrentUser('id') actorUserId: string) {
-    return this.branchesService.delete(id, actorUserId);
+  async delete(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.branchesService.delete(id, user);
   }
 }

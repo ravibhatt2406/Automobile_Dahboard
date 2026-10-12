@@ -6,6 +6,7 @@ import { FranchiseManagerDashboard } from './FranchiseManagerDashboard';
 import { BranchOwnerDashboard } from './BranchOwnerDashboard';
 import { BranchManagerDashboard } from './BranchManagerDashboard';
 import { SalesDashboard } from './SalesDashboard';
+import { ServiceAdvisorDashboard } from './ServiceAdvisorDashboard';
 import { MechanicDashboard } from './MechanicDashboard';
 import { CustomerDashboard } from './CustomerDashboard';
 
@@ -25,6 +26,8 @@ export const DashboardRouter: React.FC = () => {
       return <BranchManagerDashboard />;
     case 'SALES_EMPLOYEE':
       return <SalesDashboard />;
+    case 'SERVICE_ADVISOR':
+      return <ServiceAdvisorDashboard />;
     case 'MECHANIC':
       return <MechanicDashboard />;
     case 'CUSTOMER':

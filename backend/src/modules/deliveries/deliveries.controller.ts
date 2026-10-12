@@ -20,7 +20,7 @@ import { DeliveryStatus } from '@prisma/client';
 @ApiTags('Deliveries')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard, TenantScopeGuard)
-@Controller('deliveries')
+@Controller(['deliveries', 'delivery'])
 export class DeliveriesController {
   constructor(private readonly deliveriesService: DeliveriesService) {}
 
@@ -34,12 +34,12 @@ export class DeliveriesController {
   @Post(':id/complete')
   @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'DELIVERY_EXECUTIVE')
   @ApiOperation({ summary: 'Complete delivery processing' })
-  complete(@Param('id') id: string) {
-    return this.deliveriesService.findOne(id);
+  complete(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.deliveriesService.findOne(id, user);
   }
 
   @Get()
-  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'DELIVERY_EXECUTIVE', 'SALES_EMPLOYEE')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'DELIVERY_EXECUTIVE', 'SALES_EMPLOYEE', 'CUSTOMER')
   @ApiOperation({ summary: 'List deliveries' })
   @ApiQuery({ name: 'status', required: false, enum: DeliveryStatus })
   @ApiQuery({ name: 'limit', required: false })
@@ -48,14 +48,15 @@ export class DeliveriesController {
     @Query('status') status?: DeliveryStatus,
     @Query('limit') limit?: number,
     @Query('offset') offset?: number,
+    @CurrentUser() user?: any,
   ) {
-    return this.deliveriesService.findAll(status, limit ? +limit : 50, offset ? +offset : 0);
+    return this.deliveriesService.findAll(status, limit ? +limit : 50, offset ? +offset : 0, user);
   }
 
   @Get(':id')
-  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'DELIVERY_EXECUTIVE', 'SALES_EMPLOYEE')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'DELIVERY_EXECUTIVE', 'SALES_EMPLOYEE', 'CUSTOMER')
   @ApiOperation({ summary: 'Get delivery details' })
-  findOne(@Param('id') id: string) {
-    return this.deliveriesService.findOne(id);
+  findOne(@Param('id') id: string, @CurrentUser() user?: any) {
+    return this.deliveriesService.findOne(id, user);
   }
 }

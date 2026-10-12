@@ -8,6 +8,7 @@ import { PrismaService } from '@/database/prisma.service';
 import { ProcessApprovalDto, ProcessApprovalAction } from './dto/process-approval.dto';
 import { AuditService } from '../audit/audit.service';
 import { BranchesService } from '../branches/branches.service';
+import { ROLE_RANKS } from '@/common/constants/permissions.constant';
 
 @Injectable()
 export class ApprovalsService {
@@ -17,9 +18,22 @@ export class ApprovalsService {
     private branchesService: BranchesService,
   ) {}
 
-  async findAllPending() {
+  async findAllPending(user?: any) {
+    const roles: string[] = user?.roles || [];
+    const isSuperAdmin = user?.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN');
+    const isFranchiseLevel = roles.some((r) => ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r));
+
+    const where: any = { status: 'PENDING' };
+    if (user && !isSuperAdmin) {
+      if (isFranchiseLevel) {
+        where.employee = { branch: { franchiseId: user.assignedFranchiseId } };
+      } else {
+        where.employee = { branchId: user.assignedBranchId };
+      }
+    }
+
     return this.prisma.employeeApprovalRequest.findMany({
-      where: { status: 'PENDING' },
+      where,
       include: {
         employee: {
           include: {
@@ -38,12 +52,46 @@ export class ApprovalsService {
     });
   }
 
-  async findAll(branchId?: string, franchiseId?: string) {
+  async findAll(branchId?: string, franchiseId?: string, user?: any) {
+    const roles: string[] = user?.roles || [];
+    const isSuperAdmin = user?.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN');
+    const isFranchiseLevel = roles.some((r) => ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r));
+
+    let effectiveBranchId = branchId;
+    let effectiveFranchiseId = franchiseId;
+
+    if (user && !isSuperAdmin) {
+      if (isFranchiseLevel) {
+        if (effectiveFranchiseId && effectiveFranchiseId !== user.assignedFranchiseId) {
+          throw new ForbiddenException('Multi-tenant scope violation: Unauthorized franchise access');
+        }
+        effectiveFranchiseId = user.assignedFranchiseId;
+        if (effectiveBranchId) {
+          const b = await this.prisma.branch.findFirst({
+            where: { OR: [{ id: effectiveBranchId }, { code: effectiveBranchId }] },
+          });
+          if (!b || b.franchiseId !== user.assignedFranchiseId) {
+            throw new ForbiddenException('Multi-tenant scope violation: Unauthorized branch access');
+          }
+          effectiveBranchId = b.id;
+        }
+      } else {
+        if (
+          effectiveBranchId &&
+          effectiveBranchId !== user.assignedBranchId &&
+          effectiveBranchId !== user.employeeProfile?.branch?.code
+        ) {
+          throw new ForbiddenException('Multi-tenant scope violation: Unauthorized branch access');
+        }
+        effectiveBranchId = user.assignedBranchId;
+      }
+    }
+
     const where: any = {};
-    if (branchId) {
-      where.employee = { branchId };
-    } else if (franchiseId) {
-      where.employee = { branch: { franchiseId } };
+    if (effectiveBranchId) {
+      where.employee = { branchId: effectiveBranchId };
+    } else if (effectiveFranchiseId) {
+      where.employee = { branch: { franchiseId: effectiveFranchiseId } };
     }
 
     return this.prisma.employeeApprovalRequest.findMany({
@@ -63,7 +111,49 @@ export class ApprovalsService {
     });
   }
 
-  async processRequest(id: string, dto: ProcessApprovalDto, approverUserId: string) {
+  async findOne(id: string, user?: any) {
+    const request = await this.prisma.employeeApprovalRequest.findUnique({
+      where: { id },
+      include: {
+        employee: {
+          include: {
+            user: true,
+            branch: { include: { franchise: true } },
+          },
+        },
+        requestedByUser: { select: { id: true, email: true } },
+        approvedByUser: { select: { id: true, email: true } },
+        assignedRole: true,
+      },
+    });
+
+    if (!request) {
+      throw new NotFoundException(`Approval request ID '${id}' not found`);
+    }
+
+    if (user) {
+      const roles: string[] = user.roles || [];
+      const isSuperAdmin = user.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN');
+      if (!isSuperAdmin) {
+        const isFranchiseLevel = roles.some((r) => ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r));
+        if (isFranchiseLevel) {
+          if (request.employee.branch?.franchiseId !== user.assignedFranchiseId) {
+            throw new ForbiddenException('Multi-tenant scope violation: Unauthorized franchise access attempt');
+          }
+        } else {
+          if (request.employee.branchId !== user.assignedBranchId) {
+            throw new ForbiddenException('Multi-tenant scope violation: Unauthorized branch access attempt');
+          }
+        }
+      }
+    }
+
+    return request;
+  }
+
+  async processRequest(id: string, dto: ProcessApprovalDto, userOrId: any) {
+    const approverUserId = typeof userOrId === 'object' ? userOrId.id : userOrId;
+
     const action =
       dto.action ||
       (dto.status === 'APPROVED'
@@ -160,6 +250,14 @@ export class ApprovalsService {
             'Authorization Violation: Franchise managers cannot process approval requests outside their franchise.',
           );
         }
+
+        const approverHighestRank = Math.min(...roles.map((r) => ROLE_RANKS[r] ?? 99));
+        const targetRoleRank = ROLE_RANKS[request.assignedRole.name] ?? 99;
+        if (approverHighestRank !== 1 && targetRoleRank <= approverHighestRank) {
+          throw new ForbiddenException(
+            `Server-side RBAC Violation: You cannot approve or assign a role ('${request.assignedRole.name}' rank ${targetRoleRank}) with equal or higher authority than your rank (${approverHighestRank}).`,
+          );
+        }
       }
     }
 
@@ -228,6 +326,17 @@ export class ApprovalsService {
             assignedRole: request.assignedRole.name,
           },
         });
+
+        await this.auditService.log({
+          actorUserId: approverUserId,
+          action: 'ROLE_ASSIGNED',
+          entityType: 'Employee',
+          entityId: request.employeeId,
+          metadata: {
+            roleName: request.assignedRole.name,
+            employeeId: request.employeeId,
+          },
+        }).catch(() => {});
 
         return {
           message: `Employee onboarding request approved successfully. Role '${request.assignedRole.name}' assigned.`,

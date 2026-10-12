@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '@/database/prisma.service';
 import { CreateServiceQcDto } from './dto/create-service-qc.dto';
 import { AuditService } from '../audit/audit.service';
@@ -10,7 +10,7 @@ export class ServiceQcService {
     private auditService: AuditService,
   ) {}
 
-  async create(dto: CreateServiceQcDto, inspectorUserId: string) {
+  async create(dto: CreateServiceQcDto, inspectorUserId: string, user?: any) {
     if (!dto.serviceJobId) {
       throw new BadRequestException('serviceJobId is required');
     }
@@ -18,9 +18,23 @@ export class ServiceQcService {
 
     const job = await this.prisma.serviceJob.findUnique({
       where: { id: serviceJobId },
+      include: { branch: true },
     });
     if (!job) {
       throw new NotFoundException(`Service Job ID '${serviceJobId}' not found`);
+    }
+
+    if (user) {
+      const userRoles = Array.isArray(user?.roles) ? user.roles : [];
+      const isSuperAdmin = userRoles.includes('SUPER_ADMIN');
+      if (!isSuperAdmin) {
+        if (user.branchId && job.branchId !== user.branchId) {
+          throw new ForbiddenException('Cannot perform QC on a job in another branch');
+        }
+        if (user.franchiseId && job.branch?.franchiseId !== user.franchiseId) {
+          throw new ForbiddenException('Cannot perform QC on a job in another franchise');
+        }
+      }
     }
 
     const result = await this.prisma.$transaction(async (tx) => {
@@ -62,12 +76,29 @@ export class ServiceQcService {
     return result;
   }
 
-  async findByJob(serviceJobId: string) {
+  async findByJob(serviceJobId: string, user?: any) {
     const job = await this.prisma.serviceJob.findUnique({
       where: { id: serviceJobId },
+      include: { branch: true },
     });
     if (!job) {
       throw new NotFoundException(`Service Job ID '${serviceJobId}' not found`);
+    }
+
+    if (user) {
+      const userRoles = Array.isArray(user?.roles) ? user.roles : [];
+      const isSuperAdmin = userRoles.includes('SUPER_ADMIN');
+      const isCustomer = userRoles.includes('CUSTOMER');
+      if (isCustomer) {
+        const customerId = user.customerId || (await this.prisma.customer.findFirst({ where: { userId: user.id } }))?.id;
+        if (!customerId || job.customerId !== customerId) {
+          throw new ForbiddenException('Cannot view QC for another customer job');
+        }
+      } else if (!isSuperAdmin) {
+        if (user.branchId && job.branchId !== user.branchId) {
+          throw new ForbiddenException('Cannot view QC for job in another branch');
+        }
+      }
     }
 
     return this.prisma.serviceQc.findMany({

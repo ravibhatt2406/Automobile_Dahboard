@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useAuth, MOCK_USERS } from '@/app/providers/AuthContext';
+import { useAuth } from '@/app/providers/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { Lock, Mail, ArrowRight, Building, Sparkles, ShieldCheck } from 'lucide-react';
 import { UserRole } from '@/types/roles';
@@ -8,8 +8,8 @@ export const OrganizationLoginPage: React.FC = () => {
   const { login, isLoading } = useAuth();
   const navigate = useNavigate();
 
-  const [emailOrPhone, setEmailOrPhone] = useState('admin@titanauto.com');
-  const [password, setPassword] = useState('Admin123!');
+  const [emailOrPhone, setEmailOrPhone] = useState('');
+  const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -41,10 +41,9 @@ export const OrganizationLoginPage: React.FC = () => {
     }
   };
 
-
   const setDemoAccount = (email: string) => {
     setEmailOrPhone(email);
-    setPassword('demo1234');
+    setPassword('');
   };
 
   return (

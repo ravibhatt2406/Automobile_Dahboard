@@ -29,15 +29,16 @@ export class ServiceQcController {
     @Param('id') serviceJobId: string,
     @Body() dto: CreateServiceQcDto,
     @CurrentUser('id') inspectorUserId: string,
+    @CurrentUser() user: any,
   ) {
     dto.serviceJobId = serviceJobId;
-    return this.qcService.create(dto, inspectorUserId);
+    return this.qcService.create(dto, inspectorUserId, user);
   }
 
   @Get('service-jobs/:id/qc')
   @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SERVICE_ADVISOR', 'PDI_INSPECTOR', 'MECHANIC', 'CUSTOMER')
   @ApiOperation({ summary: 'Get QC inspection records for service job' })
-  findByJob(@Param('id') serviceJobId: string) {
-    return this.qcService.findByJob(serviceJobId);
+  findByJob(@Param('id') serviceJobId: string, @CurrentUser() user: any) {
+    return this.qcService.findByJob(serviceJobId, user);
   }
 }

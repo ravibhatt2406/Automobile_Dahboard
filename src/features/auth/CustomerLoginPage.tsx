@@ -7,8 +7,8 @@ export const CustomerLoginPage: React.FC = () => {
   const { login, isLoading } = useAuth();
   const navigate = useNavigate();
 
-  const [emailOrPhone, setEmailOrPhone] = useState('customer@titanauto.com');
-  const [password, setPassword] = useState('Customer123!');
+  const [emailOrPhone, setEmailOrPhone] = useState('');
+  const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -28,7 +28,7 @@ export const CustomerLoginPage: React.FC = () => {
 
   const handleDemoFill = () => {
     setEmailOrPhone('customer@titanauto.com');
-    setPassword('demo1234');
+    setPassword('');
   };
 
   return (

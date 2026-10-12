@@ -45,6 +45,25 @@ export class UsersService {
       ),
     );
 
+    let customerProfile = user.customerProfile;
+    if (!customerProfile && (user.accountType === 'CUSTOMER' || roles.includes('CUSTOMER'))) {
+      customerProfile = await this.prisma.customer.findFirst({
+        where: {
+          OR: [
+            { userId: user.id },
+            ...(user.email ? [{ email: user.email }] : []),
+            ...(user.phone ? [{ phone: user.phone }] : []),
+          ],
+        },
+      });
+      if (customerProfile && !customerProfile.userId) {
+        await this.prisma.customer.update({
+          where: { id: customerProfile.id },
+          data: { userId: user.id },
+        }).catch(() => {});
+      }
+    }
+
     return {
       id: user.id,
       email: user.email,
@@ -53,6 +72,34 @@ export class UsersService {
       status: user.status,
       lastLoginAt: user.lastLoginAt,
       createdAt: user.createdAt,
+      employeeId: user.employeeProfile?.id || null,
+      customerId: customerProfile?.id || null,
+      branchId: user.employeeProfile?.branchId || null,
+      franchiseId: user.employeeProfile?.branch?.franchiseId || null,
+      employee: user.employeeProfile
+        ? {
+            id: user.employeeProfile.id,
+            employeeCode: user.employeeProfile.employeeCode,
+            firstName: user.employeeProfile.firstName,
+            lastName: user.employeeProfile.lastName,
+            designation: user.employeeProfile.designation,
+            status: user.employeeProfile.status,
+            branchId: user.employeeProfile.branchId,
+            branch: user.employeeProfile.branch,
+          }
+        : null,
+      customer: customerProfile
+        ? {
+            id: customerProfile.id,
+            name: customerProfile.name,
+            customerType: customerProfile.customerType,
+            email: customerProfile.email,
+            phone: customerProfile.phone,
+            status: customerProfile.status,
+          }
+        : null,
+      branch: user.employeeProfile?.branch || null,
+      franchise: user.employeeProfile?.branch?.franchise || null,
       employeeProfile: user.employeeProfile
         ? {
             id: user.employeeProfile.id,
@@ -61,12 +108,17 @@ export class UsersService {
             lastName: user.employeeProfile.lastName,
             designation: user.employeeProfile.designation,
             status: user.employeeProfile.status,
+            branchId: user.employeeProfile.branchId,
             branch: user.employeeProfile.branch,
           }
         : null,
-      customerProfile: user.customerProfile || null,
+      customerProfile: customerProfile || null,
       roles,
       permissions,
+      scope: {
+        franchiseId: user.employeeProfile?.branch?.franchiseId || null,
+        branchId: user.employeeProfile?.branchId || null,
+      },
       assignedFranchiseId: user.employeeProfile?.branch?.franchiseId || null,
       assignedBranchId: user.employeeProfile?.branchId || null,
     };
@@ -74,18 +126,7 @@ export class UsersService {
 
   async findByEmail(email: string) {
     if (!email) return null;
-    const normEmail = email.toLowerCase().trim();
-
-    // Map common demo/evaluation email aliases to the active seeded records
-    const ALIAS_MAP: Record<string, string> = {
-      'branchmanager@titanauto.com': 'manager.jaipur@titanauto.com',
-      'manager@titanauto.com': 'manager.jaipur@titanauto.com',
-      'sales@titanauto.com': 'sales.jaipur@titanauto.com',
-      'mechanic@titanauto.com': 'mechanic.jaipur@titanauto.com',
-      'customer@titanauto.com': 'customer@rajasthanlogistics.com',
-    };
-
-    const targetEmail = ALIAS_MAP[normEmail] || normEmail;
+    const targetEmail = email.toLowerCase().trim();
 
     const user = await this.prisma.user.findUnique({
       where: { email: targetEmail },
@@ -95,6 +136,7 @@ export class UsersService {
             roleAssignments: { include: { role: true } },
           },
         },
+        customerProfile: true,
       },
     });
 

@@ -20,7 +20,7 @@ import { CurrentUser } from '@/common/decorators/current-user.decorator';
 @ApiTags('Parts & Inventory')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard, TenantScopeGuard)
-@Controller('parts')
+@Controller(['parts', 'spare-parts'])
 export class PartsController {
   constructor(private readonly partsService: PartsService) {}
 
@@ -34,15 +34,15 @@ export class PartsController {
   @Post('stock-movement')
   @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'INVENTORY_MANAGER', 'PARTS_EXECUTIVE')
   @ApiOperation({ summary: 'Record stock movement (Intake, Adjustment, Return)' })
-  updateStock(@Body() dto: UpdateStockDto, @CurrentUser('id') actorUserId: string) {
-    return this.partsService.updateStock(dto, actorUserId);
+  updateStock(@Body() dto: UpdateStockDto, @CurrentUser('id') actorUserId: string, @CurrentUser() user: any) {
+    return this.partsService.updateStock(dto, actorUserId, user);
   }
 
   @Post('issue-to-job')
   @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SERVICE_ADVISOR', 'MECHANIC', 'PARTS_EXECUTIVE')
   @ApiOperation({ summary: 'Issue spare part to service job card' })
-  issuePartToJob(@Body() dto: IssuePartToJobDto, @CurrentUser('id') actorUserId: string) {
-    return this.partsService.issuePartToJob(dto, actorUserId);
+  issuePartToJob(@Body() dto: IssuePartToJobDto, @CurrentUser('id') actorUserId: string, @CurrentUser() user: any) {
+    return this.partsService.issuePartToJob(dto, actorUserId, user);
   }
 
   @Get()
@@ -62,7 +62,7 @@ export class PartsController {
   @Get('stock/branch/:branchId')
   @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SERVICE_ADVISOR', 'MECHANIC', 'INVENTORY_MANAGER')
   @ApiOperation({ summary: 'Get stock levels for branch' })
-  findStockByBranch(@Param('branchId') branchId: string) {
-    return this.partsService.findStockByBranch(branchId);
+  findStockByBranch(@Param('branchId') branchId: string, @CurrentUser() user: any) {
+    return this.partsService.findStockByBranch(branchId, user);
   }
 }

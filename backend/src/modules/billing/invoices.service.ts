@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '@/database/prisma.service';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
@@ -15,7 +16,11 @@ export class InvoicesService {
     private auditService: AuditService,
   ) {}
 
-  async create(dto: CreateInvoiceDto, actorUserId: string) {
+  async create(dto: CreateInvoiceDto, user: any) {
+    const actorUserId = user?.id;
+    const userRoles = Array.isArray(user?.roles) ? user.roles : [];
+    const isSuperAdmin = userRoles.includes('SUPER_ADMIN');
+
     const customer = await this.prisma.customer.findUnique({
       where: { id: dto.customerId },
     });
@@ -38,20 +43,23 @@ export class InvoicesService {
     }
 
     if (!branchId) {
-      const firstBranch = await this.prisma.branch.findFirst();
-      if (!firstBranch) {
-        throw new BadRequestException('No branches available for invoice generation');
-      }
-      branchId = firstBranch.id;
-      franchiseId = franchiseId || firstBranch.franchiseId;
+      throw new BadRequestException('branchId is required for invoice generation');
     }
 
-    if (!franchiseId) {
-      const branch = await this.prisma.branch.findUnique({ where: { id: branchId } });
-      if (!branch) {
-        throw new NotFoundException(`Branch with ID ${branchId} not found`);
+    const branch = await this.prisma.branch.findUnique({ where: { id: branchId } });
+    if (!branch) {
+      throw new NotFoundException(`Branch with ID ${branchId} not found`);
+    }
+
+    franchiseId = franchiseId || branch.franchiseId;
+
+    if (!isSuperAdmin) {
+      if (user?.branchId && user.branchId !== branch.id) {
+        throw new ForbiddenException('Cannot generate invoice for another branch');
       }
-      franchiseId = branch.franchiseId;
+      if (user?.franchiseId && user.franchiseId !== branch.franchiseId) {
+        throw new ForbiddenException('Cannot generate invoice for another franchise');
+      }
     }
 
     let subtotal = 0;
@@ -124,7 +132,7 @@ export class InvoicesService {
     });
 
     await this.auditService.log({
-      actorUserId,
+      actorUserId: actorUserId || 'SYSTEM',
       action: 'INVOICE_ISSUED',
       entityType: 'Invoice',
       entityId: invoice.id,
@@ -134,8 +142,8 @@ export class InvoicesService {
     return invoice;
   }
 
-  async cancel(id: string, reason: string, actorUserId: string) {
-    const invoice = await this.findOne(id);
+  async cancel(id: string, reason: string, user: any) {
+    const invoice = await this.findOne(id, user);
 
     if (invoice.status === 'CANCELLED') {
       throw new BadRequestException('Invoice is already cancelled');
@@ -147,7 +155,7 @@ export class InvoicesService {
     });
 
     await this.auditService.log({
-      actorUserId,
+      actorUserId: user?.id || 'SYSTEM',
       action: 'INVOICE_CANCELLED',
       entityType: 'Invoice',
       entityId: id,
@@ -157,8 +165,8 @@ export class InvoicesService {
     return updated;
   }
 
-  async generatePdfData(id: string) {
-    const invoice = await this.findOne(id);
+  async generatePdfData(id: string, user?: any) {
+    const invoice = await this.findOne(id, user);
     return {
       pdfHeader: `TITAN AUTO INVOICE - ${invoice.invoiceNumber}`,
       invoiceNumber: invoice.invoiceNumber,
@@ -174,9 +182,39 @@ export class InvoicesService {
     };
   }
 
-  async findAll(branchId?: string, status?: InvoiceStatus, limit = 50, offset = 0) {
+  async findAll(branchId?: string, status?: InvoiceStatus, limit = 50, offset = 0, user?: any) {
     const where: any = {};
-    if (branchId) where.branchId = branchId;
+    const userRoles = Array.isArray(user?.roles) ? user.roles : [];
+    const isSuperAdmin = userRoles.includes('SUPER_ADMIN');
+    const isCustomer = userRoles.includes('CUSTOMER');
+
+    if (isCustomer) {
+      if (!user?.customerId) {
+        return { items: [], total: 0, limit, offset };
+      }
+      where.customerId = user.customerId;
+    } else if (!isSuperAdmin) {
+      if (user?.branchId) {
+        if (branchId && branchId !== user.branchId) {
+          throw new ForbiddenException('Cannot access invoices from another branch');
+        }
+        where.branchId = user.branchId;
+      } else if (user?.franchiseId) {
+        where.franchiseId = user.franchiseId;
+        if (branchId) {
+          const branchInFranchise = await this.prisma.branch.findFirst({
+            where: { id: branchId, franchiseId: user.franchiseId },
+          });
+          if (!branchInFranchise) {
+            throw new ForbiddenException('Branch does not belong to your franchise');
+          }
+          where.branchId = branchId;
+        }
+      }
+    } else {
+      if (branchId) where.branchId = branchId;
+    }
+
     if (status) where.status = status;
 
     const [items, total] = await Promise.all([
@@ -193,13 +231,13 @@ export class InvoicesService {
     return { items, total, limit, offset };
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, user?: any) {
     const invoice = await this.prisma.invoice.findUnique({
       where: { id },
       include: {
         customer: true,
         items: true,
-        branch: true,
+        branch: { include: { franchise: true } },
         payments: true,
         vehicle: true,
         booking: true,
@@ -208,6 +246,25 @@ export class InvoicesService {
 
     if (!invoice) {
       throw new NotFoundException(`Invoice with ID ${id} not found`);
+    }
+
+    if (user) {
+      const userRoles = Array.isArray(user?.roles) ? user.roles : [];
+      const isSuperAdmin = userRoles.includes('SUPER_ADMIN');
+      const isCustomer = userRoles.includes('CUSTOMER');
+
+      if (isCustomer) {
+        if (!user.customerId || invoice.customerId !== user.customerId) {
+          throw new ForbiddenException('Access denied to invoice');
+        }
+      } else if (!isSuperAdmin) {
+        if (user.branchId && invoice.branchId !== user.branchId) {
+          throw new ForbiddenException('Access denied to invoice in another branch');
+        }
+        if (user.franchiseId && invoice.franchiseId !== user.franchiseId) {
+          throw new ForbiddenException('Access denied to invoice in another franchise');
+        }
+      }
     }
 
     return invoice;

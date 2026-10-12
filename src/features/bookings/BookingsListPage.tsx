@@ -83,9 +83,18 @@ export const BookingsListPage: React.FC = () => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         initialData={editingBooking}
-        onSubmit={(formData) => {
-          console.log('Saved Booking Data:', formData);
-          refetch();
+        onSubmit={async (formData: any) => {
+          try {
+            await salesService.createBooking({
+              customerId: formData.customerId,
+              quotationId: formData.quotationId || formData.id,
+              bookingAmount: Number(formData.bookingAmount || 50000),
+              notes: `Customer: ${formData.customerName || 'Direct'}`,
+            });
+            refetch();
+          } catch (err: any) {
+            console.error('Failed to create booking:', err);
+          }
         }}
       />
     </div>

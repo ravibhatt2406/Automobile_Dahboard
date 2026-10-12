@@ -110,6 +110,20 @@ export class PdiService {
     });
   }
 
+  async findAll(limit = 50, offset = 0) {
+    const [items, total] = await Promise.all([
+      this.prisma.pdiInspection.findMany({
+        take: limit,
+        skip: offset,
+        orderBy: { inspectionDate: 'desc' },
+        include: { vehicle: true },
+      }),
+      this.prisma.pdiInspection.count(),
+    ]);
+
+    return { items, total, limit, offset };
+  }
+
   async findOne(id: string) {
     const pdi = await this.prisma.pdiInspection.findUnique({
       where: { id },

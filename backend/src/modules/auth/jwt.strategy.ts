@@ -34,6 +34,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException(`Account is currently ${userProfile.status}`);
     }
 
+    if (userProfile.employeeProfile && userProfile.employeeProfile.status !== 'ACTIVE') {
+      throw new UnauthorizedException(`Employee account is currently ${userProfile.employeeProfile.status}`);
+    }
+
     return userProfile;
   }
 }

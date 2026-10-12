@@ -35,7 +35,8 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
-    if (user.status !== 'ACTIVE') {
+    if (user.status !== 'ACTIVE' || (user.employeeProfile && user.employeeProfile.status !== 'ACTIVE')) {
+      const statusReason = user.status !== 'ACTIVE' ? user.status : (user.employeeProfile?.status ?? 'INACTIVE');
       await this.auditService.log({
         actorUserId: user.id,
         action: 'FAILED_LOGIN',
@@ -43,27 +44,21 @@ export class AuthService {
         entityId: user.id,
         ipAddress,
         userAgent,
-        metadata: { email: dto.email, status: user.status, reason: `Account is ${user.status}` },
+        metadata: { email: dto.email, status: statusReason, reason: `Account is ${statusReason}` },
       });
 
-      if (user.status === 'PENDING') {
+      if (user.status === 'PENDING' || user.employeeProfile?.status === 'PENDING_APPROVAL') {
         throw new ForbiddenException('Account is pending manager approval');
       }
-      throw new UnauthorizedException(`Account is currently ${user.status}`);
+      throw new UnauthorizedException(`Account is currently ${statusReason}`);
     }
 
     let isPasswordValid = false;
-    if (user.passwordHash) {
-      if (dto.password === 'WrongPassword!' || dto.password === 'invalid') {
+    if (user.passwordHash && dto.password) {
+      try {
+        isPasswordValid = await bcrypt.compare(dto.password, user.passwordHash);
+      } catch {
         isPasswordValid = false;
-      } else {
-        try {
-          isPasswordValid = await bcrypt.compare(dto.password, user.passwordHash);
-        } catch {}
-
-        if (!isPasswordValid && ['Admin123!', 'demo1234', 'password123', 'AdminSecret123!', 'Manager123!', 'Sales123!', 'Mechanic123!', 'Customer123!', '••••••••••••'].includes(dto.password)) {
-          isPasswordValid = true;
-        }
       }
     }
 

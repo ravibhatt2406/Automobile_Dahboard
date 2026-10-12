@@ -20,7 +20,7 @@ import { InsuranceStatus } from '@prisma/client';
 @ApiTags('Insurance')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard, TenantScopeGuard)
-@Controller('insurance/policies')
+@Controller(['insurance/policies', 'insurance'])
 export class InsuranceController {
   constructor(private readonly insuranceService: InsuranceService) {}
 
@@ -32,7 +32,7 @@ export class InsuranceController {
   }
 
   @Get()
-  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE', 'INSURANCE_MANAGER')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE', 'INSURANCE_MANAGER', 'CUSTOMER')
   @ApiOperation({ summary: 'List insurance policies' })
   @ApiQuery({ name: 'customerId', required: false })
   @ApiQuery({ name: 'status', required: false, enum: InsuranceStatus })
@@ -43,14 +43,15 @@ export class InsuranceController {
     @Query('status') status?: InsuranceStatus,
     @Query('limit') limit?: number,
     @Query('offset') offset?: number,
+    @CurrentUser() user?: any,
   ) {
-    return this.insuranceService.findAll(customerId, status, limit ? +limit : 50, offset ? +offset : 0);
+    return this.insuranceService.findAll(customerId, status, limit ? +limit : 50, offset ? +offset : 0, user);
   }
 
   @Get(':id')
-  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE', 'INSURANCE_MANAGER')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE', 'INSURANCE_MANAGER', 'CUSTOMER')
   @ApiOperation({ summary: 'Get insurance policy details' })
-  findOne(@Param('id') id: string) {
-    return this.insuranceService.findOne(id);
+  findOne(@Param('id') id: string, @CurrentUser() user?: any) {
+    return this.insuranceService.findOne(id, user);
   }
 }

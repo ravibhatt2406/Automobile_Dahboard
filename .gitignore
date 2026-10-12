@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Archives and scratch
+*.zip
+scratch/
+backend/scratch/

@@ -28,12 +28,12 @@ export class InvoicesController {
   @Post()
   @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'ACCOUNTANT')
   @ApiOperation({ summary: 'Issue GST Invoice' })
-  create(@Body() dto: CreateInvoiceDto, @CurrentUser('id') actorUserId: string) {
-    return this.invoicesService.create(dto, actorUserId);
+  create(@Body() dto: CreateInvoiceDto, @CurrentUser() user: any) {
+    return this.invoicesService.create(dto, user);
   }
 
   @Get()
-  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'ACCOUNTANT', 'SALES_EMPLOYEE')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'ACCOUNTANT', 'SALES_EMPLOYEE', 'CUSTOMER')
   @ApiOperation({ summary: 'List invoices' })
   @ApiQuery({ name: 'branchId', required: false })
   @ApiQuery({ name: 'status', required: false, enum: InvoiceStatus })
@@ -44,22 +44,23 @@ export class InvoicesController {
     @Query('status') status?: InvoiceStatus,
     @Query('limit') limit?: number,
     @Query('offset') offset?: number,
+    @CurrentUser() user?: any,
   ) {
-    return this.invoicesService.findAll(branchId, status, limit ? +limit : 50, offset ? +offset : 0);
+    return this.invoicesService.findAll(branchId, status, limit ? +limit : 50, offset ? +offset : 0, user);
   }
 
   @Get(':id')
-  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'ACCOUNTANT', 'SALES_EMPLOYEE')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'ACCOUNTANT', 'SALES_EMPLOYEE', 'CUSTOMER')
   @ApiOperation({ summary: 'Get invoice details' })
-  findOne(@Param('id') id: string) {
-    return this.invoicesService.findOne(id);
+  findOne(@Param('id') id: string, @CurrentUser() user?: any) {
+    return this.invoicesService.findOne(id, user);
   }
 
   @Get(':id/pdf')
-  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'ACCOUNTANT', 'SALES_EMPLOYEE')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'ACCOUNTANT', 'SALES_EMPLOYEE', 'CUSTOMER')
   @ApiOperation({ summary: 'Get PDF invoice data payload' })
-  getPdf(@Param('id') id: string) {
-    return this.invoicesService.generatePdfData(id);
+  getPdf(@Param('id') id: string, @CurrentUser() user?: any) {
+    return this.invoicesService.generatePdfData(id, user);
   }
 
   @Patch(':id/cancel')
@@ -68,8 +69,8 @@ export class InvoicesController {
   cancel(
     @Param('id') id: string,
     @Body('reason') reason: string,
-    @CurrentUser('id') actorUserId: string,
+    @CurrentUser() user: any,
   ) {
-    return this.invoicesService.cancel(id, reason, actorUserId);
+    return this.invoicesService.cancel(id, reason, user);
   }
 }

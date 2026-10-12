@@ -8,6 +8,11 @@ export class CreateServiceQcDto {
   @IsOptional()
   serviceJobId?: string;
 
+  @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', required: false })
+  @IsString()
+  @IsOptional()
+  branchId?: string;
+
   @ApiProperty({
     example: {
       enginePerformance: 'OK',

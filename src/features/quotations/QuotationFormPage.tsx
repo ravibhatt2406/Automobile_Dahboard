@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { PageHeader } from '@/components/data-display/PageHeader';
 import { useNavigate } from 'react-router-dom';
 import { FileText, Plus, Trash2, Save, ArrowLeft, Calculator } from 'lucide-react';
+import { salesService } from '@/services/sales.service';
 
 const quotationSchema = z.object({
   quotationNumber: z.string().min(2, 'Quotation number required'),
@@ -88,15 +89,25 @@ export const QuotationFormPage: React.FC = () => {
   const sgstAmount = (grossBeforeTax * watchedSgstRate) / 100;
   const calculatedTotal = grossBeforeTax + cgstAmount + sgstAmount;
 
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
   const onSubmit = async (data: QuotationFormData) => {
-    console.log('Quotation Created:', {
-      ...data,
-      subtotal: itemsSubtotal,
-      cgst: cgstAmount,
-      sgst: sgstAmount,
-      totalAmount: calculatedTotal,
-    });
-    navigate('/sales/quotations');
+    setSubmitError(null);
+    try {
+      await salesService.createQuotation({
+        variantId: data.vehicleModel,
+        quantity: data.items.reduce((acc, curr) => acc + (curr.quantity || 1), 0) || 1,
+        accessoriesAmount: data.accessoriesAmount,
+        insuranceAmount: data.insuranceAmount,
+        financeCharges: data.financeAmount,
+        discountAmount: data.discountAmount,
+        validityDate: data.validUntil,
+        notes: `Customer: ${data.customerName}`,
+      });
+      navigate('/sales/quotations');
+    } catch (err: any) {
+      setSubmitError(err.message || 'Failed to submit quotation to backend.');
+    }
   };
 
   return (
@@ -110,6 +121,12 @@ export const QuotationFormPage: React.FC = () => {
           { label: 'New Quote' },
         ]}
       />
+
+      {submitError && (
+        <div className="p-4 rounded-xl bg-rose-950/40 border border-rose-800 text-rose-300 text-xs font-semibold mb-4">
+          {submitError}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">

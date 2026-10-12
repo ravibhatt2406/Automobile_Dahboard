@@ -1,4 +1,9 @@
-import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '@/database/prisma.service';
 import { CreateFranchiseDto } from './dto/create-franchise.dto';
 import { AuditService } from '../audit/audit.service';
@@ -39,16 +44,32 @@ export class FranchisesService {
     return franchise;
   }
 
-  async findAll() {
+  async findAll(user?: any) {
+    const roles: string[] = user?.roles || [];
+    const isSuperAdmin = user?.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN');
+
+    if (user && !isSuperAdmin) {
+      if (!user.assignedFranchiseId) {
+        throw new ForbiddenException('Multi-tenant scope violation: No assigned franchise for user');
+      }
+      return this.prisma.franchise.findMany({
+        where: { id: user.assignedFranchiseId },
+        include: { branches: true },
+        orderBy: { createdAt: 'desc' },
+      });
+    }
+
     return this.prisma.franchise.findMany({
       include: { branches: true },
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  async findOne(id: string) {
-    const franchise = await this.prisma.franchise.findUnique({
-      where: { id },
+  async findOne(id: string, user?: any) {
+    const franchise = await this.prisma.franchise.findFirst({
+      where: {
+        OR: [{ id }, { code: id }],
+      },
       include: {
         branches: {
           include: {
@@ -64,6 +85,21 @@ export class FranchisesService {
 
     if (!franchise) {
       throw new NotFoundException(`Franchise ID '${id}' not found`);
+    }
+
+    if (user) {
+      const roles: string[] = user.roles || [];
+      const isSuperAdmin = user.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN');
+      if (!isSuperAdmin) {
+        if (
+          franchise.id !== user.assignedFranchiseId &&
+          franchise.code !== user.assignedFranchiseId
+        ) {
+          throw new ForbiddenException(
+            'Multi-tenant scope violation: Unauthorized franchise access attempt',
+          );
+        }
+      }
     }
 
     return franchise;

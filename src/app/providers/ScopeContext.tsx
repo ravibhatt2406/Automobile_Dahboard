@@ -28,16 +28,16 @@ export const ScopeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   
   const isBranchLocked = BRANCH_SCOPED_ROLES.includes(activeRole);
   
-  const assignedBranchId = user?.assignedBranchId || 'br-jaipur';
-  const assignedBranchName = user?.assignedBranchName || 'Jaipur Branch';
-  const assignedFranchiseId = user?.assignedFranchiseId || 'fr-ashok-leyland';
-  const assignedFranchiseName = user?.assignedFranchiseName || 'Ashok Leyland';
+  const assignedBranchId = user?.assignedBranchId || '';
+  const assignedBranchName = user?.assignedBranchName || '';
+  const assignedFranchiseId = user?.assignedFranchiseId || '';
+  const assignedFranchiseName = user?.assignedFranchiseName || '';
 
   const [selectedFranchiseId, setSelectedFranchiseState] = useState<string | 'ALL'>(
-    isBranchLocked ? assignedFranchiseId : 'ALL'
+    isBranchLocked && assignedFranchiseId ? assignedFranchiseId : 'ALL'
   );
   const [selectedBranchId, setSelectedBranchState] = useState<string | 'ALL'>(
-    isBranchLocked ? assignedBranchId : 'ALL'
+    isBranchLocked && assignedBranchId ? assignedBranchId : 'ALL'
   );
 
   // Automatically sync scope when user or activeRole changes

@@ -3,70 +3,6 @@ import { UserProfile } from '@/types/auth';
 import { UserRole, ROLE_PERMISSIONS, RolePermissions, ROLE_RANKS } from '@/types/roles';
 import { authService } from '@/services/auth.service';
 
-export const MOCK_USERS: Record<string, UserProfile> = {
-  'customer@titanauto.com': {
-    id: 'usr-cust-01',
-    email: 'customer@titanauto.com',
-    phone: '+1 (800) 555-0199',
-    firstName: 'David',
-    lastName: 'Miller',
-    roles: ['CUSTOMER'],
-    activeRole: 'CUSTOMER',
-  },
-  'mechanic@titanauto.com': {
-    id: 'usr-mech-01',
-    email: 'mechanic@titanauto.com',
-    phone: '+1 (800) 555-0244',
-    firstName: 'Marcus',
-    lastName: 'Vance',
-    roles: ['MECHANIC'],
-    activeRole: 'MECHANIC',
-    assignedBranchName: 'Detroit Central Service Hub',
-  },
-  'sales@titanauto.com': {
-    id: 'usr-sales-01',
-    email: 'sales@titanauto.com',
-    phone: '+1 (800) 555-0377',
-    firstName: 'Sarah',
-    lastName: 'Jenkins',
-    roles: ['SALES_EMPLOYEE'],
-    activeRole: 'SALES_EMPLOYEE',
-    assignedBranchName: 'Detroit Flagship Hub',
-  },
-  'branchmanager@titanauto.com': {
-    id: 'usr-bm-01',
-    email: 'branchmanager@titanauto.com',
-    phone: '+1 (800) 555-0488',
-    firstName: 'Robert',
-    lastName: 'Sterling',
-    roles: ['BRANCH_MANAGER', 'SALES_EMPLOYEE', 'MECHANIC'],
-    activeRole: 'BRANCH_MANAGER',
-    assignedBranchName: 'Detroit Flagship Hub',
-    assignedFranchiseName: 'Titan Commercial North America',
-  },
-  'franchiseowner@titanauto.com': {
-    id: 'usr-fo-01',
-    email: 'franchiseowner@titanauto.com',
-    phone: '+1 (800) 555-0522',
-    firstName: 'Elena',
-    lastName: 'Rostova',
-    roles: ['FRANCHISE_OWNER', 'BRANCH_MANAGER'],
-    activeRole: 'FRANCHISE_OWNER',
-    assignedFranchiseName: 'Titan Commercial North America',
-  },
-  'admin@titanauto.com': {
-    id: 'usr-admin-01',
-    email: 'admin@titanauto.com',
-    phone: '+1 (800) 555-8482',
-    firstName: 'Alexander',
-    lastName: 'Vance',
-    roles: ['SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER'],
-    activeRole: 'SUPER_ADMIN',
-    assignedFranchiseName: 'Titan Corporate Global',
-    assignedBranchName: 'Global HQ',
-  },
-};
-
 export function getAllowedSwitchRoles(user: UserProfile | null): UserRole[] {
   if (!user) return [];
   
@@ -192,85 +128,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (
     emailOrPhone: string,
     password?: string,
-    accountType: 'customer' | 'organization' = 'organization'
+    _accountType: 'customer' | 'organization' = 'organization'
   ): Promise<UserProfile> => {
     setIsLoading(true);
     const normalizedInput = emailOrPhone.toLowerCase().trim();
 
+    if (!password || !password.trim()) {
+      setIsLoading(false);
+      throw new Error('Password is required.');
+    }
+
     try {
-      let backendUser: any = null;
+      const loginRes = await authService.login({ emailOrPhone: normalizedInput, password });
+      const backendUser: any = loginRes?.user;
 
-      if (password) {
-        const loginRes = await authService.login({ emailOrPhone: normalizedInput, password });
-        backendUser = loginRes?.user;
+      if (!backendUser) {
+        throw new Error('Authentication failed. User profile could not be loaded.');
       }
 
-      if (!backendUser && localStorage.getItem('titan_auth_token')) {
-        backendUser = await authService.getCurrentUser();
-      }
+      const rawRoles: string[] = (backendUser.roles as any[])?.map((r: any) => typeof r === 'string' ? r : r.name || r.role?.name) || [];
+      const roles: UserRole[] = rawRoles.length > 0 ? (rawRoles as UserRole[]) : (backendUser.accountType === 'SUPER_ADMIN' ? ['SUPER_ADMIN'] : ['CUSTOMER']);
+      const activeRole: UserRole = backendUser.activeRole || roles[0] || 'SUPER_ADMIN';
 
-      if (backendUser) {
-        const rawRoles: string[] = (backendUser.roles as any[])?.map((r: any) => typeof r === 'string' ? r : r.name || r.role?.name) || [];
-        const roles: UserRole[] = rawRoles.length > 0 ? (rawRoles as UserRole[]) : (backendUser.accountType === 'SUPER_ADMIN' ? ['SUPER_ADMIN'] : ['CUSTOMER']);
-        const activeRole: UserRole = backendUser.activeRole || roles[0] || 'SUPER_ADMIN';
+      const authenticatedUser: UserProfile = {
+        id: backendUser.id,
+        email: backendUser.email,
+        phone: backendUser.phone,
+        firstName: backendUser.firstName || backendUser.email?.split('@')[0] || 'User',
+        lastName: backendUser.lastName || '',
+        roles,
+        activeRole,
+        assignedBranchName: backendUser.assignedBranchName || backendUser.employee?.branch?.name,
+        assignedFranchiseName: backendUser.assignedFranchiseName || backendUser.employee?.branch?.franchise?.name,
+      };
 
-        const authenticatedUser: UserProfile = {
-          id: backendUser.id,
-          email: backendUser.email,
-          phone: backendUser.phone,
-          firstName: backendUser.firstName || backendUser.email?.split('@')[0] || 'User',
-          lastName: backendUser.lastName || '',
-          roles,
-          activeRole,
-          assignedBranchName: backendUser.assignedBranchName || backendUser.employee?.branch?.name,
-          assignedFranchiseName: backendUser.assignedFranchiseName || backendUser.employee?.branch?.franchise?.name,
-        };
-
-        setUser(authenticatedUser);
-        localStorage.setItem('titan_is_authenticated', 'true');
-        localStorage.setItem('titan_user_profile', JSON.stringify(authenticatedUser));
-        return authenticatedUser;
-      }
+      setUser(authenticatedUser);
+      localStorage.setItem('titan_is_authenticated', 'true');
+      localStorage.setItem('titan_user_profile', JSON.stringify(authenticatedUser));
+      return authenticatedUser;
     } catch (err: any) {
       console.warn('Backend authentication failed:', err?.message || err);
-      if (password) {
-        setIsLoading(false);
-        throw err;
-      }
+      throw err;
     } finally {
       setIsLoading(false);
     }
-
-    // Mock fallback when password is not provided or for preset demo testing
-    let authenticatedUser: UserProfile;
-    if (MOCK_USERS[normalizedInput]) {
-      authenticatedUser = { ...MOCK_USERS[normalizedInput] };
-    } else if (accountType === 'customer') {
-      authenticatedUser = {
-        id: `usr-cust-${Date.now()}`,
-        email: normalizedInput.includes('@') ? normalizedInput : `${normalizedInput}@customer.titanauto.com`,
-        firstName: 'Client',
-        lastName: 'User',
-        roles: ['CUSTOMER'],
-        activeRole: 'CUSTOMER',
-      };
-    } else {
-      authenticatedUser = {
-        id: `usr-emp-${Date.now()}`,
-        email: normalizedInput.includes('@') ? normalizedInput : `${normalizedInput}@titanauto.com`,
-        firstName: 'Employee',
-        lastName: 'User',
-        roles: ['SUPER_ADMIN', 'BRANCH_MANAGER'],
-        activeRole: 'SUPER_ADMIN',
-        assignedBranchName: 'Detroit Flagship Hub',
-        assignedFranchiseName: 'Titan North America',
-      };
-    }
-
-    setUser(authenticatedUser);
-    localStorage.setItem('titan_is_authenticated', 'true');
-    localStorage.setItem('titan_user_profile', JSON.stringify(authenticatedUser));
-    return authenticatedUser;
   };
 
   const logout = async () => {

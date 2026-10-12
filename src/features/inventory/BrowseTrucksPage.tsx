@@ -1,35 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import { catalogueService, CatalogVariantItem } from '@/services/catalogue.service';
+import { branchService } from '@/services/branch.service';
 import { LoadingState } from '@/components/feedback/LoadingState';
 import { EmptyState } from '@/components/feedback/EmptyState';
+import { ErrorState } from '@/components/feedback/ErrorState';
 import {
   Truck,
-  Filter,
   Search,
-  Store,
-  FileText,
-  ShoppingBag,
   CheckCircle2,
   X,
   Info,
   Building,
   ShieldCheck,
-  Zap,
+  AlertTriangle,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { salesService } from '@/services/sales.service';
+import { useAuth } from '@/app/providers/AuthContext';
+import { Branch, Manufacturer, TruckModel } from '@/types/domain';
 
 export const BrowseTrucksPage: React.FC = () => {
   const navigate = useNavigate();
+  const { isAuthenticated, user } = useAuth();
+
   const [variants, setVariants] = useState<CatalogVariantItem[]>([]);
+  const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [pageError, setPageError] = useState<string | null>(null);
 
   // Filter States
   const [search, setSearch] = useState<string>('');
   const [selectedManufacturer, setSelectedManufacturer] = useState<string>('ALL');
   const [selectedFuel, setSelectedFuel] = useState<string>('ALL');
   const [selectedTransmission, setSelectedTransmission] = useState<string>('ALL');
-  const [selectedBranch, setSelectedBranch] = useState<string>('ALL');
 
   // Modal States
   const [detailModalItem, setDetailModalItem] = useState<CatalogVariantItem | null>(null);
@@ -37,22 +41,47 @@ export const BrowseTrucksPage: React.FC = () => {
   const [bookingModalItem, setBookingModalItem] = useState<CatalogVariantItem | null>(null);
 
   // Form State for Quotation / Booking
-  const [selectedBranchForAction, setSelectedBranchForAction] = useState<string>('br-jaipur');
+  const [selectedBranchId, setSelectedBranchId] = useState<string>('');
   const [quantity, setQuantity] = useState<number>(1);
   const [actionSuccessMessage, setActionSuccessMessage] = useState<string | null>(null);
+  const [actionErrorMessage, setActionErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   useEffect(() => {
-    loadCatalogue();
+    loadInitialData();
+  }, []);
+
+  useEffect(() => {
+    loadVariants();
   }, [search]);
 
-  const loadCatalogue = async () => {
+  const loadInitialData = async () => {
+    try {
+      const [mfgRes, branchRes] = await Promise.allSettled([
+        catalogueService.getManufacturers(),
+        branchService.getBranches(),
+      ]);
+
+      if (mfgRes.status === 'fulfilled') setManufacturers(mfgRes.value);
+      if (branchRes.status === 'fulfilled' && Array.isArray(branchRes.value?.data)) {
+        setBranches(branchRes.value.data);
+        if (branchRes.value.data.length > 0) {
+          setSelectedBranchId(branchRes.value.data[0].id);
+        }
+      }
+    } catch {
+      // Non-blocking initialization
+    }
+  };
+
+  const loadVariants = async () => {
     setLoading(true);
+    setPageError(null);
     try {
       const data = await catalogueService.getVariants(search);
       setVariants(data);
-    } catch {
-      // Handled gracefully
+    } catch (err: any) {
+      setPageError(err.message || 'Failed to load commercial truck catalog.');
     } finally {
       setLoading(false);
     }
@@ -75,34 +104,44 @@ export const BrowseTrucksPage: React.FC = () => {
     ) {
       return false;
     }
-    if (selectedBranch !== 'ALL') {
-      const hasBranch = item.availableBranches?.some(
-        (b) => b.branchId === selectedBranch || b.branchName.includes(selectedBranch)
-      );
-      if (!hasBranch) return false;
-    }
     return true;
   });
 
   const handleRequestQuotationSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!quotationModalItem) return;
+
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+
+    const branchToUse = selectedBranchId;
+    if (!branchToUse) {
+      setActionErrorMessage('Please select a dealership branch for your quotation.');
+      return;
+    }
+
     setIsSubmitting(true);
+    setActionErrorMessage(null);
+    setActionSuccessMessage(null);
+
     try {
-      // Simulate quotation submission
-      await new Promise((res) => setTimeout(res, 800));
+      const created = await salesService.createQuotation({
+        variantId: quotationModalItem.id,
+        branchId: branchToUse,
+        quantity,
+        accessoriesAmount: 0,
+        insuranceAmount: 0,
+        discountAmount: 0,
+      });
+
       setActionSuccessMessage(
-        `Quotation requested successfully for ${quotationModalItem.name}! Reference #QT-${Math.floor(
-          1000 + Math.random() * 9000
-        )}`
+        `Quotation requested successfully for ${quotationModalItem.name}! Quotation Ref #${created.quotationNumber}`
       );
-      setTimeout(() => {
-        setActionSuccessMessage(null);
-        setQuotationModalItem(null);
-        navigate('/sales/bookings');
-      }, 1500);
-    } catch {
-      // error
+      setQuotationModalItem(null);
+    } catch (err: any) {
+      setActionErrorMessage(err.message || 'Failed to create quotation request.');
     } finally {
       setIsSubmitting(false);
     }
@@ -111,21 +150,44 @@ export const BrowseTrucksPage: React.FC = () => {
   const handleBookTruckSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!bookingModalItem) return;
+
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+
+    const branchToUse = selectedBranchId;
+    if (!branchToUse) {
+      setActionErrorMessage('Please select a dealership branch for your reservation.');
+      return;
+    }
+
     setIsSubmitting(true);
+    setActionErrorMessage(null);
+    setActionSuccessMessage(null);
+
     try {
-      await new Promise((res) => setTimeout(res, 800));
+      // Real lightweight flow: Create Quotation -> Create Booking
+      const quote = await salesService.createQuotation({
+        variantId: bookingModalItem.id,
+        branchId: branchToUse,
+        quantity: 1,
+      });
+
+      const depositAmount = Math.max(10000, Math.round(Number(quote.totalAmount || bookingModalItem.basePrice) * 0.05));
+
+      const booking = await salesService.createBooking({
+        quotationId: quote.id,
+        branchId: branchToUse,
+        bookingAmount: depositAmount,
+      });
+
       setActionSuccessMessage(
-        `Booking reserved successfully for ${bookingModalItem.name}! Booking Ref #BK-${Math.floor(
-          1000 + Math.random() * 9000
-        )}`
+        `Booking reserved successfully for ${bookingModalItem.name}! Booking Ref #${booking.bookingNumber}`
       );
-      setTimeout(() => {
-        setActionSuccessMessage(null);
-        setBookingModalItem(null);
-        navigate('/sales/bookings');
-      }, 1500);
-    } catch {
-      // error
+      setBookingModalItem(null);
+    } catch (err: any) {
+      setActionErrorMessage(err.message || 'Failed to reserve commercial truck booking.');
     } finally {
       setIsSubmitting(false);
     }
@@ -148,17 +210,35 @@ export const BrowseTrucksPage: React.FC = () => {
 
       {/* Success Notification Alert */}
       {actionSuccessMessage && (
-        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-semibold flex items-center gap-3">
-          <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-          <span>{actionSuccessMessage}</span>
+        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-semibold flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+            <span>{actionSuccessMessage}</span>
+          </div>
+          <button onClick={() => setActionSuccessMessage(null)} className="text-emerald-700 hover:text-emerald-900">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Error Notification Alert */}
+      {actionErrorMessage && (
+        <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 text-xs font-semibold flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
+            <span>{actionErrorMessage}</span>
+          </div>
+          <button onClick={() => setActionErrorMessage(null)} className="text-rose-700 hover:text-rose-900">
+            <X className="w-4 h-4" />
+          </button>
         </div>
       )}
 
       {/* Search & Filter Controls Toolbar */}
       <div className="cockpit-card p-4 rounded-xl border border-[#E5E5E5] bg-white space-y-3">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Search Input */}
-          <div className="sm:col-span-2 relative">
+          <div className="relative">
             <Search className="w-4 h-4 text-zinc-400 absolute left-3 top-3 pointer-events-none" />
             <input
               type="text"
@@ -177,8 +257,11 @@ export const BrowseTrucksPage: React.FC = () => {
               className="w-full h-10 px-3 rounded-lg bg-zinc-50 border border-zinc-200 text-xs text-zinc-900 focus:outline-none focus:border-[#F5A800]"
             >
               <option value="ALL">All Manufacturers</option>
-              <option value="Ashok Leyland">Ashok Leyland</option>
-              <option value="Tata Motors">Tata Motors</option>
+              {manufacturers.map((m) => (
+                <option key={m.id} value={m.name}>
+                  {m.name}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -196,16 +279,16 @@ export const BrowseTrucksPage: React.FC = () => {
             </select>
           </div>
 
-          {/* Branch Availability Filter */}
+          {/* Transmission Filter */}
           <div>
             <select
-              value={selectedBranch}
-              onChange={(e) => setSelectedBranch(e.target.value)}
+              value={selectedTransmission}
+              onChange={(e) => setSelectedTransmission(e.target.value)}
               className="w-full h-10 px-3 rounded-lg bg-zinc-50 border border-zinc-200 text-xs text-zinc-900 focus:outline-none focus:border-[#F5A800]"
             >
-              <option value="ALL">All Dealership Branches</option>
-              <option value="br-jaipur">Jaipur Branch</option>
-              <option value="br-jodhpur">Jodhpur Branch</option>
+              <option value="ALL">All Transmissions</option>
+              <option value="manual">Manual</option>
+              <option value="automatic">Automatic</option>
             </select>
           </div>
         </div>
@@ -213,17 +296,19 @@ export const BrowseTrucksPage: React.FC = () => {
 
       {/* Main Grid Content */}
       {loading ? (
-        <LoadingState label="Loading commercial vehicle inventory..." />
+        <LoadingState label="Loading commercial vehicle catalogue..." />
+      ) : pageError ? (
+        <ErrorState title="Failed to Load Catalogue" message={pageError} onRetry={loadVariants} />
       ) : filteredVariants.length === 0 ? (
         <EmptyState
           title="No commercial trucks matched your search criteria"
-          description="Try clearing your manufacturer or branch filters to discover available vehicles."
+          description="Try clearing your manufacturer or fuel filters to discover available vehicles."
           actionLabel="Reset Filters"
           onAction={() => {
             setSearch('');
             setSelectedManufacturer('ALL');
             setSelectedFuel('ALL');
-            setSelectedBranch('ALL');
+            setSelectedTransmission('ALL');
           }}
         />
       ) : (
@@ -248,97 +333,81 @@ export const BrowseTrucksPage: React.FC = () => {
                       'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=1200&q=80'
                     }
                     alt={item.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src =
-                        'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=1200&q=80';
-                    }}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90 group-hover:opacity-100"
                   />
-                  <div className="absolute top-3 left-3 bg-black/80 backdrop-blur-xs text-[#F5A800] text-[10px] font-mono font-bold px-2.5 py-1 rounded uppercase tracking-wider border border-amber-500/30">
+                  <div className="absolute top-3 left-3 bg-[#111111]/90 backdrop-blur-xs px-2.5 py-1 rounded text-[10px] font-mono font-bold text-[#F5A800] tracking-wider uppercase border border-zinc-700">
                     {item.manufacturerName || 'Ashok Leyland'}
                   </div>
-                  <div className="absolute bottom-3 right-3 bg-emerald-500 text-white text-[10px] font-semibold px-2 py-0.5 rounded shadow-xs">
-                    In Stock
+                  <div className="absolute bottom-3 right-3 bg-black/80 px-2 py-0.5 rounded text-[10px] font-mono text-zinc-300">
+                    BS6 Phase 2
                   </div>
                 </div>
 
-                {/* Truck Body Information */}
+                {/* Content */}
                 <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
                   <div>
-                    <h3 className="text-base font-bold text-[#111111] leading-snug group-hover:text-[#F5A800] transition-colors">
+                    <h3 className="font-bold text-base text-[#111111] group-hover:text-[#F5A800] transition-colors">
                       {item.name}
                     </h3>
-                    <p className="text-xs text-zinc-500 mt-1 line-clamp-2">{item.description}</p>
+                    <p className="text-xs text-zinc-500 mt-1 line-clamp-2">
+                      {item.description || 'Heavy commercial haulage vehicle engineered for extreme payload efficiency.'}
+                    </p>
                   </div>
 
-                  {/* Specifications Pills */}
-                  <div className="grid grid-cols-2 gap-2 text-xs font-mono bg-zinc-50 p-3 rounded-lg border border-zinc-100">
+                  {/* Spec Grid */}
+                  <div className="grid grid-cols-2 gap-2 text-[11px] font-mono bg-zinc-50 p-3 rounded-lg border border-zinc-100">
                     <div>
-                      <span className="text-[10px] uppercase text-zinc-400 block font-sans">Engine</span>
-                      <span className="font-semibold text-zinc-800 truncate block">{item.engineDetails || 'BS6 Diesel'}</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] uppercase text-zinc-400 block font-sans">Power</span>
-                      <span className="font-semibold text-zinc-800 block">{item.horsepower ? `${item.horsepower} HP` : '250 HP'}</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] uppercase text-zinc-400 block font-sans">Payload</span>
-                      <span className="font-semibold text-zinc-800 block">{item.payload ? `${(item.payload / 1000).toFixed(1)} Tons` : '34 Tons'}</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] uppercase text-zinc-400 block font-sans">Transmission</span>
-                      <span className="font-semibold text-zinc-800 capitalize block">{item.transmission || 'Manual'}</span>
-                    </div>
-                  </div>
-
-                  {/* Branch Availability */}
-                  <div className="border-t border-dashed border-zinc-200 pt-3">
-                    <div className="text-[11px] font-semibold text-zinc-500 flex items-center gap-1.5 mb-1.5 font-mono uppercase tracking-wider">
-                      <Store className="w-3.5 h-3.5 text-[#F5A800]" /> Branch Stock Location
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {item.availableBranches?.map((branch) => (
-                        <span
-                          key={branch.branchId}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-zinc-100 border border-zinc-200 text-[11px] text-zinc-800 font-medium"
-                        >
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                          {branch.branchName}: <strong className="text-zinc-900">{branch.count} available</strong>
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Price & Action Buttons */}
-                  <div className="pt-2 border-t border-[#E5E5E5] flex flex-col gap-3">
-                    <div>
-                      <span className="text-[10px] uppercase tracking-wider text-zinc-400 block font-mono">
-                        Ex-Showroom Starting Price
+                      <span className="text-zinc-400 block">Payload:</span>
+                      <span className="font-semibold text-zinc-800">
+                        {item.payload ? `${(item.payload / 1000).toFixed(1)} Tonnes` : 'Commercial'}
                       </span>
-                      <span className="text-xl font-bold text-[#111111]">{basePriceFormatted}</span>
-                      <span className="text-[10px] text-zinc-400 block">+ GST @ {item.gstRate || 28}% applicable</span>
                     </div>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        onClick={() => setQuotationModalItem(item)}
-                        className="w-full py-2 px-3 bg-zinc-100 hover:bg-zinc-200 text-zinc-900 text-xs font-semibold rounded-lg transition-colors flex items-center justify-center gap-1.5 border border-zinc-200"
-                      >
-                        <FileText className="w-3.5 h-3.5 text-zinc-700" /> Request Quote
-                      </button>
-                      <button
-                        onClick={() => setBookingModalItem(item)}
-                        className="w-full py-2 px-3 bg-[#111111] hover:bg-black text-[#F5A800] text-xs font-semibold rounded-lg transition-colors flex items-center justify-center gap-1.5 shadow-xs"
-                      >
-                        <ShoppingBag className="w-3.5 h-3.5" /> Book Truck
-                      </button>
+                    <div>
+                      <span className="text-zinc-400 block">Power:</span>
+                      <span className="font-semibold text-zinc-800">
+                        {item.horsepower ? `${item.horsepower} HP` : 'Heavy Duty'}
+                      </span>
                     </div>
+                    <div>
+                      <span className="text-zinc-400 block">Fuel:</span>
+                      <span className="font-semibold text-zinc-800 uppercase">{item.fuelType || 'Diesel'}</span>
+                    </div>
+                    <div>
+                      <span className="text-zinc-400 block">Transmission:</span>
+                      <span className="font-semibold text-zinc-800 capitalize">{item.transmission || 'Manual'}</span>
+                    </div>
+                  </div>
 
+                  {/* Price Row */}
+                  <div className="pt-2 border-t border-zinc-100 flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider block">
+                        Base Price
+                      </span>
+                      <span className="text-lg font-bold text-[#111111]">{basePriceFormatted}</span>
+                    </div>
+                    <span className="text-[10px] font-mono text-zinc-400">+28% GST</span>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="grid grid-cols-3 gap-2 pt-1">
                     <button
                       onClick={() => setDetailModalItem(item)}
-                      className="w-full text-center text-xs text-zinc-500 hover:text-zinc-900 font-medium py-1"
+                      className="px-2.5 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-xs font-semibold rounded-lg flex items-center justify-center gap-1 transition-colors"
                     >
-                      View Full Specifications & Details →
+                      <Info className="w-3.5 h-3.5" /> Specs
+                    </button>
+                    <button
+                      onClick={() => setQuotationModalItem(item)}
+                      className="px-2.5 py-2 bg-zinc-900 hover:bg-black text-[#F5A800] text-xs font-semibold rounded-lg flex items-center justify-center gap-1 transition-colors shadow-xs"
+                    >
+                      Quote
+                    </button>
+                    <button
+                      onClick={() => setBookingModalItem(item)}
+                      className="px-2.5 py-2 bg-[#F5A800] hover:bg-[#e09800] text-[#111111] text-xs font-bold rounded-lg flex items-center justify-center gap-1 transition-colors shadow-xs"
+                    >
+                      Book
                     </button>
                   </div>
                 </div>
@@ -348,75 +417,48 @@ export const BrowseTrucksPage: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL 1: Truck Detail Specification View */}
+      {/* MODAL 1: Detail Specs Modal */}
       {detailModalItem && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 space-y-6 max-h-[90vh] overflow-y-auto border border-zinc-200 shadow-2xl">
-            <div className="flex items-start justify-between border-b border-zinc-100 pb-4">
+          <div className="bg-white rounded-2xl max-w-xl w-full p-6 space-y-5 border border-zinc-200 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-start justify-between border-b border-zinc-100 pb-3">
               <div>
-                <span className="text-xs font-mono font-bold text-[#F5A800] uppercase tracking-wider">
-                  {detailModalItem.manufacturerName} • {detailModalItem.modelName}
+                <span className="text-xs font-mono font-bold text-[#F5A800] uppercase">
+                  {detailModalItem.manufacturerName}
                 </span>
-                <h2 className="text-xl font-bold text-[#111111] mt-0.5">{detailModalItem.name}</h2>
+                <h3 className="text-xl font-bold text-[#111111]">{detailModalItem.name}</h3>
               </div>
-              <button
-                onClick={() => setDetailModalItem(null)}
-                className="p-1 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-600"
-              >
-                <X className="w-5 h-5" />
+              <button onClick={() => setDetailModalItem(null)} className="p-1 rounded bg-zinc-100 text-zinc-600">
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="space-y-4 text-xs text-zinc-700">
-              <img
-                src={detailModalItem.images?.[0]}
-                alt={detailModalItem.name}
-                className="w-full h-56 object-cover rounded-xl border border-zinc-200"
-              />
-              <p className="text-sm text-zinc-600 leading-relaxed">{detailModalItem.description}</p>
-
-              <h4 className="font-bold text-zinc-900 text-sm uppercase tracking-wider font-mono border-b pb-1">
-                Technical Specifications
-              </h4>
-              <div className="grid grid-cols-2 gap-3 bg-zinc-50 p-4 rounded-xl border border-zinc-200 font-mono">
-                <div>
-                  <span className="text-zinc-400 block text-[10px]">Engine Specs</span>
-                  <span className="font-semibold text-zinc-900">{detailModalItem.engineDetails}</span>
-                </div>
-                <div>
-                  <span className="text-zinc-400 block text-[10px]">Horsepower</span>
-                  <span className="font-semibold text-zinc-900">{detailModalItem.horsepower} HP</span>
-                </div>
-                <div>
-                  <span className="text-zinc-400 block text-[10px]">Payload Capacity</span>
-                  <span className="font-semibold text-zinc-900">{(Number(detailModalItem.payload) / 1000).toFixed(1)} Tons</span>
-                </div>
-                <div>
-                  <span className="text-zinc-400 block text-[10px]">Fuel & Transmission</span>
-                  <span className="font-semibold text-zinc-900 capitalize">
-                    {detailModalItem.fuelType} • {detailModalItem.transmission}
-                  </span>
-                </div>
+            <div className="space-y-4 text-xs">
+              <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-200 space-y-2">
+                <h4 className="font-bold text-zinc-900 flex items-center gap-2">
+                  <Truck className="w-4 h-4 text-[#F5A800]" /> Engine & Powertrain
+                </h4>
+                <p className="text-zinc-600 font-mono">
+                  {detailModalItem.engineDetails || 'BS6 Phase 2 Heavy Commercial Powertrain'}
+                </p>
               </div>
 
-              <h4 className="font-bold text-zinc-900 text-sm uppercase tracking-wider font-mono border-b pb-1 pt-2">
-                Available Franchised Dealerships
-              </h4>
-              <div className="space-y-2">
-                {detailModalItem.availableBranches?.map((b) => (
-                  <div key={b.branchId} className="flex justify-between items-center p-3 rounded-lg bg-amber-500/5 border border-amber-500/20">
-                    <span className="font-semibold text-zinc-900 flex items-center gap-2">
-                      <Store className="w-4 h-4 text-[#F5A800]" /> {b.branchName}
-                    </span>
-                    <span className="text-xs font-mono font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">
-                      {b.count} Units In Stock
-                    </span>
+              {detailModalItem.specifications && (
+                <div className="space-y-2">
+                  <h4 className="font-bold text-zinc-900">Technical Specifications</h4>
+                  <div className="grid grid-cols-2 gap-2 bg-zinc-50 p-3 rounded-lg border border-zinc-200 font-mono text-[11px]">
+                    {Object.entries(detailModalItem.specifications).map(([key, val]) => (
+                      <div key={key}>
+                        <span className="text-zinc-400 capitalize">{key}:</span>
+                        <span className="font-semibold text-zinc-800 ml-1">{String(val)}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
             </div>
 
-            <div className="pt-4 border-t border-zinc-100 flex justify-end gap-3">
+            <div className="pt-3 border-t border-zinc-100 flex justify-end gap-2">
               <button
                 onClick={() => setDetailModalItem(null)}
                 className="px-4 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-xs font-semibold rounded-lg"
@@ -455,12 +497,16 @@ export const BrowseTrucksPage: React.FC = () => {
               <div>
                 <label className="block text-zinc-700 font-semibold mb-1">Fulfilling Dealership Branch</label>
                 <select
-                  value={selectedBranchForAction}
-                  onChange={(e) => setSelectedBranchForAction(e.target.value)}
+                  value={selectedBranchId}
+                  onChange={(e) => setSelectedBranchId(e.target.value)}
                   className="w-full h-9 px-3 rounded-lg border border-zinc-300 text-xs text-zinc-900 bg-zinc-50"
+                  required
                 >
-                  <option value="br-jaipur">Jaipur Branch (3 units available)</option>
-                  <option value="br-jodhpur">Jodhpur Branch (1 unit available)</option>
+                  {branches.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name} ({b.city || 'Dealership Hub'})
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -479,20 +525,16 @@ export const BrowseTrucksPage: React.FC = () => {
               {/* Price Calculation Summary */}
               <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-200 space-y-2 font-mono">
                 <div className="flex justify-between text-zinc-600">
-                  <span>Unit Ex-Showroom Base:</span>
+                  <span>Unit Base Price:</span>
                   <span>₹{Number(quotationModalItem.basePrice).toLocaleString('en-IN')}</span>
                 </div>
                 <div className="flex justify-between text-zinc-600">
                   <span>GST @ 28%:</span>
                   <span>₹{(Number(quotationModalItem.basePrice) * 0.28).toLocaleString('en-IN')}</span>
                 </div>
-                <div className="flex justify-between text-zinc-600">
-                  <span>Insurance & Registration (Est.):</span>
-                  <span>₹1,50,000</span>
-                </div>
                 <div className="flex justify-between text-[#111111] font-bold border-t border-zinc-200 pt-2 text-sm font-sans">
                   <span>Estimated Total per Unit:</span>
-                  <span>₹{(Number(quotationModalItem.basePrice) * 1.28 + 150000).toLocaleString('en-IN')}</span>
+                  <span>₹{(Number(quotationModalItem.basePrice) * 1.28).toLocaleString('en-IN')}</span>
                 </div>
               </div>
 
@@ -509,7 +551,7 @@ export const BrowseTrucksPage: React.FC = () => {
                   disabled={isSubmitting}
                   className="px-4 py-2 bg-[#111111] hover:bg-black text-[#F5A800] font-semibold rounded-lg flex items-center gap-1.5"
                 >
-                  {isSubmitting ? 'Generating...' : 'Submit Quotation Request'}
+                  {isSubmitting ? 'Submitting...' : 'Submit Quotation Request'}
                 </button>
               </div>
             </form>
@@ -523,7 +565,7 @@ export const BrowseTrucksPage: React.FC = () => {
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 space-y-5 border border-zinc-200 shadow-2xl">
             <div className="flex items-start justify-between border-b border-zinc-100 pb-3">
               <div>
-                <span className="text-xs font-mono font-bold text-amber-600 uppercase">Reserve Vehicle</span>
+                <span className="text-xs font-mono font-bold text-amber-600 uppercase">Reserve Vehicle Order</span>
                 <h3 className="text-lg font-bold text-[#111111]">{bookingModalItem.name}</h3>
               </div>
               <button onClick={() => setBookingModalItem(null)} className="p-1 rounded bg-zinc-100 text-zinc-600">
@@ -535,20 +577,26 @@ export const BrowseTrucksPage: React.FC = () => {
               <div>
                 <label className="block text-zinc-700 font-semibold mb-1">Select Delivery Branch</label>
                 <select
-                  value={selectedBranchForAction}
-                  onChange={(e) => setSelectedBranchForAction(e.target.value)}
+                  value={selectedBranchId}
+                  onChange={(e) => setSelectedBranchId(e.target.value)}
                   className="w-full h-9 px-3 rounded-lg border border-zinc-300 text-xs text-zinc-900 bg-zinc-50"
+                  required
                 >
-                  <option value="br-jaipur">Jaipur Branch</option>
-                  <option value="br-jodhpur">Jodhpur Branch</option>
+                  {branches.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name} ({b.city || 'Dealership Hub'})
+                    </option>
+                  ))}
                 </select>
               </div>
 
               <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl space-y-2">
-                <span className="text-xs font-bold text-amber-900 block font-mono">Booking Advance Amount</span>
-                <p className="text-2xl font-bold text-[#111111]">₹1,00,000</p>
+                <span className="text-xs font-bold text-amber-900 block font-mono">Estimated Booking Advance</span>
+                <p className="text-2xl font-bold text-[#111111]">
+                  ₹{Math.max(10000, Math.round(Number(bookingModalItem.basePrice) * 0.05)).toLocaleString('en-IN')}
+                </p>
                 <p className="text-[11px] text-amber-800">
-                  Reserves 1 unit for 14 calendar days. Full quotation & invoice will be generated upon confirmation.
+                  Reserves 1 unit with backend transaction. Official quotation and booking agreement generated immediately.
                 </p>
               </div>
 

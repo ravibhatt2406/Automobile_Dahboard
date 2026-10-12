@@ -19,25 +19,50 @@ export class InventoryController {
   @Post()
   @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER')
   @ApiOperation({ summary: 'Add new physical vehicle with VIN/chassis to inventory' })
-  async create(@Body() dto: CreateVehicleDto, @CurrentUser('id') actorUserId: string) {
-    return this.inventoryService.create(dto, actorUserId);
+  async create(@Body() dto: CreateVehicleDto, @CurrentUser() user: any) {
+    return this.inventoryService.create(dto, user);
   }
 
   @Get()
+  @Roles(
+    'SUPER_ADMIN',
+    'FRANCHISE_OWNER',
+    'FRANCHISE_MANAGER',
+    'BRANCH_OWNER',
+    'BRANCH_MANAGER',
+    'DEPARTMENT_MANAGER',
+    'SALES_EMPLOYEE',
+    'SERVICE_ADVISOR',
+    'MECHANIC',
+    'EMPLOYEE',
+  )
   @ApiOperation({ summary: 'Get list of physical vehicles in stock (filtered by branch or status)' })
   async findAll(
-    @Query('branchId') branchId?: string,
-    @Query('status') status?: VehicleStatus,
+    @Query('branchId') branchId: string | undefined,
+    @Query('status') status: VehicleStatus | undefined,
     @Query('limit') limit = 50,
     @Query('offset') offset = 0,
+    @CurrentUser() user?: any,
   ) {
-    return this.inventoryService.findAll(branchId, status, Number(limit), Number(offset));
+    return this.inventoryService.findAll(branchId, status, Number(limit), Number(offset), user);
   }
 
   @Get(':id')
+  @Roles(
+    'SUPER_ADMIN',
+    'FRANCHISE_OWNER',
+    'FRANCHISE_MANAGER',
+    'BRANCH_OWNER',
+    'BRANCH_MANAGER',
+    'DEPARTMENT_MANAGER',
+    'SALES_EMPLOYEE',
+    'SERVICE_ADVISOR',
+    'MECHANIC',
+    'EMPLOYEE',
+  )
   @ApiOperation({ summary: 'Get physical vehicle details, PDI history, & allocation' })
-  async findOne(@Param('id') id: string) {
-    return this.inventoryService.findOne(id);
+  async findOne(@Param('id') id: string, @CurrentUser() user?: any) {
+    return this.inventoryService.findOne(id, user);
   }
 
   @Patch(':id/status')
@@ -46,9 +71,9 @@ export class InventoryController {
   async updateStatus(
     @Param('id') id: string,
     @Body('status') status: VehicleStatus,
-    @CurrentUser('id') actorUserId: string,
+    @CurrentUser() user: any,
   ) {
-    return this.inventoryService.updateStatus(id, status, actorUserId);
+    return this.inventoryService.updateStatus(id, status, user);
   }
 
   @Patch(':id')
@@ -57,26 +82,42 @@ export class InventoryController {
   async update(
     @Param('id') id: string,
     @Body() dto: Partial<CreateVehicleDto>,
-    @CurrentUser('id') actorUserId: string,
+    @CurrentUser() user: any,
   ) {
-    return this.inventoryService.update(id, dto, actorUserId);
+    return this.inventoryService.update(id, dto, user);
   }
 
   @Delete(':id')
   @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER')
   @ApiOperation({ summary: 'Deactivate or safely delete physical vehicle from inventory' })
-  async deactivate(@Param('id') id: string, @CurrentUser('id') actorUserId: string) {
-    return this.inventoryService.deactivate(id, actorUserId);
+  async deactivate(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.inventoryService.deactivate(id, user);
+  }
+
+  @Get(':id/history')
+  @Roles(
+    'SUPER_ADMIN',
+    'FRANCHISE_OWNER',
+    'FRANCHISE_MANAGER',
+    'BRANCH_OWNER',
+    'BRANCH_MANAGER',
+    'DEPARTMENT_MANAGER',
+    'SALES_EMPLOYEE',
+    'CUSTOMER',
+  )
+  @ApiOperation({ summary: 'Get vehicle complete status, allocation, PDI, and delivery lifecycle history' })
+  async getHistory(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.inventoryService.getHistory(id, user);
   }
 
   @Post(':id/allocate')
-  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE')
   @ApiOperation({ summary: 'Allocate reserved vehicle to a customer booking' })
   async allocateVehicle(
     @Param('id') id: string,
     @Body('bookingId') bookingId: string,
-    @CurrentUser('id') actorUserId: string,
+    @CurrentUser() user: any,
   ) {
-    return this.inventoryService.allocateVehicle(id, bookingId, actorUserId);
+    return this.inventoryService.allocateVehicle(id, bookingId, user);
   }
 }

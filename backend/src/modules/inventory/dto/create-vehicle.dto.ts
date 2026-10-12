@@ -12,15 +12,15 @@ export class CreateVehicleDto {
   @IsNotEmpty()
   engineNumber: string;
 
-  @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', required: false })
+  @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' })
   @IsString()
-  @IsOptional()
-  variantId?: string;
+  @IsNotEmpty()
+  variantId: string;
 
-  @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', required: false })
+  @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' })
   @IsString()
-  @IsOptional()
-  branchId?: string;
+  @IsNotEmpty()
+  branchId: string;
 
   @ApiProperty({ example: 2026 })
   @IsNumber()

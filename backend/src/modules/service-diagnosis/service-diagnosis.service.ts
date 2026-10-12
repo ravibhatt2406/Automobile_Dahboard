@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '@/database/prisma.service';
 import { CreateDiagnosisDto } from './dto/create-diagnosis.dto';
 import { AuditService } from '../audit/audit.service';
@@ -10,7 +10,7 @@ export class ServiceDiagnosisService {
     private auditService: AuditService,
   ) {}
 
-  async create(dto: CreateDiagnosisDto, actorUserId: string) {
+  async create(dto: CreateDiagnosisDto, actorUserId: string, user?: any) {
     if (!dto.serviceJobId) {
       throw new BadRequestException('serviceJobId is required');
     }
@@ -19,17 +19,49 @@ export class ServiceDiagnosisService {
 
     const job = await this.prisma.serviceJob.findUnique({
       where: { id: serviceJobId },
+      include: { branch: true },
     });
 
     if (!job) {
       throw new NotFoundException(`Service Job ID '${serviceJobId}' not found`);
     }
 
+    if (user) {
+      const userRoles = Array.isArray(user?.roles) ? user.roles : [];
+      const isSuperAdmin = userRoles.includes('SUPER_ADMIN');
+      if (!isSuperAdmin) {
+        if (user.branchId && job.branchId !== user.branchId) {
+          throw new ForbiddenException('Cannot record diagnosis for a job in another branch');
+        }
+        if (user.franchiseId && job.branch?.franchiseId !== user.franchiseId) {
+          throw new ForbiddenException('Cannot record diagnosis for a job in another franchise');
+        }
+      }
+    }
+
+    // Determine mechanic ID
+    let mechanicId = dto.mechanicId || user?.employeeId || user?.employeeProfile?.id;
+    if (!mechanicId) {
+      const emp = await this.prisma.employee.findFirst({ where: { userId: actorUserId } });
+      mechanicId = emp?.id;
+    }
+    if (!mechanicId && job.assignedMechanicId) {
+      mechanicId = job.assignedMechanicId;
+    }
+    if (!mechanicId) {
+      throw new BadRequestException('Mechanic identity required to record diagnosis');
+    }
+
+    const mechanic = await this.prisma.employee.findUnique({ where: { id: mechanicId } });
+    if (!mechanic) {
+      throw new NotFoundException(`Mechanic with ID '${mechanicId}' not found`);
+    }
+
     const result = await this.prisma.$transaction(async (tx) => {
       const diagnosis = await tx.serviceDiagnosis.create({
         data: {
           serviceJobId,
-          mechanicId: dto.mechanicId,
+          mechanicId,
           findings: dto.findings,
           recommendedWork: dto.recommendedWork,
           severity: dto.severity || 'MEDIUM',
@@ -72,12 +104,29 @@ export class ServiceDiagnosisService {
     return result;
   }
 
-  async findByJob(serviceJobId: string) {
+  async findByJob(serviceJobId: string, user?: any) {
     const job = await this.prisma.serviceJob.findUnique({
       where: { id: serviceJobId },
+      include: { branch: true },
     });
     if (!job) {
       throw new NotFoundException(`Service Job ID '${serviceJobId}' not found`);
+    }
+
+    if (user) {
+      const userRoles = Array.isArray(user?.roles) ? user.roles : [];
+      const isSuperAdmin = userRoles.includes('SUPER_ADMIN');
+      const isCustomer = userRoles.includes('CUSTOMER');
+      if (isCustomer) {
+        const customerId = user.customerId || (await this.prisma.customer.findFirst({ where: { userId: user.id } }))?.id;
+        if (!customerId || job.customerId !== customerId) {
+          throw new ForbiddenException('Cannot view diagnosis for another customer job');
+        }
+      } else if (!isSuperAdmin) {
+        if (user.branchId && job.branchId !== user.branchId) {
+          throw new ForbiddenException('Cannot view diagnosis for job in another branch');
+        }
+      }
     }
 
     return this.prisma.serviceDiagnosis.findMany({
@@ -87,7 +136,13 @@ export class ServiceDiagnosisService {
     });
   }
 
-  async respondToApproval(approvalId: string, decision: 'APPROVED' | 'REJECTED', customerNotes?: string, actorUserId?: string) {
+  async respondToApproval(
+    approvalId: string,
+    decision: 'APPROVED' | 'REJECTED',
+    customerNotes?: string,
+    actorUserId?: string,
+    user?: any,
+  ) {
     const approval = await this.prisma.serviceApproval.findUnique({
       where: { id: approvalId },
       include: { serviceJob: true },
@@ -97,12 +152,23 @@ export class ServiceDiagnosisService {
       throw new NotFoundException(`Approval Request ID '${approvalId}' not found`);
     }
 
+    if (user) {
+      const userRoles = Array.isArray(user?.roles) ? user.roles : [];
+      const isCustomer = userRoles.includes('CUSTOMER');
+      if (isCustomer) {
+        const customerId = user.customerId || (await this.prisma.customer.findFirst({ where: { userId: user.id } }))?.id;
+        if (!customerId || approval.serviceJob.customerId !== customerId) {
+          throw new ForbiddenException('Cannot respond to approval for another customer job');
+        }
+      }
+    }
+
     const updated = await this.prisma.$transaction(async (tx) => {
       const app = await tx.serviceApproval.update({
         where: { id: approvalId },
         data: {
           decision,
-          customerNotes,
+          customerNotes: customerNotes || null,
           decidedAt: new Date(),
         },
       });
@@ -127,7 +193,7 @@ export class ServiceDiagnosisService {
     });
 
     await this.auditService.log({
-      actorUserId,
+      actorUserId: actorUserId || 'SYSTEM',
       action: `CUSTOMER_WORK_APPROVAL_${decision}`,
       entityType: 'ServiceApproval',
       entityId: approvalId,

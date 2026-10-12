@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   ConflictException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '@/database/prisma.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
@@ -16,93 +17,118 @@ export class BookingsService {
     private auditService: AuditService,
   ) {}
 
-  async create(dto: CreateBookingDto, actorUserId: string) {
+  async create(dto: CreateBookingDto, user?: any) {
+    const actorUserId = user?.id;
+    const userRoles = Array.isArray(user?.roles) ? user.roles : [];
+    const isSuperAdmin = userRoles.includes('SUPER_ADMIN');
+    const isCustomer = userRoles.includes('CUSTOMER');
 
-    // Resilient customer lookup
-    let customer = dto.customerId
-      ? await this.prisma.customer.findFirst({
-          where: { OR: [{ id: dto.customerId }, { phone: dto.customerId }, { email: dto.customerId }] },
-        })
-      : await this.prisma.customer.findFirst({ where: { userId: actorUserId } });
+    // 1. Customer resolution
+    let customerIdToUse = dto.customerId;
+    if (isCustomer) {
+      if (user.customerId) {
+        customerIdToUse = user.customerId;
+      } else {
+        const cust = await this.prisma.customer.findFirst({ where: { userId: actorUserId } });
+        if (!cust) throw new ForbiddenException('No customer profile associated with user account');
+        customerIdToUse = cust.id;
+      }
+    }
+
+    if (!customerIdToUse) {
+      throw new BadRequestException('customerId is required');
+    }
+
+    const customer = await this.prisma.customer.findFirst({
+      where: { OR: [{ id: customerIdToUse }, { phone: customerIdToUse }, { email: customerIdToUse }] },
+    });
     if (!customer) {
-      customer = await this.prisma.customer.findFirst({ where: { status: 'ACTIVE' } });
+      throw new NotFoundException(`Customer '${customerIdToUse}' not found`);
     }
-    if (!customer) throw new NotFoundException('No active customer found for booking');
 
-    // Resilient quotation lookup - Booking in schema requires a quotationId
-    let quotation = dto.quotationId
-      ? await this.prisma.quotation.findUnique({ where: { id: dto.quotationId } })
-      : null;
+    if (isCustomer && customer.userId && customer.userId !== actorUserId) {
+      throw new ForbiddenException('Cannot create booking for another customer');
+    }
 
+    // 2. Quotation resolution
+    if (!dto.quotationId) {
+      throw new BadRequestException('quotationId is required');
+    }
+    const quotation = await this.prisma.quotation.findUnique({
+      where: { id: dto.quotationId },
+    });
     if (!quotation) {
-      quotation = await this.prisma.quotation.findFirst({
-        where: { customerId: customer.id },
-        orderBy: { createdAt: 'desc' },
+      throw new NotFoundException(`Quotation '${dto.quotationId}' not found`);
+    }
+    if (quotation.customerId !== customer.id) {
+      throw new BadRequestException('Quotation does not belong to specified customer');
+    }
+
+    // 3. Branch resolution
+    const branchIdToUse = dto.branchId || quotation.branchId;
+    if (!branchIdToUse) {
+      throw new BadRequestException('branchId is required');
+    }
+    const branch = await this.prisma.branch.findFirst({
+      where: { OR: [{ id: branchIdToUse }, { code: branchIdToUse }] },
+    });
+    if (!branch) {
+      throw new NotFoundException(`Branch '${branchIdToUse}' not found`);
+    }
+    if (quotation.branchId && quotation.branchId !== branch.id) {
+      throw new BadRequestException('Branch does not match quotation branch');
+    }
+
+    // Tenant boundary checks for non-superadmin internal users
+    if (!isSuperAdmin && !isCustomer) {
+      if (user?.branchId && user.branchId !== branch.id) {
+        throw new ForbiddenException('Cannot create booking for another branch');
+      }
+      if (user?.franchiseId && user.franchiseId !== branch.franchiseId) {
+        throw new ForbiddenException('Cannot create booking for another franchise');
+      }
+    }
+
+    // 4. Salesperson resolution
+    let salesperson: any = null;
+    if (dto.salespersonEmployeeId) {
+      salesperson = await this.prisma.employee.findFirst({
+        where: { OR: [{ id: dto.salespersonEmployeeId }, { employeeCode: dto.salespersonEmployeeId }] },
+      });
+      if (!salesperson) {
+        throw new NotFoundException(`Salesperson '${dto.salespersonEmployeeId}' not found`);
+      }
+    } else if (quotation.salespersonEmployeeId) {
+      salesperson = await this.prisma.employee.findUnique({
+        where: { id: quotation.salespersonEmployeeId },
+      });
+    } else if (actorUserId) {
+      salesperson = await this.prisma.employee.findFirst({
+        where: { userId: actorUserId, branchId: branch.id },
       });
     }
 
-    // Resilient branch lookup
-    let branch = dto.branchId
-      ? await this.prisma.branch.findFirst({
-          where: { OR: [{ id: dto.branchId }, { code: dto.branchId }] },
-        })
-      : quotation
-      ? await this.prisma.branch.findUnique({ where: { id: quotation.branchId } })
-      : await this.prisma.branch.findFirst({ where: { status: 'ACTIVE' } });
-    if (!branch) throw new NotFoundException('No active branch found for booking');
-
-    // Resilient salesperson lookup
-    let salesperson = dto.salespersonEmployeeId
-      ? await this.prisma.employee.findFirst({
-          where: { OR: [{ id: dto.salespersonEmployeeId }, { employeeCode: dto.salespersonEmployeeId }] },
-        })
-      : await this.prisma.employee.findFirst({ where: { userId: actorUserId } });
     if (!salesperson) {
-      salesperson = await this.prisma.employee.findFirst({ where: { branchId: branch.id, status: 'ACTIVE' } });
-    }
-    if (!salesperson) {
-      salesperson = await this.prisma.employee.findFirst({ where: { status: 'ACTIVE' } });
-    }
-    if (!salesperson) throw new NotFoundException('No active salesperson employee found for booking');
-
-    if (!quotation) {
-      const variant = await this.prisma.truckVariant.findFirst();
-      if (!variant) throw new NotFoundException('No truck variant found for quotation');
-      const unitBasePrice = Number(variant.basePrice);
-      const gstRate = Number(variant.gstRate);
-      const subtotal = unitBasePrice;
-      const gstAmount = Math.round(subtotal * (gstRate / 100) * 100) / 100;
-      const calculatedTotal = subtotal + gstAmount;
-
-      quotation = await this.prisma.quotation.create({
-        data: {
-          quotationNumber: `QT-AUTO-${Date.now()}`,
-          customerId: customer.id,
-          franchiseId: branch.franchiseId,
-          branchId: branch.id,
-          salespersonEmployeeId: salesperson.id,
-          createdByUserId: actorUserId,
-          variantId: variant.id,
-          quantity: 1,
-          unitBasePrice,
-          subtotal,
-          gstRate,
-          gstAmount,
-          totalAmount: calculatedTotal,
-          validityDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-          status: 'CONVERTED',
-        },
+      salesperson = await this.prisma.employee.findFirst({
+        where: { branchId: branch.id, status: 'ACTIVE' },
       });
+    }
+    if (!salesperson) {
+      throw new NotFoundException(`No active employee found for branch '${branch.name}'`);
     }
 
     const bookingNumber = `BK-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
     const totalAmount = Number(quotation.totalAmount);
 
     return await this.prisma.$transaction(async (tx) => {
-      // If a specific vehicle is being reserved, check it's available and prevent double-booking
+      // If a specific vehicle is being reserved, check it's available and belongs to branch
       if (dto.vehicleId) {
         const vehicle = await tx.vehicle.findUnique({ where: { id: dto.vehicleId } });
         if (!vehicle) throw new NotFoundException(`Vehicle ID '${dto.vehicleId}' not found`);
+
+        if (vehicle.branchId !== branch.id) {
+          throw new BadRequestException('Selected vehicle does not belong to booking branch');
+        }
 
         if (!['IN_STOCK', 'RESERVED'].includes(vehicle.status)) {
           throw new ConflictException(
@@ -159,7 +185,7 @@ export class BookingsService {
       });
 
       await this.auditService.log({
-        actorUserId,
+        actorUserId: actorUserId || 'SYSTEM',
         action: 'BOOKING_CONFIRMED',
         entityType: 'Booking',
         entityId: booking.id,
@@ -170,9 +196,39 @@ export class BookingsService {
     });
   }
 
-  async findAll(branchId?: string, status?: BookingStatus, limit = 50, offset = 0) {
+  async findAll(branchId?: string, status?: BookingStatus, limit = 50, offset = 0, user?: any) {
     const where: any = {};
-    if (branchId) where.branchId = branchId;
+    const userRoles = Array.isArray(user?.roles) ? user.roles : [];
+    const isSuperAdmin = userRoles.includes('SUPER_ADMIN');
+    const isCustomer = userRoles.includes('CUSTOMER');
+
+    if (isCustomer) {
+      if (!user?.customerId) {
+        return { items: [], total: 0, limit, offset };
+      }
+      where.customerId = user.customerId;
+    } else if (!isSuperAdmin) {
+      if (user?.branchId) {
+        if (branchId && branchId !== user.branchId) {
+          throw new ForbiddenException('Cannot access bookings from another branch');
+        }
+        where.branchId = user.branchId;
+      } else if (user?.franchiseId) {
+        where.branch = { franchiseId: user.franchiseId };
+        if (branchId) {
+          const branchInFranchise = await this.prisma.branch.findFirst({
+            where: { id: branchId, franchiseId: user.franchiseId },
+          });
+          if (!branchInFranchise) {
+            throw new ForbiddenException('Branch does not belong to your franchise');
+          }
+          where.branchId = branchId;
+        }
+      }
+    } else {
+      if (branchId) where.branchId = branchId;
+    }
+
     if (status) where.status = status;
 
     const [items, total] = await Promise.all([
@@ -200,7 +256,7 @@ export class BookingsService {
     return { items, total, limit, offset };
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, user?: any) {
     const booking = await this.prisma.booking.findUnique({
       where: { id },
       include: {
@@ -224,11 +280,30 @@ export class BookingsService {
       throw new NotFoundException(`Booking ID '${id}' not found`);
     }
 
+    if (user) {
+      const userRoles = Array.isArray(user?.roles) ? user.roles : [];
+      const isSuperAdmin = userRoles.includes('SUPER_ADMIN');
+      const isCustomer = userRoles.includes('CUSTOMER');
+
+      if (isCustomer) {
+        if (!user.customerId || booking.customerId !== user.customerId) {
+          throw new ForbiddenException('Access denied to booking');
+        }
+      } else if (!isSuperAdmin) {
+        if (user.branchId && booking.branchId !== user.branchId) {
+          throw new ForbiddenException('Access denied to booking in another branch');
+        }
+        if (user.franchiseId && booking.branch?.franchiseId !== user.franchiseId) {
+          throw new ForbiddenException('Access denied to booking in another franchise');
+        }
+      }
+    }
+
     return booking;
   }
 
-  async cancel(id: string, reason: string, actorUserId: string) {
-    const booking = await this.findOne(id);
+  async cancel(id: string, reason: string, user: any) {
+    const booking = await this.findOne(id, user);
 
     if (booking.status === 'CANCELLED' || booking.status === 'CONVERTED_TO_DELIVERY') {
       throw new BadRequestException(`Cannot cancel booking in '${booking.status}' status`);
@@ -249,7 +324,7 @@ export class BookingsService {
       });
 
       await this.auditService.log({
-        actorUserId,
+        actorUserId: user?.id || 'SYSTEM',
         action: 'BOOKING_CANCELLED',
         entityType: 'Booking',
         entityId: id,

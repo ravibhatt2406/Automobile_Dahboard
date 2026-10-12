@@ -69,13 +69,6 @@ export const VehicleFormPage: React.FC = () => {
     },
   });
 
-  // Set default branch when loaded
-  useEffect(() => {
-    if (branches.length > 0 && !watch('branchId')) {
-      setValue('branchId', branches[0].id);
-    }
-  }, [branches, setValue, watch]);
-
   // Handle variant selection to auto-fill specs
   const handleVariantChange = (variantId: string) => {
     setValue('variantId', variantId);
@@ -92,6 +85,14 @@ export const VehicleFormPage: React.FC = () => {
 
   const onSubmit = async (data: VehicleFormData) => {
     setSubmitError(null);
+    if (!data.branchId) {
+      setSubmitError('Please select a branch.');
+      return;
+    }
+    if (!data.variantId) {
+      setSubmitError('Please select a truck variant.');
+      return;
+    }
     try {
       await vehicleService.createVehicle({
         vin: data.vin,
@@ -104,8 +105,8 @@ export const VehicleFormPage: React.FC = () => {
         color: data.color,
         sellingPrice: data.sellingPrice,
         baseCost: data.baseCost,
-        branchId: data.branchId || branches[0]?.id,
-        variantId: data.variantId || variants[0]?.id,
+        branchId: data.branchId,
+        variantId: data.variantId,
       });
       await queryClient.invalidateQueries({ queryKey: ['vehicles'] });
       setSubmitSuccess(true);

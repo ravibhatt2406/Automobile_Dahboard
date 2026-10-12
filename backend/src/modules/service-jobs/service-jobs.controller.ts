@@ -21,15 +21,15 @@ import { ServiceJobStatus } from '@prisma/client';
 @ApiTags('Service Jobs')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard, TenantScopeGuard)
-@Controller('service-jobs')
+@Controller(['service-jobs', 'service/jobs'])
 export class ServiceJobsController {
   constructor(private readonly serviceJobsService: ServiceJobsService) {}
 
   @Post()
   @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SERVICE_ADVISOR')
   @ApiOperation({ summary: 'Create service job card' })
-  create(@Body() dto: CreateJobCardDto, @CurrentUser('id') actorUserId: string) {
-    return this.serviceJobsService.create(dto, actorUserId);
+  create(@Body() dto: CreateJobCardDto, @CurrentUser() user: any) {
+    return this.serviceJobsService.create(dto, user);
   }
 
   @Get()
@@ -46,22 +46,34 @@ export class ServiceJobsController {
     @Query('status') status?: ServiceJobStatus,
     @Query('limit') limit?: number,
     @Query('offset') offset?: number,
+    @CurrentUser() user?: any,
   ) {
-    return this.serviceJobsService.findAll(branchId, customerId, status, limit ? +limit : 50, offset ? +offset : 0);
+    return this.serviceJobsService.findAll(branchId, customerId, status, limit ? +limit : 50, offset ? +offset : 0, user);
   }
 
   @Get('mechanic/my-jobs')
   @Roles('SUPER_ADMIN', 'BRANCH_MANAGER', 'MECHANIC')
   @ApiOperation({ summary: 'Get assigned jobs for mechanic dashboard' })
-  findMyJobs(@CurrentUser('employeeId') mechanicEmployeeId: string, @Query('status') status?: ServiceJobStatus) {
-    return this.serviceJobsService.findByMechanic(mechanicEmployeeId, status);
+  findMyJobs(
+    @CurrentUser() user: any,
+    @Query('mechanicId') requestedMechanicId?: string,
+    @Query('status') status?: ServiceJobStatus,
+  ) {
+    return this.serviceJobsService.findByMechanic(user, requestedMechanicId, status);
+  }
+
+  @Get('vehicle/:vehicleId')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SERVICE_ADVISOR', 'MECHANIC', 'CUSTOMER')
+  @ApiOperation({ summary: 'Get comprehensive service history for vehicle' })
+  getVehicleServiceHistory(@Param('vehicleId') vehicleId: string, @CurrentUser() user: any) {
+    return this.serviceJobsService.getVehicleServiceHistory(vehicleId, user);
   }
 
   @Get(':id')
   @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SERVICE_ADVISOR', 'MECHANIC', 'CUSTOMER')
   @ApiOperation({ summary: 'Get full service job details' })
-  findOne(@Param('id') id: string) {
-    return this.serviceJobsService.findOne(id);
+  findOne(@Param('id') id: string, @CurrentUser() user?: any) {
+    return this.serviceJobsService.findOne(id, user);
   }
 
   @Patch(':id/assign-mechanic')
@@ -70,9 +82,9 @@ export class ServiceJobsController {
   assignMechanic(
     @Param('id') id: string,
     @Body('mechanicId') mechanicId: string,
-    @CurrentUser('id') actorUserId: string,
+    @CurrentUser() user: any,
   ) {
-    return this.serviceJobsService.assignMechanic(id, mechanicId, actorUserId);
+    return this.serviceJobsService.assignMechanic(id, mechanicId, user);
   }
 
   @Patch(':id/status')
@@ -82,8 +94,8 @@ export class ServiceJobsController {
     @Param('id') id: string,
     @Body('status') status: ServiceJobStatus,
     @Body('notes') notes: string,
-    @CurrentUser('id') actorUserId: string,
+    @CurrentUser() user: any,
   ) {
-    return this.serviceJobsService.updateStatus(id, status, actorUserId, notes);
+    return this.serviceJobsService.updateStatus(id, status, user, notes);
   }
 }

@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '@/database/prisma.service';
@@ -12,9 +13,9 @@ import { VehicleStatus } from '@prisma/client';
 const ALLOWED_STATUS_TRANSITIONS: Record<VehicleStatus, VehicleStatus[]> = {
   IN_STOCK: ['RESERVED', 'ALLOCATED', 'SERVICE', 'BLOCKED', 'TRANSFERRED'],
   RESERVED: ['IN_STOCK', 'ALLOCATED', 'BLOCKED'],
-  ALLOCATED: ['RESERVED', 'PDI_PENDING', 'PDI_COMPLETED'],
-  PDI_PENDING: ['PDI_COMPLETED', 'SERVICE', 'ALLOCATED'],
-  PDI_COMPLETED: ['DELIVERED', 'PDI_PENDING'],
+  ALLOCATED: ['IN_STOCK', 'RESERVED', 'PDI_PENDING', 'PDI_COMPLETED', 'BLOCKED'],
+  PDI_PENDING: ['PDI_COMPLETED', 'SERVICE', 'ALLOCATED', 'IN_STOCK'],
+  PDI_COMPLETED: ['DELIVERED', 'PDI_PENDING', 'IN_STOCK'],
   DELIVERED: ['SOLD'],
   SOLD: [],
   SERVICE: ['IN_STOCK', 'PDI_PENDING'],
@@ -29,7 +30,10 @@ export class InventoryService {
     private auditService: AuditService,
   ) {}
 
-  async create(dto: CreateVehicleDto, actorUserId: string) {
+  async create(dto: CreateVehicleDto, userOrId: any) {
+    const actorUserId = typeof userOrId === 'object' ? userOrId.id : userOrId;
+    const user = typeof userOrId === 'object' ? userOrId : null;
+
     const existingVin = await this.prisma.vehicle.findUnique({
       where: { vin: dto.vin },
     });
@@ -44,46 +48,56 @@ export class InventoryService {
       throw new ConflictException(`Engine Number '${dto.engineNumber}' already exists`);
     }
 
-    // Validate branch exists and is active
-    let branch = await this.prisma.branch.findFirst({
+    if (!dto.branchId) {
+      throw new BadRequestException('branchId is required');
+    }
+
+    // Validate branch exists - NO SILENT FALLBACK
+    const branch = await this.prisma.branch.findFirst({
       where: {
         OR: [{ id: dto.branchId }, { code: dto.branchId }],
       },
+      include: { franchise: true },
     });
     if (!branch) {
-      branch = await this.prisma.branch.findFirst({ where: { status: 'ACTIVE' } });
-    }
-    if (!branch) {
-      throw new NotFoundException(`No active branch found for vehicle assignment`);
+      throw new NotFoundException(`Branch '${dto.branchId}' not found`);
     }
     if (branch.status !== 'ACTIVE') {
       throw new BadRequestException(`Cannot add vehicle to inactive branch '${branch.name}'`);
     }
 
-    // Validate variant exists
-    let variant: any = null;
-    if (dto.variantId) {
-      variant = await this.prisma.truckVariant.findFirst({
-        where: {
-          OR: [{ id: dto.variantId }, { name: dto.variantId }],
-        },
-      });
+    // Scope check on creator
+    if (user) {
+      const roles: string[] = user.roles || [];
+      const isSuperAdmin = user.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN');
+      if (!isSuperAdmin) {
+        const userBranchId = user.branchId || user.assignedBranchId || user.employeeProfile?.branchId;
+        const userFranchiseId = user.franchiseId || user.assignedFranchiseId || user.employeeProfile?.branch?.franchiseId;
+        const isFranchiseLevel = roles.some((r) => ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r));
+        if (isFranchiseLevel) {
+          if (branch.franchiseId !== userFranchiseId) {
+            throw new ForbiddenException('Multi-tenant scope violation: Cannot add vehicle to another franchise');
+          }
+        } else {
+          if (branch.id !== userBranchId && branch.code !== userBranchId) {
+            throw new ForbiddenException('Multi-tenant scope violation: Cannot add vehicle to another branch');
+          }
+        }
+      }
     }
-    if (!variant && dto.model) {
-      variant = await this.prisma.truckVariant.findFirst({
-        where: {
-          OR: [
-            { name: { contains: dto.model, mode: 'insensitive' } },
-            { model: { name: { contains: dto.model, mode: 'insensitive' } } },
-          ],
-        },
-      });
+
+    if (!dto.variantId) {
+      throw new BadRequestException('variantId is required');
     }
+
+    // Validate variant exists - NO SILENT FALLBACK
+    const variant = await this.prisma.truckVariant.findFirst({
+      where: {
+        OR: [{ id: dto.variantId }, { name: dto.variantId }],
+      },
+    });
     if (!variant) {
-      variant = await this.prisma.truckVariant.findFirst();
-    }
-    if (!variant) {
-      throw new NotFoundException(`No truck variant found for vehicle`);
+      throw new NotFoundException(`Truck variant '${dto.variantId}' not found`);
     }
 
     const vehicle = await this.prisma.vehicle.create({
@@ -116,10 +130,51 @@ export class InventoryService {
     return vehicle;
   }
 
-  async findAll(branchId?: string, status?: VehicleStatus, limit = 50, offset = 0) {
+  async findAll(branchId?: string, status?: VehicleStatus, limit = 50, offset = 0, user?: any) {
+    const roles: string[] = user?.roles || [];
+    const isSuperAdmin = user?.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN');
+    const isFranchiseLevel = roles.some((r) => ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r));
+    const isCustomer = user?.accountType === 'CUSTOMER' || (roles.includes('CUSTOMER') && !user?.employeeProfile);
+
     const where: any = {};
-    if (branchId) where.branchId = branchId;
     if (status) where.status = status;
+
+    if (user && isCustomer) {
+      const customerId = user.customerId || user.customerProfile?.id;
+      if (!customerId) {
+        return { items: [], total: 0, limit, offset };
+      }
+      where.customerId = customerId;
+    } else if (user && !isSuperAdmin) {
+      const userBranchId = user.branchId || user.assignedBranchId || user.employeeProfile?.branchId;
+      const userFranchiseId = user.franchiseId || user.assignedFranchiseId || user.employeeProfile?.branch?.franchiseId;
+
+      if (isFranchiseLevel) {
+        if (branchId) {
+          const b = await this.prisma.branch.findFirst({
+            where: { OR: [{ id: branchId }, { code: branchId }] },
+          });
+          if (!b || b.franchiseId !== userFranchiseId) {
+            throw new ForbiddenException('Multi-tenant scope violation: Unauthorized branch access');
+          }
+          where.branchId = b.id;
+        } else {
+          where.branch = { franchiseId: userFranchiseId };
+        }
+      } else {
+        // Branch Level
+        if (
+          branchId &&
+          branchId !== userBranchId &&
+          branchId !== user.employeeProfile?.branch?.code
+        ) {
+          throw new ForbiddenException('Multi-tenant scope violation: Unauthorized branch access');
+        }
+        where.branchId = userBranchId;
+      }
+    } else if (branchId) {
+      where.branchId = branchId;
+    }
 
     const [items, total] = await Promise.all([
       this.prisma.vehicle.findMany({
@@ -139,7 +194,7 @@ export class InventoryService {
     return { items, total, limit, offset };
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, user?: any) {
     const vehicle = await this.prisma.vehicle.findUnique({
       where: { id },
       include: {
@@ -157,11 +212,40 @@ export class InventoryService {
       throw new NotFoundException(`Vehicle ID '${id}' not found`);
     }
 
+    if (user) {
+      const roles: string[] = user.roles || [];
+      const isSuperAdmin = user.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN');
+      if (!isSuperAdmin) {
+        const isCustomer = user.accountType === 'CUSTOMER' || (roles.includes('CUSTOMER') && !user.employeeProfile);
+        if (isCustomer) {
+          const customerId = user.customerProfile?.id || user.customerId;
+          if (!vehicle.customerId || vehicle.customerId !== customerId) {
+            throw new ForbiddenException('Multi-tenant scope violation: Unauthorized vehicle access');
+          }
+        } else {
+          const isFranchiseLevel = roles.some((r) => ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r));
+          if (isFranchiseLevel) {
+            if (vehicle.branch?.franchiseId !== user.assignedFranchiseId) {
+              throw new ForbiddenException('Multi-tenant scope violation: Unauthorized franchise access');
+            }
+          } else {
+            // Branch level
+            if (vehicle.branchId !== user.assignedBranchId) {
+              throw new ForbiddenException('Multi-tenant scope violation: Unauthorized branch access');
+            }
+          }
+        }
+      }
+    }
+
     return vehicle;
   }
 
-  async update(id: string, dto: Partial<CreateVehicleDto>, actorUserId: string) {
-    const vehicle = await this.findOne(id);
+  async update(id: string, dto: Partial<CreateVehicleDto>, userOrId: any) {
+    const actorUserId = typeof userOrId === 'object' ? userOrId.id : userOrId;
+    const user = typeof userOrId === 'object' ? userOrId : null;
+
+    const vehicle = await this.findOne(id, user);
 
     if (['SOLD', 'DELIVERED'].includes(vehicle.status) && (dto.sellingPrice || dto.baseCost)) {
       throw new BadRequestException('Cannot modify pricing on a sold/delivered vehicle');
@@ -192,8 +276,11 @@ export class InventoryService {
     return updated;
   }
 
-  async updateStatus(id: string, newStatus: VehicleStatus, actorUserId: string) {
-    const vehicle = await this.findOne(id);
+  async updateStatus(id: string, newStatus: VehicleStatus, userOrId: any) {
+    const actorUserId = typeof userOrId === 'object' ? userOrId.id : userOrId;
+    const user = typeof userOrId === 'object' ? userOrId : null;
+
+    const vehicle = await this.findOne(id, user);
 
     if (vehicle.status === newStatus) {
       return vehicle;
@@ -222,9 +309,14 @@ export class InventoryService {
     return updated;
   }
 
-  async deactivate(id: string, actorUserId: string) {
+  async deactivate(id: string, userOrId: any) {
+    const actorUserId = typeof userOrId === 'object' ? userOrId.id : userOrId;
+    const user = typeof userOrId === 'object' ? userOrId : null;
+
+    const targetVehicle = await this.findOne(id, user);
+
     const vehicle = await this.prisma.vehicle.findUnique({
-      where: { id },
+      where: { id: targetVehicle.id },
       include: {
         _count: {
           select: {
@@ -286,19 +378,99 @@ export class InventoryService {
     return { success: true, message: `Vehicle '${vehicle.vin}' permanently removed` };
   }
 
-  async allocateVehicle(id: string, bookingId: string, actorUserId: string) {
-    const vehicle = await this.findOne(id);
-    if (vehicle.status !== 'IN_STOCK' && vehicle.status !== 'RESERVED') {
-      throw new BadRequestException(`Cannot allocate vehicle in status '${vehicle.status}'`);
+  async allocateVehicle(id: string, bookingId: string, userOrId: any) {
+    const actorUserId = typeof userOrId === 'object' ? userOrId.id : userOrId;
+    const user = typeof userOrId === 'object' ? userOrId : null;
+
+    if (!bookingId) {
+      throw new BadRequestException('bookingId is required to allocate a vehicle');
+    }
+
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { quotation: true, customer: true, branch: true },
+    });
+    if (!booking) {
+      throw new NotFoundException(`Booking ID '${bookingId}' not found`);
+    }
+    if (['CANCELLED', 'CONVERTED_TO_DELIVERY'].includes(booking.status)) {
+      throw new BadRequestException(`Cannot allocate vehicle to a ${booking.status} booking`);
+    }
+
+    // Branch scoping for the actor
+    if (user) {
+      const roles: string[] = user.roles || [];
+      const isSuperAdmin = user.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN');
+      if (!isSuperAdmin) {
+        const userBranchId = user.branchId || user.assignedBranchId || user.employeeProfile?.branchId;
+        const userFranchiseId = user.franchiseId || user.assignedFranchiseId || user.employeeProfile?.branch?.franchiseId;
+        const isFranchiseLevel = roles.some((r) => ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r));
+        if (isFranchiseLevel) {
+          if (booking.branch?.franchiseId !== userFranchiseId) {
+            throw new ForbiddenException('Multi-tenant scope violation: Cannot allocate across franchises');
+          }
+        } else {
+          if (booking.branchId !== userBranchId && booking.branch?.code !== userBranchId) {
+            throw new ForbiddenException('Multi-tenant scope violation: Cannot allocate across branches');
+          }
+        }
+      }
     }
 
     return await this.prisma.$transaction(async (tx) => {
+      // Row-level lock on the vehicle in PostgreSQL to prevent race-condition double allocation
+      const [lockedVehicle] = await tx.$queryRaw<any[]>`
+        SELECT id, status, branch_id, variant_id, vin FROM vehicles
+        WHERE id = ${id} FOR UPDATE
+      `;
+      if (!lockedVehicle) {
+        throw new NotFoundException(`Vehicle ID '${id}' not found`);
+      }
+
+      if (['SOLD', 'DELIVERED'].includes(lockedVehicle.status)) {
+        throw new ConflictException(
+          `Vehicle '${lockedVehicle.vin}' is already ${lockedVehicle.status} and cannot be allocated`
+        );
+      }
+
+      if (!['IN_STOCK', 'RESERVED'].includes(lockedVehicle.status)) {
+        throw new ConflictException(
+          `Vehicle '${lockedVehicle.vin}' is not available for allocation (current status: ${lockedVehicle.status})`
+        );
+      }
+
+      // Validate branch matches booking branch
+      if (lockedVehicle.branch_id !== booking.branchId) {
+        throw new BadRequestException(
+          `Branch mismatch: Vehicle belongs to branch '${lockedVehicle.branch_id}' but booking belongs to branch '${booking.branchId}'`
+        );
+      }
+
+      // Validate variant matches booking quotation variant if quotation has variantId
+      if (booking.quotation?.variantId && lockedVehicle.variant_id !== booking.quotation.variantId) {
+        throw new BadRequestException(
+          `Variant mismatch: Vehicle variant does not match booking quotation variant`
+        );
+      }
+
+      // Check if booking already had another vehicle allocated
+      if (booking.vehicleId && booking.vehicleId !== id) {
+        const previousVehicle = await tx.vehicle.findUnique({ where: { id: booking.vehicleId } });
+        if (previousVehicle && previousVehicle.status === 'ALLOCATED') {
+          await tx.vehicle.update({
+            where: { id: booking.vehicleId },
+            data: { status: 'IN_STOCK' },
+          });
+        }
+      }
+
       const allocation = await tx.vehicleAllocation.create({
         data: {
           vehicleId: id,
           bookingId,
-          allocatedByUserId: actorUserId,
-          previousVehicleStatus: vehicle.status,
+          allocatedByUserId: actorUserId || 'SYSTEM',
+          previousVehicleStatus: lockedVehicle.status,
+          notes: `Allocated to booking ${booking.bookingNumber}`,
         },
       });
 
@@ -307,22 +479,60 @@ export class InventoryService {
         data: { status: 'ALLOCATED' },
       });
 
-      if (bookingId) {
-        await tx.booking.update({
-          where: { id: bookingId },
-          data: { vehicleId: id, status: 'CONFIRMED' },
-        }).catch(() => {});
-      }
+      await tx.booking.update({
+        where: { id: bookingId },
+        data: { vehicleId: id, status: 'CONFIRMED' },
+      });
 
       await this.auditService.log({
-        actorUserId,
+        actorUserId: actorUserId || 'SYSTEM',
         action: 'VEHICLE_ALLOCATED',
         entityType: 'Vehicle',
         entityId: id,
-        metadata: { bookingId },
+        metadata: {
+          bookingId,
+          bookingNumber: booking.bookingNumber,
+          previousStatus: lockedVehicle.status,
+          newStatus: 'ALLOCATED',
+        },
       }).catch(() => {});
 
-      return { ...allocation, status: 'ALLOCATED' };
+      return { ...allocation, status: 'ALLOCATED', bookingNumber: booking.bookingNumber };
     });
+  }
+
+  async getHistory(id: string, user?: any) {
+    const vehicle = await this.findOne(id, user);
+
+    const [allocations, pdiInspections, deliveries, auditLogs] = await Promise.all([
+      this.prisma.vehicleAllocation.findMany({
+        where: { vehicleId: id },
+        orderBy: { allocatedAt: 'desc' },
+        include: { booking: { include: { customer: true } } },
+      }),
+      this.prisma.pdiInspection.findMany({
+        where: { vehicleId: id },
+        orderBy: { inspectionDate: 'desc' },
+      }),
+      this.prisma.delivery.findMany({
+        where: { vehicleId: id },
+        orderBy: { deliveryDate: 'desc' },
+        include: { customer: true, booking: true },
+      }),
+      this.prisma.auditLog.findMany({
+        where: { entityType: 'Vehicle', entityId: id },
+        orderBy: { createdAt: 'desc' },
+      }),
+    ]);
+
+    return {
+      vehicleId: id,
+      vin: vehicle.vin,
+      currentStatus: vehicle.status,
+      allocations,
+      pdiInspections,
+      deliveries,
+      auditLogs,
+    };
   }
 }

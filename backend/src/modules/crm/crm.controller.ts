@@ -13,15 +13,15 @@ import { LeadStatus } from '@prisma/client';
 @ApiTags('CRM & Leads')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard, TenantScopeGuard)
-@Controller('leads')
+@Controller(['leads', 'sales/leads'])
 export class CrmController {
   constructor(private readonly crmService: CrmService) {}
 
   @Post()
-  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE')
-  @ApiOperation({ summary: 'Create new customer lead' })
-  async createLead(@Body() dto: CreateLeadDto, @CurrentUser('id') actorUserId: string) {
-    return this.crmService.createLead(dto, actorUserId);
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE', 'CUSTOMER')
+  @ApiOperation({ summary: 'Create new customer lead or enquiry' })
+  async createLead(@Body() dto: CreateLeadDto, @CurrentUser() user: any) {
+    return this.crmService.createLead(dto, user);
   }
 
   @Get()
@@ -32,15 +32,16 @@ export class CrmController {
     @Query('status') status?: LeadStatus,
     @Query('limit') limit = 50,
     @Query('offset') offset = 0,
+    @CurrentUser() user?: any,
   ) {
-    return this.crmService.findAllLeads(branchId, status, Number(limit), Number(offset));
+    return this.crmService.findAllLeads(branchId, status, Number(limit), Number(offset), user);
   }
 
   @Get(':id')
   @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE')
   @ApiOperation({ summary: 'Get lead details by ID' })
-  async findOneLead(@Param('id') id: string) {
-    return this.crmService.findOneLead(id);
+  async findOneLead(@Param('id') id: string, @CurrentUser() user?: any) {
+    return this.crmService.findOneLead(id, user);
   }
 
   @Post(':id/assign')
@@ -49,9 +50,9 @@ export class CrmController {
   async assignLead(
     @Param('id') leadId: string,
     @Body('employeeId') employeeId: string,
-    @CurrentUser('id') actorUserId: string,
+    @CurrentUser() user: any,
   ) {
-    return this.crmService.assignLead(leadId, employeeId, actorUserId);
+    return this.crmService.assignLead(leadId, employeeId, user);
   }
 
   @Patch(':id/status')
@@ -60,9 +61,9 @@ export class CrmController {
   async updateLeadStatus(
     @Param('id') leadId: string,
     @Body('status') status: LeadStatus,
-    @CurrentUser('id') actorUserId: string,
+    @CurrentUser() user: any,
   ) {
-    return this.crmService.updateLeadStatus(leadId, status, actorUserId);
+    return this.crmService.updateLeadStatus(leadId, status, user);
   }
 
   @Post(':id/follow-ups')
@@ -71,15 +72,15 @@ export class CrmController {
   async addFollowUp(
     @Param('id') leadId: string,
     @Body() dto: CreateFollowUpDto,
-    @CurrentUser('id') actorUserId: string,
+    @CurrentUser() user: any,
   ) {
-    return this.crmService.addFollowUp(leadId, dto, actorUserId);
+    return this.crmService.addFollowUp(leadId, dto, user);
   }
 
   @Patch('follow-ups/:followUpId/complete')
   @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE')
   @ApiOperation({ summary: 'Mark a scheduled follow-up action as completed' })
-  async completeFollowUp(@Param('followUpId') followUpId: string) {
-    return this.crmService.completeFollowUp(followUpId);
+  async completeFollowUp(@Param('followUpId') followUpId: string, @CurrentUser() user?: any) {
+    return this.crmService.completeFollowUp(followUpId, user);
   }
 }

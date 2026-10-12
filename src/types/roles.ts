@@ -6,6 +6,7 @@ export type UserRole =
   | 'BRANCH_MANAGER'
   | 'DEPARTMENT_MANAGER'
   | 'SALES_EMPLOYEE'
+  | 'SERVICE_ADVISOR'
   | 'MECHANIC'
   | 'CUSTOMER';
 
@@ -38,6 +39,7 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   BRANCH_MANAGER: 'Branch Manager',
   DEPARTMENT_MANAGER: 'Department Manager',
   SALES_EMPLOYEE: 'Sales Executive',
+  SERVICE_ADVISOR: 'Service Advisor',
   MECHANIC: 'Service Technician / Mechanic',
   CUSTOMER: 'Commercial Fleet Customer',
 };
@@ -50,7 +52,8 @@ export const ROLE_RANKS: Record<UserRole, number> = {
   BRANCH_MANAGER: 5,
   DEPARTMENT_MANAGER: 6,
   SALES_EMPLOYEE: 7,
-  MECHANIC: 7,
+  SERVICE_ADVISOR: 8,
+  MECHANIC: 9,
   CUSTOMER: 99,
 };
 
@@ -191,6 +194,26 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canManageSales: true,
     canViewServiceJobs: false,
     canManageServiceJobs: false,
+    canViewFinance: false,
+    canViewReports: false,
+    canManageSettings: false,
+  },
+  SERVICE_ADVISOR: {
+    canViewAllFranchises: false,
+    canManageFranchises: false,
+    canViewBranches: true,
+    canManageBranches: false,
+    canViewEmployees: false,
+    canManageEmployees: false,
+    canViewAllCustomers: true,
+    canViewLeads: false,
+    canManageLeads: false,
+    canViewInventory: true,
+    canManageInventory: false,
+    canViewSales: false,
+    canManageSales: false,
+    canViewServiceJobs: true,
+    canManageServiceJobs: true,
     canViewFinance: false,
     canViewReports: false,
     canManageSettings: false,

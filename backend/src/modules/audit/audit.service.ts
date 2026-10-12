@@ -15,13 +15,38 @@ export interface LogAuditParams {
 export class AuditService {
   constructor(private prisma: PrismaService) {}
 
+  private sanitizeValue(obj: any): any {
+    if (!obj || typeof obj !== 'object') return obj;
+    if (Array.isArray(obj)) return obj.map((item) => this.sanitizeValue(item));
+
+    const SENSITIVE_PATTERNS = [
+      'password',
+      'secret',
+      'token',
+      'jwt',
+      'authorization',
+      'apikey',
+      'signature',
+      'hash',
+      'privatekey',
+      'cvv',
+      'pin',
+    ];
+
+    const sanitized: Record<string, any> = {};
+    for (const [key, val] of Object.entries(obj)) {
+      const lowerKey = key.toLowerCase();
+      const isSensitive = SENSITIVE_PATTERNS.some((pattern) => lowerKey.includes(pattern));
+      if (!isSensitive) {
+        sanitized[key] = this.sanitizeValue(val);
+      }
+    }
+    return sanitized;
+  }
+
   async log(params: LogAuditParams) {
-    // Sanitize metadata to prevent logging sensitive keys
-    const sanitizedMetadata = params.metadata ? { ...params.metadata } : {};
-    delete sanitizedMetadata.password;
-    delete sanitizedMetadata.passwordHash;
-    delete sanitizedMetadata.token;
-    delete sanitizedMetadata.secret;
+    // Sanitize metadata to prevent logging sensitive keys recursively
+    const sanitizedMetadata = params.metadata ? this.sanitizeValue(params.metadata) : {};
 
     return this.prisma.auditLog.create({
       data: {

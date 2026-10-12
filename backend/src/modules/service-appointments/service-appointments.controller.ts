@@ -21,15 +21,15 @@ import { AppointmentStatus } from '@prisma/client';
 @ApiTags('Service Appointments')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard, TenantScopeGuard)
-@Controller('service-appointments')
+@Controller(['service-appointments', 'service/appointments'])
 export class ServiceAppointmentsController {
   constructor(private readonly appointmentsService: ServiceAppointmentsService) {}
 
   @Post()
   @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SERVICE_ADVISOR', 'CUSTOMER')
   @ApiOperation({ summary: 'Book service appointment' })
-  create(@Body() dto: CreateAppointmentDto, @CurrentUser('id') actorUserId: string) {
-    return this.appointmentsService.create(dto, actorUserId);
+  create(@Body() dto: CreateAppointmentDto, @CurrentUser() user: any) {
+    return this.appointmentsService.create(dto, user);
   }
 
   @Get()
@@ -46,15 +46,16 @@ export class ServiceAppointmentsController {
     @Query('status') status?: AppointmentStatus,
     @Query('limit') limit?: number,
     @Query('offset') offset?: number,
+    @CurrentUser() user?: any,
   ) {
-    return this.appointmentsService.findAll(branchId, customerId, status, limit ? +limit : 50, offset ? +offset : 0);
+    return this.appointmentsService.findAll(branchId, customerId, status, limit ? +limit : 50, offset ? +offset : 0, user);
   }
 
   @Get(':id')
   @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SERVICE_ADVISOR', 'CUSTOMER')
   @ApiOperation({ summary: 'Get appointment details' })
-  findOne(@Param('id') id: string) {
-    return this.appointmentsService.findOne(id);
+  findOne(@Param('id') id: string, @CurrentUser() user?: any) {
+    return this.appointmentsService.findOne(id, user);
   }
 
   @Patch(':id/status')
@@ -64,9 +65,9 @@ export class ServiceAppointmentsController {
     @Param('id') id: string,
     @Body('status') status: AppointmentStatus,
     @Body('serviceAdvisorId') serviceAdvisorId?: string,
-    @CurrentUser('id') actorUserId?: string,
+    @CurrentUser() user?: any,
   ) {
-    return this.appointmentsService.updateStatus(id, status, serviceAdvisorId, actorUserId);
+    return this.appointmentsService.updateStatus(id, status, serviceAdvisorId, user);
   }
 
   @Patch(':id/reschedule')
@@ -76,8 +77,8 @@ export class ServiceAppointmentsController {
     @Param('id') id: string,
     @Body('preferredDate') preferredDate: string,
     @Body('preferredTime') preferredTime?: string,
-    @CurrentUser('id') actorUserId?: string,
+    @CurrentUser() user?: any,
   ) {
-    return this.appointmentsService.reschedule(id, preferredDate, preferredTime, actorUserId);
+    return this.appointmentsService.reschedule(id, preferredDate, preferredTime, user);
   }
 }

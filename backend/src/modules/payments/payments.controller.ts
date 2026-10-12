@@ -6,6 +6,7 @@ import {
   Param,
   Query,
   UseGuards,
+  Headers,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { PaymentsService } from './payments.service';
@@ -16,6 +17,7 @@ import { RolesGuard } from '@/common/guards/roles.guard';
 import { TenantScopeGuard } from '@/common/guards/tenant-scope.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import { Public } from '@/common/decorators/public.decorator';
 import { PaymentStatus } from '@prisma/client';
 
 @ApiTags('Payments')
@@ -28,25 +30,30 @@ export class PaymentsController {
   @Post('create-order')
   @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE', 'CUSTOMER')
   @ApiOperation({ summary: 'Create payment order for booking' })
-  createOrder(@Body() dto: CreatePaymentOrderDto, @CurrentUser('id') actorUserId: string) {
-    return this.paymentsService.createOrder(dto, actorUserId);
+  createOrder(@Body() dto: CreatePaymentOrderDto, @CurrentUser() user: any) {
+    return this.paymentsService.createOrder(dto, user);
   }
 
   @Post('verify')
   @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE', 'CUSTOMER')
   @ApiOperation({ summary: 'Server-side payment verification' })
-  verifyPayment(@Body() dto: VerifyPaymentDto, @CurrentUser('id') actorUserId: string) {
-    return this.paymentsService.verifyPayment(dto, actorUserId);
+  verifyPayment(@Body() dto: VerifyPaymentDto, @CurrentUser() user: any) {
+    return this.paymentsService.verifyPayment(dto, user);
   }
 
+  @Public()
   @Post('webhook')
   @ApiOperation({ summary: 'Payment Gateway Webhook Endpoint' })
-  webhook(@Body() payload: any) {
-    return this.paymentsService.processWebhook(payload);
+  webhook(
+    @Body() payload: any,
+    @Headers('x-webhook-signature') signature?: string,
+    @Headers('x-webhook-secret') secret?: string,
+  ) {
+    return this.paymentsService.processWebhook(payload, signature || secret);
   }
 
   @Get()
-  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE', 'ACCOUNTANT')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE', 'ACCOUNTANT', 'CUSTOMER')
   @ApiOperation({ summary: 'List payments' })
   @ApiQuery({ name: 'bookingId', required: false })
   @ApiQuery({ name: 'status', required: false, enum: PaymentStatus })
@@ -57,14 +64,15 @@ export class PaymentsController {
     @Query('status') status?: PaymentStatus,
     @Query('limit') limit?: number,
     @Query('offset') offset?: number,
+    @CurrentUser() user?: any,
   ) {
-    return this.paymentsService.findAll(bookingId, status, limit ? +limit : 50, offset ? +offset : 0);
+    return this.paymentsService.findAll(bookingId, status, limit ? +limit : 50, offset ? +offset : 0, user);
   }
 
   @Get(':id')
-  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE', 'ACCOUNTANT')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE', 'ACCOUNTANT', 'CUSTOMER')
   @ApiOperation({ summary: 'Get payment details' })
-  findOne(@Param('id') id: string) {
-    return this.paymentsService.findOne(id);
+  findOne(@Param('id') id: string, @CurrentUser() user?: any) {
+    return this.paymentsService.findOne(id, user);
   }
 }

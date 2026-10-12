@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '@/database/prisma.service';
 import { CreateInsurancePolicyDto } from './dto/create-insurance-policy.dto';
 import { AuditService } from '../audit/audit.service';
@@ -52,9 +52,29 @@ export class InsuranceService {
     return policy;
   }
 
-  async findAll(customerId?: string, status?: InsuranceStatus, limit = 50, offset = 0) {
+  async findAll(customerId?: string, status?: InsuranceStatus, limit = 50, offset = 0, user?: any) {
     const where: any = {};
-    if (customerId) where.customerId = customerId;
+    const userRoles = Array.isArray(user?.roles) ? user.roles : [];
+    const isSuperAdmin = userRoles.includes('SUPER_ADMIN');
+    const isCustomer = user?.accountType === 'CUSTOMER' || (userRoles.includes('CUSTOMER') && !user?.employeeProfile);
+
+    if (isCustomer) {
+      const userCustId = user?.customerProfile?.id || user?.customerId;
+      if (!userCustId) {
+        return { items: [], total: 0, limit, offset };
+      }
+      where.customerId = userCustId;
+    } else if (!isSuperAdmin) {
+      if (user?.branchId) {
+        where.booking = { branchId: user.branchId };
+      } else if (user?.franchiseId) {
+        where.booking = { branch: { franchiseId: user.franchiseId } };
+      }
+      if (customerId) where.customerId = customerId;
+    } else {
+      if (customerId) where.customerId = customerId;
+    }
+
     if (status) where.status = status;
 
     const [items, total] = await Promise.all([
@@ -71,13 +91,27 @@ export class InsuranceService {
     return { items, total, limit, offset };
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, user?: any) {
     const policy = await this.prisma.insurancePolicy.findUnique({
       where: { id },
       include: { customer: true, booking: true },
     });
 
     if (!policy) throw new NotFoundException(`Insurance Policy ID '${id}' not found`);
+
+    if (user) {
+      const userRoles = Array.isArray(user?.roles) ? user.roles : [];
+      const isSuperAdmin = userRoles.includes('SUPER_ADMIN');
+      const isCustomer = user?.accountType === 'CUSTOMER' || (userRoles.includes('CUSTOMER') && !user?.employeeProfile);
+
+      if (isCustomer) {
+        const userCustId = user?.customerProfile?.id || user?.customerId;
+        if (policy.customerId !== userCustId) {
+          throw new ForbiddenException('Access denied to insurance policy');
+        }
+      }
+    }
+
     return policy;
   }
 

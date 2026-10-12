@@ -29,15 +29,16 @@ export class ServiceLabourController {
     @Param('id') serviceJobId: string,
     @Body() dto: CreateLabourDto,
     @CurrentUser('id') actorUserId: string,
+    @CurrentUser() user: any,
   ) {
     dto.serviceJobId = serviceJobId;
-    return this.labourService.create(dto, actorUserId);
+    return this.labourService.create(dto, actorUserId, user);
   }
 
   @Get('service-jobs/:id/labour')
   @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SERVICE_ADVISOR', 'MECHANIC', 'CUSTOMER')
   @ApiOperation({ summary: 'List labour items for service job' })
-  findByJob(@Param('id') serviceJobId: string) {
-    return this.labourService.findByJob(serviceJobId);
+  findByJob(@Param('id') serviceJobId: string, @CurrentUser() user: any) {
+    return this.labourService.findByJob(serviceJobId, user);
   }
 }

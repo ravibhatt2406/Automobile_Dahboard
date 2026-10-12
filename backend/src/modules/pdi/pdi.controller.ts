@@ -35,6 +35,23 @@ export class PdiController {
     return this.pdiService.create(dto, inspectorUserId);
   }
 
+  @Post('pdi')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'PDI_INSPECTOR', 'SERVICE_ENGINEER')
+  @ApiOperation({ summary: 'Create PDI inspection' })
+  create(
+    @Body() dto: CreatePdiDto,
+    @CurrentUser('id') inspectorUserId: string,
+  ) {
+    return this.pdiService.create(dto, inspectorUserId);
+  }
+
+  @Get('pdi')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'PDI_INSPECTOR', 'SALES_EMPLOYEE')
+  @ApiOperation({ summary: 'List all PDI inspections' })
+  findAll() {
+    return this.pdiService.findAll();
+  }
+
   @Patch('pdi/:id')
   @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'PDI_INSPECTOR', 'SERVICE_ENGINEER')
   @ApiOperation({ summary: 'Update PDI inspection / Reinspection' })

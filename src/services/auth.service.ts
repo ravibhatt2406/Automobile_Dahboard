@@ -17,7 +17,48 @@ export interface LoginResponse {
   };
 }
 
+export interface RegisterCustomerPayload {
+  name: string;
+  email: string;
+  phone?: string;
+  password: string;
+  termsAccepted: boolean;
+}
+
 export const authService = {
+  async registerCustomer(payload: RegisterCustomerPayload): Promise<{ accessToken?: string; refreshToken?: string; user?: any; message?: string }> {
+    const response = await apiFetch<any>('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+
+    const accessToken = response?.tokens?.accessToken || response?.data?.tokens?.accessToken;
+    const refreshToken = response?.tokens?.refreshToken || response?.data?.tokens?.refreshToken;
+    const user = response?.user || response?.data?.user;
+
+    if (accessToken) {
+      localStorage.setItem('titan_auth_token', accessToken);
+      localStorage.setItem('titan_is_authenticated', 'true');
+    }
+    if (refreshToken) {
+      localStorage.setItem('titan_refresh_token', refreshToken);
+    }
+    if (user) {
+      const userProfile: UserProfile = {
+        id: user.id,
+        email: user.email,
+        phone: user.phone,
+        firstName: user.name?.split(' ')[0] || user.name || 'Customer',
+        lastName: user.name?.split(' ').slice(1).join(' ') || '',
+        roles: ['CUSTOMER'],
+        activeRole: 'CUSTOMER',
+      };
+      localStorage.setItem('titan_user_profile', JSON.stringify(userProfile));
+    }
+
+    return { accessToken, refreshToken, user, message: response?.message };
+  },
+
   async login(payload: LoginPayload): Promise<{ accessToken?: string; refreshToken?: string; user?: UserProfile }> {
     const response = await apiFetch<LoginResponse>('/auth/login', {
       method: 'POST',
@@ -43,6 +84,42 @@ export const authService = {
     }
 
     return { accessToken, refreshToken, user };
+  },
+
+  async loginWithGoogle(credential: string): Promise<{ accessToken?: string; refreshToken?: string; user?: UserProfile }> {
+    const response = await apiFetch<any>('/auth/google', {
+      method: 'POST',
+      body: JSON.stringify({ credential }),
+    });
+
+    const accessToken = response?.data?.accessToken || response?.accessToken;
+    const refreshToken = response?.data?.refreshToken || response?.refreshToken;
+    const backendUser = response?.data?.user || response?.user;
+
+    if (accessToken) {
+      localStorage.setItem('titan_auth_token', accessToken);
+      localStorage.setItem('titan_is_authenticated', 'true');
+    }
+    if (refreshToken) {
+      localStorage.setItem('titan_refresh_token', refreshToken);
+    }
+    if (backendUser) {
+      const rawRoles: string[] = (backendUser.roles as any[])?.map((r: any) => typeof r === 'string' ? r : r.name || r.role?.name) || [];
+      const roles = rawRoles.length > 0 ? (rawRoles as any[]) : ['CUSTOMER'];
+      const userProfile: UserProfile = {
+        id: backendUser.id,
+        email: backendUser.email,
+        phone: backendUser.phone,
+        firstName: backendUser.firstName || backendUser.name?.split(' ')[0] || backendUser.email?.split('@')[0] || 'User',
+        lastName: backendUser.lastName || backendUser.name?.split(' ').slice(1).join(' ') || '',
+        roles,
+        activeRole: 'CUSTOMER',
+      };
+      localStorage.setItem('titan_user_profile', JSON.stringify(userProfile));
+      return { accessToken, refreshToken, user: userProfile };
+    }
+
+    return { accessToken, refreshToken };
   },
 
   async forgotPassword(emailOrPhone: string): Promise<{ success: boolean; message: string }> {

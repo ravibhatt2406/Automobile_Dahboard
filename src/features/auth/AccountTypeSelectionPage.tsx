@@ -72,10 +72,24 @@ export const AccountTypeSelectionPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="pt-8 mt-6 border-t border-[#E5E5E5] flex items-center justify-between text-xs font-bold text-[#111111] group-hover:text-[#F5A800] transition-colors">
-              <span>Continue to Customer Portal</span>
-              <div className="w-8 h-8 rounded-full bg-zinc-100 group-hover:bg-[#111111] text-zinc-900 group-hover:text-[#F5A800] flex items-center justify-center transition-all">
-                <ArrowRight className="w-4 h-4" />
+            <div className="pt-8 mt-6 border-t border-[#E5E5E5] space-y-3">
+              <div className="flex items-center justify-between text-xs font-bold text-[#111111] group-hover:text-[#F5A800] transition-colors">
+                <span>Sign In to Customer Portal</span>
+                <div className="w-8 h-8 rounded-full bg-zinc-100 group-hover:bg-[#111111] text-zinc-900 group-hover:text-[#F5A800] flex items-center justify-center transition-all">
+                  <ArrowRight className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="text-[11px] text-zinc-500 flex items-center gap-1.5 pt-1 border-t border-zinc-100">
+                <span>New client?</span>
+                <span
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate('/register');
+                  }}
+                  className="font-bold text-[#111111] hover:text-[#F5A800] underline cursor-pointer"
+                >
+                  Register New Account →
+                </span>
               </div>
             </div>
           </motion.div>

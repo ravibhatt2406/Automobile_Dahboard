@@ -69,6 +69,7 @@ export class UsersService {
       email: user.email,
       phone: user.phone,
       accountType: user.accountType,
+      role: user.accountType,
       status: user.status,
       lastLoginAt: user.lastLoginAt,
       createdAt: user.createdAt,
@@ -126,10 +127,18 @@ export class UsersService {
 
   async findByEmail(email: string) {
     if (!email) return null;
-    const targetEmail = email.toLowerCase().trim();
+    const clean = email.trim();
+    const targetEmail = clean.toLowerCase();
 
-    const user = await this.prisma.user.findUnique({
-      where: { email: targetEmail },
+    const user = await this.prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: targetEmail },
+          { phone: clean },
+          { customerProfile: { email: targetEmail } },
+          { customerProfile: { phone: clean } },
+        ],
+      },
       include: {
         employeeProfile: {
           include: {
@@ -140,6 +149,6 @@ export class UsersService {
       },
     });
 
-    return user || null;
+    return user;
   }
 }

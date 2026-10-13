@@ -52,6 +52,8 @@ interface AuthContextType {
   allowedSwitchRoles: UserRole[];
   setActiveRole: (role: UserRole) => boolean;
   login: (emailOrPhone: string, password?: string, accountType?: 'customer' | 'organization') => Promise<UserProfile>;
+  registerCustomer: (payload: { name: string; email: string; phone?: string; password: string; termsAccepted: boolean }) => Promise<UserProfile>;
+  loginWithGoogle: (credential: string) => Promise<UserProfile>;
   logout: () => Promise<void>;
 }
 
@@ -80,15 +82,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       authService.getCurrentUser().then((me: any) => {
         if (me) {
           const rawRoles: string[] = (me.roles as any[])?.map((r: any) => typeof r === 'string' ? r : r.name || r.role?.name) || [];
-          const roles: UserRole[] = rawRoles.length > 0 ? (rawRoles as UserRole[]) : (me.accountType === 'SUPER_ADMIN' ? ['SUPER_ADMIN'] : ['CUSTOMER']);
-          const activeRole: UserRole = me.activeRole || roles[0] || 'SUPER_ADMIN';
+          if (me.accountType === 'CUSTOMER' || me.role === 'CUSTOMER') {
+            if (!rawRoles.includes('CUSTOMER')) rawRoles.push('CUSTOMER');
+          }
+          const isCustomer = me.accountType === 'CUSTOMER' || me.role === 'CUSTOMER' || rawRoles.includes('CUSTOMER');
+          const roles: UserRole[] = rawRoles.length > 0 
+            ? (rawRoles as UserRole[]) 
+            : (isCustomer ? ['CUSTOMER'] : me.accountType === 'SUPER_ADMIN' ? ['SUPER_ADMIN'] : ['CUSTOMER']);
+          const activeRole: UserRole = isCustomer ? 'CUSTOMER' : (me.activeRole || roles[0] || 'SUPER_ADMIN');
 
           const authenticatedUser: UserProfile = {
             id: me.id,
             email: me.email,
             phone: me.phone,
-            firstName: me.firstName || me.email?.split('@')[0] || 'User',
-            lastName: me.lastName || '',
+            firstName: me.firstName || me.name?.split(' ')[0] || me.email?.split('@')[0] || 'User',
+            lastName: me.lastName || me.name?.split(' ').slice(1).join(' ') || '',
             roles,
             activeRole,
             assignedBranchName: me.assignedBranchName || me.employee?.branch?.name,
@@ -147,15 +155,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       const rawRoles: string[] = (backendUser.roles as any[])?.map((r: any) => typeof r === 'string' ? r : r.name || r.role?.name) || [];
-      const roles: UserRole[] = rawRoles.length > 0 ? (rawRoles as UserRole[]) : (backendUser.accountType === 'SUPER_ADMIN' ? ['SUPER_ADMIN'] : ['CUSTOMER']);
-      const activeRole: UserRole = backendUser.activeRole || roles[0] || 'SUPER_ADMIN';
+      if (backendUser.accountType === 'CUSTOMER' || backendUser.role === 'CUSTOMER') {
+        if (!rawRoles.includes('CUSTOMER')) rawRoles.push('CUSTOMER');
+      }
+      const isCustomer = backendUser.accountType === 'CUSTOMER' || backendUser.role === 'CUSTOMER' || rawRoles.includes('CUSTOMER');
+      const roles: UserRole[] = rawRoles.length > 0 
+        ? (rawRoles as UserRole[]) 
+        : (isCustomer ? ['CUSTOMER'] : backendUser.accountType === 'SUPER_ADMIN' ? ['SUPER_ADMIN'] : ['CUSTOMER']);
+      const activeRole: UserRole = isCustomer ? 'CUSTOMER' : (backendUser.activeRole || roles[0] || 'SUPER_ADMIN');
 
       const authenticatedUser: UserProfile = {
         id: backendUser.id,
         email: backendUser.email,
         phone: backendUser.phone,
-        firstName: backendUser.firstName || backendUser.email?.split('@')[0] || 'User',
-        lastName: backendUser.lastName || '',
+        firstName: backendUser.firstName || backendUser.name?.split(' ')[0] || backendUser.email?.split('@')[0] || 'User',
+        lastName: backendUser.lastName || backendUser.name?.split(' ').slice(1).join(' ') || '',
         roles,
         activeRole,
         assignedBranchName: backendUser.assignedBranchName || backendUser.employee?.branch?.name,
@@ -174,11 +188,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const registerCustomer = async (payload: {
+    name: string;
+    email: string;
+    phone?: string;
+    password: string;
+    termsAccepted: boolean;
+  }): Promise<UserProfile> => {
+    setIsLoading(true);
+    try {
+      const res = await authService.registerCustomer(payload);
+      const backendUser = res.user;
+      if (!backendUser) {
+        throw new Error('Registration completed but profile not returned.');
+      }
+      const authenticatedUser: UserProfile = {
+        id: backendUser.id,
+        email: backendUser.email,
+        phone: backendUser.phone,
+        firstName: backendUser.name?.split(' ')[0] || 'Customer',
+        lastName: backendUser.name?.split(' ').slice(1).join(' ') || '',
+        roles: ['CUSTOMER'],
+        activeRole: 'CUSTOMER',
+      };
+      setUser(authenticatedUser);
+      return authenticatedUser;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loginWithGoogle = async (credential: string): Promise<UserProfile> => {
+    setIsLoading(true);
+    try {
+      const res = await authService.loginWithGoogle(credential);
+      if (!res.user) {
+        throw new Error('Google authentication succeeded but profile could not be loaded.');
+      }
+      setUser(res.user);
+      return res.user;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const logout = async () => {
     await authService.logout();
     setUser(null);
   };
-
 
   return (
     <AuthContext.Provider
@@ -191,6 +248,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         allowedSwitchRoles,
         setActiveRole,
         login,
+        registerCustomer,
+        loginWithGoogle,
         logout,
       }}
     >

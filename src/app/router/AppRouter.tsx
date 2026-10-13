@@ -12,6 +12,9 @@ const AccountTypeSelectionPage = lazy(() =>
 const CustomerLoginPage = lazy(() =>
   import('@/features/auth/CustomerLoginPage').then((m) => ({ default: m.CustomerLoginPage }))
 );
+const CustomerRegisterPage = lazy(() =>
+  import('@/features/auth/CustomerRegisterPage').then((m) => ({ default: m.CustomerRegisterPage }))
+);
 const OrganizationLoginPage = lazy(() =>
   import('@/features/auth/OrganizationLoginPage').then((m) => ({ default: m.OrganizationLoginPage }))
 );
@@ -184,6 +187,8 @@ export const AppRouter: React.FC = () => {
           <Route path="/login" element={<AccountTypeSelectionPage />} />
           <Route path="/login/customer" element={<CustomerLoginPage />} />
           <Route path="/login/organization" element={<OrganizationLoginPage />} />
+          <Route path="/register" element={<CustomerRegisterPage />} />
+          <Route path="/register/customer" element={<CustomerRegisterPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
           {/* Authenticated Application Shell */}

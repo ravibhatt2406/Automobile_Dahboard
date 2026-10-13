@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '@/app/providers/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { Lock, Mail, ArrowRight, User, Sparkles, CheckCircle2 } from 'lucide-react';
+import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
 
 export const CustomerLoginPage: React.FC = () => {
   const { login, isLoading } = useAuth();
@@ -27,8 +28,8 @@ export const CustomerLoginPage: React.FC = () => {
   };
 
   const handleDemoFill = () => {
-    setEmailOrPhone('customer@titanauto.com');
-    setPassword('');
+    setEmailOrPhone('customer@rajasthanlogistics.com');
+    setPassword('Customer123!');
   };
 
   return (
@@ -89,7 +90,7 @@ export const CustomerLoginPage: React.FC = () => {
                 Access Client Portal
               </h1>
               <p className="text-xs text-zinc-500 mt-1">
-                Enter your registered customer email or phone number.
+                Enter your registered credentials or continue with Google.
               </p>
             </div>
 
@@ -98,6 +99,25 @@ export const CustomerLoginPage: React.FC = () => {
                 {errorMsg}
               </div>
             )}
+
+            {/* Official Google Sign-In Button */}
+            <div className="space-y-3">
+              <GoogleSignInButton
+                text="signin_with"
+                theme="outline"
+                shape="rectangular"
+                width={320}
+                onError={(err) => setErrorMsg(err)}
+              />
+
+              <div className="relative flex items-center justify-center pt-1">
+                <div className="border-t border-zinc-200 w-full" />
+                <span className="bg-white px-3 text-[10px] text-zinc-400 uppercase font-mono tracking-wider shrink-0">
+                  Or with email & password
+                </span>
+                <div className="border-t border-zinc-200 w-full" />
+              </div>
+            </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
@@ -158,11 +178,17 @@ export const CustomerLoginPage: React.FC = () => {
               </button>
             </form>
 
-            <div className="pt-4 border-t border-[#E5E5E5] text-center">
+            <div className="pt-4 border-t border-[#E5E5E5] space-y-2 text-center">
+              <div className="text-xs text-zinc-600">
+                New customer?{' '}
+                <Link to="/register" className="font-semibold text-zinc-900 hover:text-[#F5A800] transition-colors underline">
+                  Create an Account
+                </Link>
+              </div>
               <button
                 type="button"
                 onClick={handleDemoFill}
-                className="text-xs font-semibold text-[#F5A800] hover:underline inline-flex items-center gap-1"
+                className="text-xs font-semibold text-[#F5A800] hover:underline inline-flex items-center gap-1 pt-1"
               >
                 <Sparkles className="w-3.5 h-3.5" /> Fill Demo Customer Credentials
               </button>

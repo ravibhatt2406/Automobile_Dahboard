@@ -16,28 +16,59 @@ export class CustomersController {
   constructor(private readonly customersService: CustomersService) {}
 
   @Post()
-  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'FRANCHISE_MANAGER', 'BRANCH_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE', 'CUSTOMER')
-  @ApiOperation({ summary: 'Create new customer record' })
+  @Roles('SUPER_ADMIN')
+  @ApiOperation({ summary: 'Create new customer record (SUPER_ADMIN only; public users self-register via /auth/register)' })
   async create(@Body() dto: CreateCustomerDto, @CurrentUser() user: any) {
     return this.customersService.create(dto, user);
   }
 
   @Get()
-  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'FRANCHISE_MANAGER', 'BRANCH_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE')
-  @ApiOperation({ summary: 'Get paginated list of customers (supports search & franchise filter)' })
+  @Roles(
+    'SUPER_ADMIN',
+    'FRANCHISE_OWNER',
+    'FRANCHISE_MANAGER',
+    'BRANCH_OWNER',
+    'BRANCH_MANAGER',
+    'SALES_EMPLOYEE',
+    'SERVICE_ADVISOR',
+    'DEPARTMENT_MANAGER',
+  )
+  @ApiOperation({ summary: 'Get paginated list of customers scoped by authorized branch or franchise' })
   async findAll(
     @Query('search') search?: string,
+    @Query('branchId') branchId?: string,
     @Query('franchiseId') franchiseId?: string,
+    @Query('customerType') customerType?: string,
+    @Query('status') status?: string,
     @Query('limit') limit = 50,
     @Query('offset') offset = 0,
     @CurrentUser() user?: any,
   ) {
-    return this.customersService.findAll(search, franchiseId, Number(limit), Number(offset), user);
+    return this.customersService.findAll(
+      search,
+      branchId,
+      franchiseId,
+      customerType,
+      status,
+      Number(limit),
+      Number(offset),
+      user,
+    );
   }
 
   @Get(':id')
-  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'FRANCHISE_MANAGER', 'BRANCH_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE', 'CUSTOMER')
-  @ApiOperation({ summary: 'Get customer details, complete 360 profile, bookings, & vehicles' })
+  @Roles(
+    'SUPER_ADMIN',
+    'FRANCHISE_OWNER',
+    'FRANCHISE_MANAGER',
+    'BRANCH_OWNER',
+    'BRANCH_MANAGER',
+    'SALES_EMPLOYEE',
+    'SERVICE_ADVISOR',
+    'DEPARTMENT_MANAGER',
+    'CUSTOMER',
+  )
+  @ApiOperation({ summary: 'Get customer details, complete 360 profile, bookings, & vehicles (scoped)' })
   async findOne(@Param('id') id: string, @CurrentUser() user: any) {
     return this.customersService.findOne(id, user);
   }

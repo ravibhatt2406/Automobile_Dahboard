@@ -38,17 +38,19 @@ export class ServiceJobsController {
   @ApiQuery({ name: 'branchId', required: false })
   @ApiQuery({ name: 'customerId', required: false })
   @ApiQuery({ name: 'status', required: false, enum: ServiceJobStatus })
+  @ApiQuery({ name: 'search', required: false })
   @ApiQuery({ name: 'limit', required: false })
   @ApiQuery({ name: 'offset', required: false })
   findAll(
     @Query('branchId') branchId?: string,
     @Query('customerId') customerId?: string,
     @Query('status') status?: ServiceJobStatus,
+    @Query('search') search?: string,
     @Query('limit') limit?: number,
     @Query('offset') offset?: number,
     @CurrentUser() user?: any,
   ) {
-    return this.serviceJobsService.findAll(branchId, customerId, status, limit ? +limit : 50, offset ? +offset : 0, user);
+    return this.serviceJobsService.findAll(branchId, customerId, status, search, limit ? +limit : 50, offset ? +offset : 0, user);
   }
 
   @Get('mechanic/my-jobs')

@@ -9,6 +9,19 @@ import { CreateJobCardDto } from './dto/create-job-card.dto';
 import { AuditService } from '../audit/audit.service';
 import { ServiceJobStatus } from '@prisma/client';
 
+const ALLOWED_SERVICE_JOB_TRANSITIONS: Record<ServiceJobStatus, ServiceJobStatus[]> = {
+  OPEN: ['CHECKED_IN', 'CANCELLED'],
+  CHECKED_IN: ['DIAGNOSIS', 'IN_PROGRESS', 'CANCELLED'],
+  DIAGNOSIS: ['WAITING_FOR_APPROVAL', 'IN_PROGRESS', 'WAITING_FOR_PARTS', 'CANCELLED'],
+  WAITING_FOR_APPROVAL: ['IN_PROGRESS', 'CANCELLED'],
+  IN_PROGRESS: ['WAITING_FOR_PARTS', 'QUALITY_CHECK', 'READY_FOR_DELIVERY', 'COMPLETED', 'CANCELLED'],
+  WAITING_FOR_PARTS: ['IN_PROGRESS', 'CANCELLED'],
+  QUALITY_CHECK: ['READY_FOR_DELIVERY', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'],
+  READY_FOR_DELIVERY: ['COMPLETED', 'CANCELLED'],
+  COMPLETED: [],
+  CANCELLED: [],
+};
+
 @Injectable()
 export class ServiceJobsService {
   constructor(
@@ -190,6 +203,25 @@ export class ServiceJobsService {
 
   async updateStatus(id: string, newStatus: ServiceJobStatus, user: any, notes?: string) {
     const job = await this.findOne(id, user);
+
+    const userRoles: string[] = Array.isArray(user?.roles) ? user.roles : [];
+    const isSuperAdmin = userRoles.includes('SUPER_ADMIN');
+    const isBranchManager = userRoles.includes('BRANCH_MANAGER') || userRoles.includes('BRANCH_OWNER');
+    const isAdvisor = userRoles.includes('SERVICE_ADVISOR');
+    const isMechanic = userRoles.includes('MECHANIC') && !isSuperAdmin && !isBranchManager && !isAdvisor;
+
+    if (isMechanic && (newStatus === 'COMPLETED' || newStatus === 'CANCELLED')) {
+      throw new ForbiddenException('Mechanics cannot mark jobs as COMPLETED or CANCELLED');
+    }
+
+    if (job.status !== newStatus) {
+      const allowed = ALLOWED_SERVICE_JOB_TRANSITIONS[job.status as ServiceJobStatus] || [];
+      if (!allowed.includes(newStatus)) {
+        throw new BadRequestException(
+          `Invalid status transition from '${job.status}' to '${newStatus}'. Allowed transitions: [${allowed.join(', ')}]`,
+        );
+      }
+    }
 
     if (newStatus === 'COMPLETED') {
       const hasPassedQc = job.qcInspections?.some((qc: any) => qc.status === 'PASSED');
@@ -429,11 +461,22 @@ export class ServiceJobsService {
     });
   }
 
-  async findAll(branchId?: string, customerId?: string, status?: ServiceJobStatus, limit = 50, offset = 0, user?: any) {
+  async findAll(
+    branchId?: string,
+    customerId?: string,
+    status?: ServiceJobStatus,
+    search?: string,
+    limit = 50,
+    offset = 0,
+    user?: any,
+  ) {
     const where: any = {};
     const userRoles = Array.isArray(user?.roles) ? user.roles : [];
     const isSuperAdmin = userRoles.includes('SUPER_ADMIN');
     const isCustomer = userRoles.includes('CUSTOMER');
+    const isBranchManager = userRoles.includes('BRANCH_MANAGER') || userRoles.includes('BRANCH_OWNER');
+    const isAdvisor = userRoles.includes('SERVICE_ADVISOR');
+    const isMechanic = userRoles.includes('MECHANIC') && !isSuperAdmin && !isBranchManager && !isAdvisor;
 
     if (isCustomer) {
       const resolvedCustomerId =
@@ -443,6 +486,15 @@ export class ServiceJobsService {
         return { items: [], total: 0, limit, offset };
       }
       where.customerId = resolvedCustomerId;
+    } else if (isMechanic) {
+      let targetMechanicId = user?.employeeId || user?.employeeProfile?.id;
+      if (!targetMechanicId) {
+        const employee = await this.prisma.employee.findFirst({ where: { userId: user?.id } });
+        targetMechanicId = employee?.id || null;
+      }
+      if (targetMechanicId) {
+        where.assignedMechanicId = targetMechanicId;
+      }
     } else if (!isSuperAdmin) {
       if (user?.branchId) {
         if (branchId && branchId !== user.branchId) {
@@ -468,6 +520,19 @@ export class ServiceJobsService {
 
     if (status) where.status = status;
 
+    if (search && search.trim()) {
+      const s = search.trim();
+      where.OR = [
+        { jobNumber: { contains: s, mode: 'insensitive' } },
+        { complaint: { contains: s, mode: 'insensitive' } },
+        { vehicle: { vin: { contains: s, mode: 'insensitive' } } },
+        { vehicle: { registrationNumber: { contains: s, mode: 'insensitive' } } },
+        { customer: { firstName: { contains: s, mode: 'insensitive' } } },
+        { customer: { lastName: { contains: s, mode: 'insensitive' } } },
+        { customer: { companyName: { contains: s, mode: 'insensitive' } } },
+      ];
+    }
+
     const [items, total] = await Promise.all([
       this.prisma.serviceJob.findMany({
         where,
@@ -477,8 +542,8 @@ export class ServiceJobsService {
         include: {
           customer: true,
           vehicle: true,
-          serviceAdvisor: true,
-          assignedMechanic: true,
+          serviceAdvisor: { include: { user: { select: { id: true, email: true, phone: true } } } },
+          assignedMechanic: { include: { user: { select: { id: true, email: true, phone: true } } } },
           branch: true,
           qcInspections: true,
           serviceInvoice: true,
@@ -497,8 +562,8 @@ export class ServiceJobsService {
         customer: true,
         vehicle: { include: { variant: { include: { model: { include: { manufacturer: true } } } } } },
         branch: { include: { franchise: true } },
-        serviceAdvisor: true,
-        assignedMechanic: true,
+        serviceAdvisor: { include: { user: { select: { id: true, email: true, phone: true } } } },
+        assignedMechanic: { include: { user: { select: { id: true, email: true, phone: true } } } },
         diagnoses: true,
         labourItems: true,
         jobParts: { include: { part: true } },
@@ -514,6 +579,9 @@ export class ServiceJobsService {
       const userRoles = Array.isArray(user?.roles) ? user.roles : [];
       const isSuperAdmin = userRoles.includes('SUPER_ADMIN');
       const isCustomer = userRoles.includes('CUSTOMER');
+      const isBranchManager = userRoles.includes('BRANCH_MANAGER') || userRoles.includes('BRANCH_OWNER');
+      const isAdvisor = userRoles.includes('SERVICE_ADVISOR');
+      const isMechanic = userRoles.includes('MECHANIC') && !isSuperAdmin && !isBranchManager && !isAdvisor;
 
       if (isCustomer) {
         const resolvedCustomerId =
@@ -521,6 +589,15 @@ export class ServiceJobsService {
           (await this.prisma.customer.findFirst({ where: { userId: user.id } }))?.id;
         if (!resolvedCustomerId || job.customerId !== resolvedCustomerId) {
           throw new ForbiddenException('Access denied to service job');
+        }
+      } else if (isMechanic) {
+        let targetMechanicId = user?.employeeId || user?.employeeProfile?.id;
+        if (!targetMechanicId) {
+          const employee = await this.prisma.employee.findFirst({ where: { userId: user?.id } });
+          targetMechanicId = employee?.id || null;
+        }
+        if (targetMechanicId && job.assignedMechanicId && job.assignedMechanicId !== targetMechanicId) {
+          throw new ForbiddenException('Mechanics can only access service jobs assigned to them');
         }
       } else if (!isSuperAdmin) {
         if (user.branchId && job.branchId !== user.branchId) {

@@ -1,24 +1,58 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { PageHeader } from '@/components/data-display/PageHeader';
-import { Truck, Edit, ShieldCheck, FileCheck, Wrench, FileText, Building, ExternalLink, ArrowLeft, Trash2 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { Truck, Edit, ShieldCheck, FileCheck, Wrench, FileText, Building, ExternalLink, ArrowLeft, Trash2, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { vehicleService } from '@/services/vehicle.service';
 import { StatusBadge } from '@/components/data-display/StatusBadge';
 import { useAuth } from '@/app/providers/AuthContext';
+import { VehicleStatus } from '@/types/domain';
+
+const ALLOWED_STATUS_TRANSITIONS: Record<string, VehicleStatus[]> = {
+  IN_STOCK: ['RESERVED', 'ALLOCATED', 'SERVICE', 'BLOCKED'] as VehicleStatus[],
+  RESERVED: ['IN_STOCK', 'ALLOCATED', 'BLOCKED'] as VehicleStatus[],
+  ALLOCATED: ['IN_STOCK', 'RESERVED', 'PDI_PENDING', 'PDI_COMPLETED', 'BLOCKED'] as VehicleStatus[],
+  PDI_PENDING: ['PDI_COMPLETED', 'SERVICE', 'ALLOCATED', 'IN_STOCK'] as VehicleStatus[],
+  PDI_COMPLETED: ['DELIVERED', 'PDI_PENDING', 'IN_STOCK'] as VehicleStatus[],
+  DELIVERED: ['SOLD'] as VehicleStatus[],
+  SOLD: [] as VehicleStatus[],
+  SERVICE: ['IN_STOCK', 'PDI_PENDING'] as VehicleStatus[],
+  BLOCKED: ['IN_STOCK'] as VehicleStatus[],
+};
 
 export const VehicleDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { activeRole } = useAuth();
   const isCustomer = activeRole === 'CUSTOMER';
 
   const [activeTab, setActiveTab] = useState<'overview' | 'compliance' | 'service' | 'documents'>('overview');
+  const [selectedNextStatus, setSelectedNextStatus] = useState<string>('');
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const { data: vehicle, isLoading } = useQuery({
     queryKey: ['vehicle', id],
     queryFn: () => (id ? vehicleService.getVehicleById(id) : null),
   });
+
+  const handleUpdateStatus = async () => {
+    if (!id || !selectedNextStatus) return;
+    setIsUpdatingStatus(true);
+    setStatusMessage(null);
+    try {
+      await vehicleService.updateVehicleStatus(id, selectedNextStatus);
+      setStatusMessage({ type: 'success', text: `Status updated successfully to ${selectedNextStatus}` });
+      setSelectedNextStatus('');
+      await queryClient.invalidateQueries({ queryKey: ['vehicle', id] });
+      await queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+    } catch (err: any) {
+      setStatusMessage({ type: 'error', text: err?.message || 'Failed to update vehicle status' });
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
 
   const handleDeactivate = async () => {
     if (!id || !vehicle) return;
@@ -223,8 +257,63 @@ export const VehicleDetailPage: React.FC = () => {
 
                 <div>
                   <span className="text-zinc-400 uppercase text-[10px] block font-mono mb-1">Operational Status</span>
-                  <StatusBadge status={vehicle.status} />
+                  <div className="flex items-center gap-2">
+                    <StatusBadge status={vehicle.status} />
+                  </div>
                 </div>
+
+                {!isCustomer && (
+                  <div className="pt-2 border-t border-zinc-100 space-y-2">
+                    <label className="text-zinc-500 text-[11px] font-semibold block">Update Status Transition</label>
+                    {ALLOWED_STATUS_TRANSITIONS[vehicle.status]?.length ? (
+                      <div className="space-y-2">
+                        <select
+                          value={selectedNextStatus}
+                          onChange={(e) => setSelectedNextStatus(e.target.value)}
+                          className="w-full text-xs font-mono p-2 border border-zinc-300 rounded-lg bg-zinc-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#F5A800]"
+                        >
+                          <option value="">-- Select Next Status --</option>
+                          {ALLOWED_STATUS_TRANSITIONS[vehicle.status].map((st) => (
+                            <option key={st} value={st}>
+                              {st}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          onClick={handleUpdateStatus}
+                          disabled={!selectedNextStatus || isUpdatingStatus}
+                          className="w-full py-1.5 px-3 bg-[#111111] hover:bg-black text-[#F5A800] text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isUpdatingStatus ? (
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <RefreshCw className="w-3.5 h-3.5" />
+                          )}
+                          Apply Status Change
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="text-[11px] text-zinc-400 italic">Terminal status reached ({vehicle.status})</span>
+                    )}
+
+                    {statusMessage && (
+                      <div
+                        className={`p-2.5 rounded-lg text-xs flex items-center gap-2 ${
+                          statusMessage.type === 'success'
+                            ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                            : 'bg-rose-50 text-rose-800 border border-rose-200'
+                        }`}
+                      >
+                        {statusMessage.type === 'success' ? (
+                          <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+                        ) : (
+                          <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                        )}
+                        <span>{statusMessage.text}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <div>
                   <span className="text-zinc-400 uppercase text-[10px] block font-mono">Fulfilling Branch</span>
@@ -287,25 +376,58 @@ export const VehicleDetailPage: React.FC = () => {
       {/* TAB 3: Service */}
       {activeTab === 'service' && (
         <div className="cockpit-card p-6 rounded-xl border border-[#E5E5E5] bg-white space-y-4">
-          <h3 className="text-sm font-bold text-[#111111] flex items-center gap-2">
-            <Wrench className="w-4 h-4 text-[#F5A800]" /> Vehicle Service History & Appointments
-          </h3>
+          <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+            <h3 className="text-sm font-bold text-[#111111] flex items-center gap-2">
+              <Wrench className="w-4 h-4 text-[#F5A800]" /> Vehicle Service History & Appointments
+            </h3>
+            <Link
+              to="/service/jobs"
+              className="text-xs font-semibold text-amber-600 hover:text-amber-700 flex items-center gap-1"
+            >
+              Open Service Workshop <ExternalLink className="w-3.5 h-3.5" />
+            </Link>
+          </div>
           {Array.isArray(veh.serviceJobs) && veh.serviceJobs.length > 0 ? (
-            <div className="space-y-2">
+            <div className="space-y-3">
               {veh.serviceJobs.map((sj: any) => (
-                <div key={sj.id} className="p-4 bg-zinc-50 rounded-xl border border-zinc-200 text-xs font-mono flex justify-between items-center">
-                  <div>
-                    <span className="font-bold text-zinc-900 block">{sj.jobNumber} — {sj.complaint || 'Service Order'}</span>
-                    <span className="text-zinc-500 text-[11px]">Status: {sj.status}</span>
+                <div
+                  key={sj.id}
+                  className="p-4 bg-zinc-50 hover:bg-zinc-100 rounded-xl border border-zinc-200 text-xs font-mono flex justify-between items-center transition-colors"
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Link
+                        to={`/service/jobs/${sj.id}`}
+                        className="font-bold text-blue-600 hover:underline text-sm"
+                      >
+                        {sj.jobNumber}
+                      </Link>
+                      <span className="text-zinc-400">•</span>
+                      <span className="font-sans font-medium text-zinc-800">{sj.complaint || 'General Service / Maintenance'}</span>
+                    </div>
+                    <div className="text-zinc-500 text-[11px] flex items-center gap-3">
+                      <span>Created: {new Date(sj.createdAt).toLocaleDateString()}</span>
+                      {sj.assignedMechanic?.user && (
+                        <span>
+                          Mechanic: {sj.assignedMechanic.user.firstName} {sj.assignedMechanic.user.lastName}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <span className="px-2.5 py-1 rounded bg-amber-100 text-amber-900 font-semibold text-[11px] uppercase">
-                    {sj.status}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <StatusBadge status={sj.status} />
+                    <Link
+                      to={`/service/jobs/${sj.id}`}
+                      className="px-2.5 py-1 bg-white border border-zinc-300 rounded text-[11px] font-sans font-semibold text-zinc-700 hover:bg-zinc-50"
+                    >
+                      View Details
+                    </Link>
+                  </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="p-4 text-center bg-zinc-50 rounded-xl border border-zinc-200 text-xs text-zinc-500">
+            <div className="p-8 text-center bg-zinc-50 rounded-xl border border-zinc-200 text-xs text-zinc-500">
               No recent maintenance jobs recorded for this unit.
             </div>
           )}

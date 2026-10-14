@@ -12,6 +12,7 @@ import {
   Truck,
   Users,
   ChevronRight,
+  MessageSquare,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { dashboardService, SalesDashboardData } from '@/services/dashboard.service';
@@ -141,6 +142,25 @@ export const SalesDashboard: React.FC = () => {
               icon={Users}
               subtitle="Assigned Leads in Pipeline"
             />
+          </div>
+
+          {/* Customer Live Communication Quick Access */}
+          <div className="p-4 rounded-xl bg-[#111111] text-white border border-zinc-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-zinc-800 text-[#F5A800] flex items-center justify-center font-bold">
+                <MessageSquare className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-bold text-sm text-zinc-100">Customer Live Inquiries Desk</h4>
+                <p className="text-xs text-zinc-400">Directly communicate with prospective truck buyers and booking clients.</p>
+              </div>
+            </div>
+            <button
+              onClick={() => navigate('/chat')}
+              className="px-4 py-2 bg-[#F5A800] hover:bg-amber-400 text-black font-bold text-xs rounded-xl shadow-xs transition-all shrink-0"
+            >
+              Open Customer Messages →
+            </button>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { PageHeader } from '@/components/data-display/PageHeader';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Truck, Save, ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react';
 import { vehicleService } from '@/services/vehicle.service';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
@@ -28,6 +28,8 @@ const vehicleSchema = z.object({
 type VehicleFormData = z.infer<typeof vehicleSchema>;
 
 export const VehicleFormPage: React.FC = () => {
+  const { id } = useParams<{ id?: string }>();
+  const isEdit = Boolean(id);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [submitSuccess, setSubmitSuccess] = useState(false);
@@ -69,6 +71,32 @@ export const VehicleFormPage: React.FC = () => {
     },
   });
 
+  // If in edit mode, fetch existing vehicle data and populate form
+  const { data: existingVehicle, isLoading: isLoadingVehicle } = useQuery({
+    queryKey: ['vehicle', id],
+    queryFn: () => (id ? vehicleService.getVehicleById(id) : null),
+    enabled: isEdit,
+  });
+
+  useEffect(() => {
+    if (existingVehicle) {
+      reset({
+        vin: existingVehicle.vin || '',
+        engineNumber: existingVehicle.engineNumber || '',
+        make: existingVehicle.make || 'Ashok Leyland',
+        model: existingVehicle.model || '',
+        manufacturingYear: existingVehicle.manufacturingYear || existingVehicle.year || 2026,
+        vehicleType: existingVehicle.vehicleType || 'Heavy Commercial Vehicle',
+        fuelType: (existingVehicle.fuelType?.toLowerCase() as any) || 'diesel',
+        color: existingVehicle.color || 'Signal White',
+        sellingPrice: existingVehicle.sellingPrice || 0,
+        baseCost: existingVehicle.baseCost || 0,
+        branchId: existingVehicle.branchId || '',
+        variantId: (existingVehicle as any).variant_details?.id || (existingVehicle as any).variantId || '',
+      });
+    }
+  }, [existingVehicle, reset]);
+
   // Handle variant selection to auto-fill specs
   const handleVariantChange = (variantId: string) => {
     setValue('variantId', variantId);
@@ -86,45 +114,60 @@ export const VehicleFormPage: React.FC = () => {
   const onSubmit = async (data: VehicleFormData) => {
     setSubmitError(null);
     if (!data.branchId) {
-      setSubmitError('Please select a branch.');
+      setSubmitError('Please select a valid branch location. Silent fallbacks are prohibited.');
       return;
     }
     if (!data.variantId) {
-      setSubmitError('Please select a truck variant.');
+      setSubmitError('Please select a valid truck variant from the catalogue. Silent fallbacks are prohibited.');
       return;
     }
     try {
-      await vehicleService.createVehicle({
-        vin: data.vin,
-        engineNumber: data.engineNumber,
-        make: data.make,
-        model: data.model,
-        manufacturingYear: data.manufacturingYear,
-        vehicleType: data.vehicleType,
-        fuelType: data.fuelType,
-        color: data.color,
-        sellingPrice: data.sellingPrice,
-        baseCost: data.baseCost,
-        branchId: data.branchId,
-        variantId: data.variantId,
-      });
+      if (isEdit && id) {
+        await vehicleService.updateVehicle(id, {
+          color: data.color,
+          sellingPrice: data.sellingPrice,
+          baseCost: data.baseCost,
+          manufacturingYear: data.manufacturingYear,
+          branchId: data.branchId,
+          variantId: data.variantId,
+        } as any);
+      } else {
+        await vehicleService.createVehicle({
+          vin: data.vin.trim().toUpperCase(),
+          engineNumber: data.engineNumber.trim(),
+          make: data.make,
+          model: data.model,
+          manufacturingYear: data.manufacturingYear,
+          vehicleType: data.vehicleType,
+          fuelType: data.fuelType,
+          color: data.color,
+          sellingPrice: data.sellingPrice,
+          baseCost: data.baseCost,
+          branchId: data.branchId,
+          variantId: data.variantId,
+        });
+      }
       await queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      if (id) await queryClient.invalidateQueries({ queryKey: ['vehicle', id] });
       setSubmitSuccess(true);
-      reset();
-      setTimeout(() => navigate('/inventory/vehicles'), 1500);
+      setTimeout(() => navigate('/inventory/vehicles'), 1200);
     } catch (err: any) {
-      setSubmitError(err?.message || 'Failed to add vehicle to inventory. Please try again.');
+      setSubmitError(err?.message || 'Failed to save vehicle asset. Please verify input data.');
     }
   };
 
   return (
     <div>
       <PageHeader
-        title="Register Commercial Vehicle"
-        subtitle="Add new Ashok Leyland truck/commercial vehicle asset into inventory stock database"
+        title={isEdit ? 'Edit Vehicle Specifications' : 'Register Commercial Vehicle'}
+        subtitle={
+          isEdit
+            ? 'Update vehicle configuration, pricing, colour and branch allocation'
+            : 'Add new commercial truck asset into inventory stock database with strict unique VIN & engine validation'
+        }
         breadcrumbItems={[
           { label: 'Inventory', href: '/inventory/vehicles' },
-          { label: 'New Vehicle' },
+          { label: isEdit ? 'Edit Vehicle' : 'New Vehicle' },
         ]}
       />
 
@@ -307,7 +350,7 @@ export const VehicleFormPage: React.FC = () => {
               disabled={isSubmitting}
               className="inline-flex items-center gap-2 px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg shadow-lg shadow-blue-500/20 disabled:opacity-50"
             >
-              <Save className="w-4 h-4" /> {isSubmitting ? 'Registering...' : 'Register Vehicle Asset'}
+              <Save className="w-4 h-4" /> {isSubmitting ? (isEdit ? 'Saving...' : 'Registering...') : (isEdit ? 'Save Vehicle Updates' : 'Register Vehicle Asset')}
             </button>
           </div>
         </form>

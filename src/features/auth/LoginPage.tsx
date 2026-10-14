@@ -28,6 +28,11 @@ export const LoginPage: React.FC = () => {
     }
   };
 
+  const setDemoAccount = (email: string, pass: string) => {
+    setEmailOrPhone(email);
+    setPassword(pass);
+  };
+
   return (
     <div className="min-h-screen bg-[#F7F7F5] flex items-center justify-center p-4 lg:p-8 font-sans">
       <div className="w-full max-w-5xl bg-white rounded-3xl border border-[#E5E5E5] shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 min-h-[600px]">
@@ -142,7 +147,44 @@ export const LoginPage: React.FC = () => {
               </button>
             </form>
 
-            <div className="pt-4 text-center text-[11px] text-zinc-400 font-mono">
+            {/* Quick Demo Credentials Assistant */}
+            <div className="pt-4 border-t border-[#E5E5E5] space-y-2">
+              <span className="text-[11px] font-mono text-zinc-500 block flex items-center gap-1">
+                <Sparkles className="w-3.5 h-3.5 text-[#F5A800]" /> Demo Accounts (Click to Fill):
+              </span>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setDemoAccount('admin@titanauto.com', 'Admin123!')}
+                  className="px-2.5 py-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-[11px] font-semibold text-left truncate transition-colors"
+                >
+                  Super Admin
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDemoAccount('branchmanager@titanauto.com', 'Manager123!')}
+                  className="px-2.5 py-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-[11px] font-semibold text-left truncate transition-colors"
+                >
+                  Branch Manager
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDemoAccount('sales@titanauto.com', 'Sales123!')}
+                  className="px-2.5 py-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-[11px] font-semibold text-left truncate transition-colors"
+                >
+                  Sales Executive
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDemoAccount('mechanic@titanauto.com', 'Mechanic123!')}
+                  className="px-2.5 py-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-[11px] font-semibold text-left truncate transition-colors"
+                >
+                  Service Mechanic
+                </button>
+              </div>
+            </div>
+
+            <div className="pt-2 text-center text-[11px] text-zinc-400 font-mono">
               Titan Automotive Operations Platform
             </div>
           </div>

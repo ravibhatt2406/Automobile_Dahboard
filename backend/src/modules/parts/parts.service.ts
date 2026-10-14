@@ -282,9 +282,60 @@ export class PartsService {
     return result;
   }
 
-  async findAllParts(category?: string, limit = 50, offset = 0) {
+  async findOnePart(id: string) {
+    const part = await this.prisma.part.findUnique({
+      where: { id },
+      include: { stocks: { include: { branch: true } } },
+    });
+    if (!part) {
+      throw new NotFoundException(`Part ID '${id}' not found`);
+    }
+    return part;
+  }
+
+  async updatePart(id: string, dto: Partial<CreatePartDto>, actorUserId?: string) {
+    await this.findOnePart(id);
+    const updated = await this.prisma.part.update({
+      where: { id },
+      data: {
+        ...(dto.name && { name: dto.name }),
+        ...(dto.description !== undefined && { description: dto.description }),
+        ...(dto.manufacturer !== undefined && { manufacturer: dto.manufacturer }),
+        ...(dto.category !== undefined && { category: dto.category }),
+        ...(dto.unitPrice !== undefined && { unitPrice: dto.unitPrice }),
+        ...(dto.gstRate !== undefined && { gstRate: dto.gstRate }),
+      },
+      include: { stocks: { include: { branch: true } } },
+    });
+
+    if (actorUserId) {
+      await this.auditService.log({
+        actorUserId,
+        action: 'PART_UPDATED',
+        entityType: 'Part',
+        entityId: id,
+        metadata: dto,
+      }).catch(() => {});
+    }
+
+    return updated;
+  }
+
+  async findAllParts(category?: string, search?: string, branchId?: string, limit = 50, offset = 0) {
     const where: any = {};
-    if (category) where.category = category;
+    if (category && category !== 'ALL') where.category = category;
+    if (branchId && branchId !== 'ALL') {
+      where.stocks = { some: { branchId } };
+    }
+    if (search && search.trim()) {
+      const s = search.trim();
+      where.OR = [
+        { partNumber: { contains: s, mode: 'insensitive' } },
+        { name: { contains: s, mode: 'insensitive' } },
+        { manufacturer: { contains: s, mode: 'insensitive' } },
+        { description: { contains: s, mode: 'insensitive' } },
+      ];
+    }
 
     const [items, total] = await Promise.all([
       this.prisma.part.findMany({

@@ -43,12 +43,25 @@ export const BookingsListPage: React.FC = () => {
     {
       header: 'Action',
       cell: (row) => (
-        <button
-          onClick={() => navigate(`/sales/bookings/${row.id}`)}
-          className="text-xs text-blue-400 hover:text-blue-300 font-medium underline"
-        >
-          View Order
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate(`/sales/bookings/${row.id}`)}
+            className="text-xs text-blue-600 hover:text-blue-800 font-medium underline"
+          >
+            View
+          </button>
+          <button
+            onClick={() =>
+              navigate(
+                `/customer/chat?branchId=${(row as any).branchId || ''}&contextType=BOOKING&contextId=${row.id}&subject=Booking%20%23${row.bookingNumber}`
+              )
+            }
+            className="px-2 py-0.5 rounded bg-amber-100 hover:bg-amber-200 text-amber-900 text-[11px] font-semibold"
+            title="Chat regarding this booking"
+          >
+            Chat
+          </button>
+        </div>
       ),
     },
   ];

@@ -47,6 +47,8 @@ import { ServiceQcModule } from './modules/service-qc/service-qc.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { DashboardsModule } from './modules/dashboards/dashboards.module';
+import { ChatModule } from './modules/chat/chat.module';
+import { CsvDataModule } from './modules/csv-data/csv-data.module';
 
 @Module({
   imports: [
@@ -89,6 +91,8 @@ import { DashboardsModule } from './modules/dashboards/dashboards.module';
     NotificationsModule,
     ReportsModule,
     DashboardsModule,
+    ChatModule,
+    CsvDataModule,
   ],
   providers: [
     {

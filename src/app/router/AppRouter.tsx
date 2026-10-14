@@ -90,8 +90,8 @@ const BrowseTrucksPage = lazy(() =>
 const VehiclesListPage = lazy(() =>
   import('@/features/inventory/VehiclesListPage').then((m) => ({ default: m.VehiclesListPage }))
 );
-const VehicleStudioPage = lazy(() =>
-  import('@/features/inventory/VehicleStudioPage').then((m) => ({ default: m.VehicleStudioPage }))
+const VehicleFormPage = lazy(() =>
+  import('@/features/inventory/VehicleFormPage').then((m) => ({ default: m.VehicleFormPage }))
 );
 const VehicleDetailPage = lazy(() =>
   import('@/features/inventory/VehicleDetailPage').then((m) => ({ default: m.VehicleDetailPage }))
@@ -172,6 +172,14 @@ const NotificationsPage = lazy(() =>
 );
 const SettingsPage = lazy(() => import('@/features/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })));
 const NotFound = lazy(() => import('@/components/feedback/NotFound').then((m) => ({ default: m.NotFound })));
+
+// Customer and Dealership Branch Chat
+const CustomerChatPage = lazy(() =>
+  import('@/features/chat/CustomerChatPage').then((m) => ({ default: m.CustomerChatPage }))
+);
+const EmployeeChatPage = lazy(() =>
+  import('@/features/chat/EmployeeChatPage').then((m) => ({ default: m.EmployeeChatPage }))
+);
 
 export const AppRouter: React.FC = () => {
   return (
@@ -285,9 +293,9 @@ export const AppRouter: React.FC = () => {
             {/* Inventory */}
             <Route path="/inventory/browse-trucks" element={<BrowseTrucksPage />} />
             <Route path="/inventory/vehicles" element={<VehiclesListPage />} />
-            <Route path="/inventory/vehicles/new" element={<VehicleStudioPage />} />
+            <Route path="/inventory/vehicles/new" element={<VehicleFormPage />} />
             <Route path="/inventory/vehicles/:id" element={<VehicleDetailPage />} />
-            <Route path="/inventory/vehicles/:id/edit" element={<VehicleStudioPage />} />
+            <Route path="/inventory/vehicles/:id/edit" element={<VehicleFormPage />} />
 
             {/* Sales */}
             <Route path="/sales" element={<SalesOverviewPage />} />
@@ -335,6 +343,10 @@ export const AppRouter: React.FC = () => {
             
             <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+
+            {/* Customer & Branch Dealership Chat */}
+            <Route path="/customer/chat" element={<CustomerChatPage />} />
+            <Route path="/chat" element={<EmployeeChatPage />} />
 
             {/* Fallback 404 */}
             <Route path="*" element={<NotFound />} />

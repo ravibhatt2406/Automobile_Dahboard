@@ -1,22 +1,20 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { PageHeader } from '@/components/data-display/PageHeader';
 import { StatusBadge } from '@/components/data-display/StatusBadge';
-import { Wrench, Clock, Package, Play, Check, Loader2 } from 'lucide-react';
+import { Wrench, Clock, Package, Play, Check, Loader2, AlertCircle } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/services/apiClient';
 
 export const MechanicWorkspacePage: React.FC = () => {
   const queryClient = useQueryClient();
 
-  const { data: jobs = [], isLoading } = useQuery<any[]>({
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const { data: jobs = [], isLoading, error: queryError } = useQuery<any[]>({
     queryKey: ['mechanic-jobs'],
     queryFn: async () => {
-      try {
-        const res = await apiFetch<any>('/service-jobs/mechanic/my-jobs');
-        return Array.isArray(res) ? res : res?.data || res?.items || [];
-      } catch {
-        return [];
-      }
+      const res = await apiFetch<any>('/service-jobs/mechanic/my-jobs');
+      return Array.isArray(res) ? res : res?.data || res?.items || [];
     },
   });
 
@@ -28,11 +26,16 @@ export const MechanicWorkspacePage: React.FC = () => {
       });
     },
     onSuccess: () => {
+      setActionError(null);
       queryClient.invalidateQueries({ queryKey: ['mechanic-jobs'] });
+    },
+    onError: (err: any) => {
+      setActionError(err?.message || 'Failed to update job stage');
     },
   });
 
   const handleStageChange = (jobId: string, nextStatus: string) => {
+    setActionError(null);
     updateStatusMutation.mutate({ id: jobId, status: nextStatus, notes: `Status updated by technician` });
   };
 
@@ -43,6 +46,13 @@ export const MechanicWorkspacePage: React.FC = () => {
         subtitle="Operationally streamlined repair bay workstation for mechanics"
         breadcrumbItems={[{ label: 'Service', href: '/service/jobs' }, { label: 'Mechanic Workstation' }]}
       />
+
+      {(actionError || queryError) && (
+        <div className="mb-4 p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+          <span>{actionError || (queryError as any)?.message}</span>
+        </div>
+      )}
 
       <div className="space-y-4">
         {jobs.length > 0 ? (

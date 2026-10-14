@@ -36,15 +36,35 @@ export class InventoryController {
     'MECHANIC',
     'EMPLOYEE',
   )
-  @ApiOperation({ summary: 'Get list of physical vehicles in stock (filtered by branch or status)' })
+  @ApiOperation({ summary: 'Get list of physical vehicles in stock (filtered by branch, status, variant or search query)' })
   async findAll(
     @Query('branchId') branchId: string | undefined,
     @Query('status') status: VehicleStatus | undefined,
+    @Query('variantId') variantId: string | undefined,
+    @Query('search') search: string | undefined,
     @Query('limit') limit = 50,
     @Query('offset') offset = 0,
     @CurrentUser() user?: any,
   ) {
-    return this.inventoryService.findAll(branchId, status, Number(limit), Number(offset), user);
+    return this.inventoryService.findAll(branchId, status, variantId, search, Number(limit), Number(offset), user);
+  }
+
+  @Get('stock-summary')
+  @Roles(
+    'SUPER_ADMIN',
+    'FRANCHISE_OWNER',
+    'FRANCHISE_MANAGER',
+    'BRANCH_OWNER',
+    'BRANCH_MANAGER',
+    'DEPARTMENT_MANAGER',
+    'SALES_EMPLOYEE',
+    'SERVICE_ADVISOR',
+    'MECHANIC',
+    'EMPLOYEE',
+  )
+  @ApiOperation({ summary: 'Get real stock counts and inventory metrics by status' })
+  async getStockSummary(@Query('branchId') branchId?: string, @CurrentUser() user?: any) {
+    return this.inventoryService.getStockSummary(branchId, user);
   }
 
   @Get(':id')

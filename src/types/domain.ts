@@ -98,6 +98,30 @@ export interface Lead {
   createdAt: string;
 }
 
+export type VehicleStatus =
+  | 'IN_STOCK'
+  | 'RESERVED'
+  | 'ALLOCATED'
+  | 'PDI_PENDING'
+  | 'PDI_COMPLETED'
+  | 'SERVICE'
+  | 'DELIVERED'
+  | 'SOLD'
+  | 'TRANSFERRED'
+  | 'BLOCKED';
+
+export type ServiceJobStatus =
+  | 'OPEN'
+  | 'CHECKED_IN'
+  | 'DIAGNOSIS'
+  | 'WAITING_FOR_APPROVAL'
+  | 'IN_PROGRESS'
+  | 'WAITING_FOR_PARTS'
+  | 'QUALITY_CHECK'
+  | 'READY_FOR_DELIVERY'
+  | 'COMPLETED'
+  | 'CANCELLED';
+
 export interface Vehicle {
   id: string;
   vin: string;
@@ -127,7 +151,7 @@ export interface Vehicle {
   exShowroomPrice?: number;
   sellingPrice?: number;
   gstRate?: number;
-  status: string; // 'IN_STOCK' | 'RESERVED' | 'ALLOCATED' | 'DELIVERED' | 'SOLD' | 'BLOCKED' | 'available' etc.
+  status: VehicleStatus | string;
   photos?: string[]; // List of uploaded image data URLs or file paths
   images?: string[]; // backend field name
   primaryPhoto?: string;
@@ -314,8 +338,8 @@ export interface ServiceJob {
   complaint: string;
   diagnosis?: string;
   stage: ServiceWorkflowStage;
-  serviceType: 'routine' | 'repair' | 'overhaul' | 'inspection';
-  status: 'received' | 'in_progress' | 'waiting_parts' | 'completed' | 'delivered';
+  serviceType: 'routine' | 'repair' | 'overhaul' | 'inspection' | string;
+  status: ServiceJobStatus | 'received' | 'in_progress' | 'waiting_parts' | 'completed' | 'delivered';
   estimatedCost: number;
   scheduledDate: string;
   createdAt: string;

@@ -4,7 +4,9 @@ import { DataTable, Column } from '@/components/data-display/DataTable';
 import { Vehicle } from '@/types/domain';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { vehicleService } from '@/services/vehicle.service';
-import { Plus, LayoutGrid, Table, Filter, Archive } from 'lucide-react';
+import { branchService } from '@/services/branch.service';
+import { catalogueService } from '@/services/catalogue.service';
+import { Plus, LayoutGrid, Table, Filter, Archive, Search, RefreshCw, AlertTriangle, Building, Truck, CheckCircle2, ShieldAlert } from 'lucide-react';
 import { StatusBadge } from '@/components/data-display/StatusBadge';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/app/providers/AuthContext';
@@ -17,22 +19,54 @@ export const VehiclesListPage: React.FC = () => {
   const canManage = permissions.canManageInventory || permissions.canManageBranches;
 
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
-  const [filterMake, setFilterMake] = useState<string>('ALL');
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [filterBranch, setFilterBranch] = useState<string>('ALL');
+  const [filterVariant, setFilterVariant] = useState<string>('ALL');
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['vehicles'],
-    queryFn: () => vehicleService.getVehicles(),
+  // 1. Fetch authorized branches for filter
+  const { data: branchesRes } = useQuery({
+    queryKey: ['branches'],
+    queryFn: () => branchService.getBranches(),
+    enabled: !isCustomer,
+  });
+  const branches = branchesRes?.data || [];
+
+  // 2. Fetch variants for filter
+  const { data: variants = [] } = useQuery({
+    queryKey: ['catalogVariants'],
+    queryFn: () => catalogueService.getVariants(),
+    enabled: !isCustomer,
+  });
+
+  // 3. Fetch real stock summary metrics from backend
+  const { data: stockSummary } = useQuery({
+    queryKey: ['stockSummary', filterBranch],
+    queryFn: () => vehicleService.getStockSummary(filterBranch !== 'ALL' ? filterBranch : undefined),
+    enabled: !isCustomer,
+  });
+
+  // 4. Fetch vehicles with real filters
+  const { data, isLoading, isError, error, refetch } = useQuery({
+    queryKey: ['vehicles', searchTerm, filterBranch, filterVariant, filterStatus],
+    queryFn: () =>
+      vehicleService.getVehicles({
+        search: searchTerm.trim() || undefined,
+        branchId: filterBranch !== 'ALL' ? filterBranch : undefined,
+        variantId: filterVariant !== 'ALL' ? filterVariant : undefined,
+        status: filterStatus !== 'ALL' ? filterStatus : undefined,
+      }),
   });
 
   const blockMutation = useMutation({
     mutationFn: (id: string) => vehicleService.updateVehicleStatus(id, 'BLOCKED'),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      queryClient.invalidateQueries({ queryKey: ['stockSummary'] });
     },
     onError: (err: any) => {
-      setActionError(err?.message || 'Failed to archive vehicle.');
+      setActionError(err?.message || 'Failed to archive vehicle asset.');
     },
   });
 
@@ -44,19 +78,16 @@ export const VehiclesListPage: React.FC = () => {
 
   const vehicles = data?.data || [];
 
-  const filteredVehicles = vehicles.filter((v) => {
-    if (filterMake !== 'ALL' && v.make !== filterMake) return false;
-    if (filterStatus !== 'ALL' && v.status !== filterStatus) return false;
-    return true;
-  });
-
   const columns: Column<Vehicle>[] = [
-    { header: 'VIN / Reg', cell: (row) => (
-      <div>
-        <span className="font-mono font-bold text-zinc-900 block">{row.registrationNumber || 'Reg Pending'}</span>
-        <span className="font-mono text-[10px] text-zinc-400">VIN: {row.vin}</span>
-      </div>
-    )},
+    {
+      header: 'VIN / Reg',
+      cell: (row) => (
+        <div>
+          <span className="font-mono font-bold text-zinc-900 block">{row.registrationNumber || 'Reg Pending'}</span>
+          <span className="font-mono text-[10px] text-zinc-400">VIN: {row.vin}</span>
+        </div>
+      ),
+    },
     {
       header: 'Manufacturer & Model',
       cell: (row) => (
@@ -68,9 +99,14 @@ export const VehiclesListPage: React.FC = () => {
         </div>
       ),
     },
-    { header: 'Fuel / Type', cell: (row) => (
-      <span className="capitalize font-mono text-xs text-zinc-700">{row.fuelType} • {row.color || '—'}</span>
-    )},
+    {
+      header: 'Fuel / Type',
+      cell: (row) => (
+        <span className="capitalize font-mono text-xs text-zinc-700">
+          {row.fuelType} • {row.color || '—'}
+        </span>
+      ),
+    },
     { header: 'Branch Location', accessorKey: 'branchName' },
     {
       header: 'Ex-Showroom Price',
@@ -90,6 +126,14 @@ export const VehiclesListPage: React.FC = () => {
           >
             View →
           </button>
+          {canManage && (
+            <button
+              onClick={() => navigate(`/inventory/vehicles/${row.id}/edit`)}
+              className="text-xs font-semibold text-blue-600 hover:text-blue-800"
+            >
+              Edit
+            </button>
+          )}
           {canManage && row.status !== 'BLOCKED' && row.status !== 'SOLD' && (
             <button
               onClick={() => handleBlock(row)}
@@ -107,11 +151,27 @@ export const VehiclesListPage: React.FC = () => {
   return (
     <div className="space-y-6">
       {actionError && (
-        <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs flex justify-between items-center">
-          <span>{actionError}</span>
-          <button onClick={() => setActionError(null)} className="underline ml-2">Dismiss</button>
+        <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex justify-between items-center shadow-xs">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
+            <span>{actionError}</span>
+          </div>
+          <button onClick={() => setActionError(null)} className="underline ml-2 font-semibold">Dismiss</button>
         </div>
       )}
+
+      {isError && (
+        <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex justify-between items-center shadow-xs">
+          <div className="flex items-center gap-2">
+            <ShieldAlert className="w-4 h-4 text-rose-500 shrink-0" />
+            <span>Failed to load vehicles from PostgreSQL: {(error as any)?.message || 'Database connection error'}</span>
+          </div>
+          <button onClick={() => refetch()} className="px-3 py-1 bg-rose-600 text-white font-semibold rounded-lg hover:bg-rose-700 transition-colors">
+            Retry
+          </button>
+        </div>
+      )}
+
       <PageHeader
         title={isCustomer ? 'My Vehicles' : 'Vehicle Inventory Stock'}
         subtitle={
@@ -147,7 +207,7 @@ export const VehiclesListPage: React.FC = () => {
               </button>
             </div>
 
-            {!isCustomer && (
+            {!isCustomer && canManage && (
               <button
                 onClick={() => navigate('/inventory/vehicles/new')}
                 className="inline-flex items-center gap-2 px-3.5 py-2 bg-[#111111] hover:bg-black text-[#F5A800] text-xs font-semibold rounded-lg transition-colors shadow-xs"
@@ -159,93 +219,184 @@ export const VehiclesListPage: React.FC = () => {
         }
       />
 
-      {/* Filter Bar */}
-      <div className="cockpit-card p-3 rounded-xl border border-[#E5E5E5] bg-white flex flex-wrap items-center gap-3 text-xs">
-        <span className="text-zinc-500 font-semibold flex items-center gap-1">
-          <Filter className="w-3.5 h-3.5 text-[#F5A800]" /> Filter Inventory:
-        </span>
-        <select
-          value={filterMake}
-          onChange={(e) => setFilterMake(e.target.value)}
-          className="bg-zinc-50 border border-zinc-200 rounded-lg px-2.5 py-1 text-zinc-900 focus:outline-none"
-        >
-          <option value="ALL">All Manufacturers</option>
-          <option value="Ashok Leyland">Ashok Leyland</option>
-          <option value="Tata Motors">Tata Motors</option>
-        </select>
+      {/* Stock Summary Metrics Cards (from real backend counts) */}
+      {!isCustomer && stockSummary && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="p-3.5 rounded-xl border border-zinc-200 bg-white shadow-xs">
+            <span className="text-[10px] uppercase font-mono text-zinc-400 block font-semibold">Total Stock</span>
+            <span className="text-xl font-bold font-mono text-zinc-900 mt-0.5 block">{stockSummary.totalVehicles}</span>
+          </div>
+          <div className="p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/50 shadow-xs">
+            <span className="text-[10px] uppercase font-mono text-emerald-700 block font-semibold">In Stock (Available)</span>
+            <span className="text-xl font-bold font-mono text-emerald-800 mt-0.5 block">{stockSummary.inStock}</span>
+          </div>
+          <div className="p-3.5 rounded-xl border border-amber-200 bg-amber-50/50 shadow-xs">
+            <span className="text-[10px] uppercase font-mono text-amber-700 block font-semibold">Reserved / Allocated</span>
+            <span className="text-xl font-bold font-mono text-amber-800 mt-0.5 block">{stockSummary.reserved + stockSummary.allocated}</span>
+          </div>
+          <div className="p-3.5 rounded-xl border border-blue-200 bg-blue-50/50 shadow-xs">
+            <span className="text-[10px] uppercase font-mono text-blue-700 block font-semibold">Under Service / PDI</span>
+            <span className="text-xl font-bold font-mono text-blue-800 mt-0.5 block">{stockSummary.service + stockSummary.pdiPending}</span>
+          </div>
+          <div className="p-3.5 rounded-xl border border-zinc-200 bg-zinc-50 shadow-xs">
+            <span className="text-[10px] uppercase font-mono text-zinc-500 block font-semibold">Delivered / Sold</span>
+            <span className="text-xl font-bold font-mono text-zinc-800 mt-0.5 block">{stockSummary.delivered + stockSummary.sold}</span>
+          </div>
+          <div className="p-3.5 rounded-xl border border-[#F5A800]/30 bg-amber-500/5 shadow-xs">
+            <span className="text-[10px] uppercase font-mono text-amber-800 block font-semibold">Available Valuation</span>
+            <span className="text-base font-bold font-mono text-[#111111] mt-1 block truncate">
+              ₹{(stockSummary.totalValue / 10000000).toFixed(2)} Cr
+            </span>
+          </div>
+        </div>
+      )}
 
-        <select
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-          className="bg-zinc-50 border border-zinc-200 rounded-lg px-2.5 py-1 text-zinc-900 focus:outline-none"
-        >
-          <option value="ALL">All Statuses</option>
-          <option value="available">Available Stock</option>
-          <option value="reserved">Reserved</option>
-          <option value="delivered">Delivered</option>
-        </select>
+      {/* Filter and Search Bar */}
+      <div className="cockpit-card p-4 rounded-xl border border-[#E5E5E5] bg-white space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 text-xs">
+          {/* Search Input */}
+          <div className="lg:col-span-4 relative flex items-center">
+            <Search className="w-4 h-4 text-zinc-400 absolute left-3 pointer-events-none" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search by VIN, Engine #, Model or Color..."
+              className="w-full h-9 pl-9 pr-3 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-900 placeholder-zinc-400 focus:outline-none focus:border-[#F5A800]"
+            />
+          </div>
+
+          {/* Branch Filter */}
+          {!isCustomer && (
+            <div className="lg:col-span-3">
+              <select
+                value={filterBranch}
+                onChange={(e) => setFilterBranch(e.target.value)}
+                className="w-full h-9 px-3 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-900 focus:outline-none focus:border-[#F5A800]"
+              >
+                <option value="ALL">All Authorized Branches</option>
+                {branches.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name} ({b.code})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Variant Filter */}
+          {!isCustomer && (
+            <div className="lg:col-span-3">
+              <select
+                value={filterVariant}
+                onChange={(e) => setFilterVariant(e.target.value)}
+                className="w-full h-9 px-3 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-900 focus:outline-none focus:border-[#F5A800]"
+              >
+                <option value="ALL">All Truck Variants</option>
+                {variants.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Status Filter */}
+          <div className={isCustomer ? 'lg:col-span-8' : 'lg:col-span-2'}>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="w-full h-9 px-3 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-900 focus:outline-none focus:border-[#F5A800]"
+            >
+              <option value="ALL">All Statuses</option>
+              <option value="IN_STOCK">In Stock (Available)</option>
+              <option value="RESERVED">Reserved</option>
+              <option value="ALLOCATED">Allocated</option>
+              <option value="PDI_PENDING">PDI Pending</option>
+              <option value="PDI_COMPLETED">PDI Completed</option>
+              <option value="SERVICE">Under Service</option>
+              <option value="DELIVERED">Delivered</option>
+              <option value="SOLD">Sold</option>
+              <option value="BLOCKED">Archived / Blocked</option>
+            </select>
+          </div>
+        </div>
       </div>
 
-      {viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredVehicles.map((vehicle) => (
-            <div
-              key={vehicle.id}
-              onClick={() => navigate(`/inventory/vehicles/${vehicle.id}`)}
-              className="cockpit-card rounded-xl border border-[#E5E5E5] bg-white cursor-pointer overflow-hidden flex flex-col justify-between hover:border-zinc-300 transition-all shadow-xs group"
-            >
-              {/* Vehicle Image Header */}
-              <div className="w-full h-44 bg-zinc-900 border-b border-zinc-200 overflow-hidden relative">
-                <img
-                  src={vehicle.primaryPhoto || vehicle.photos?.[0] || 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=1200&q=80'}
-                  alt={vehicle.model}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-                <div className="absolute top-3 left-3 bg-black/80 text-[#F5A800] text-[10px] font-mono font-bold px-2 py-0.5 rounded uppercase">
-                  {vehicle.make}
-                </div>
-                <div className="absolute top-3 right-3">
-                  <StatusBadge status={vehicle.status} />
-                </div>
-              </div>
-
-              {/* Vehicle Details */}
-              <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
-                <div>
-                  <span className="font-mono text-[10px] text-amber-700 font-bold uppercase tracking-wider block">
-                    Reg: {vehicle.registrationNumber || 'Registration Pending'}
-                  </span>
-                  <h4 className="text-base font-bold text-[#111111] group-hover:text-[#F5A800] transition-colors mt-0.5">
-                    {vehicle.year} {vehicle.make} {vehicle.model}
-                  </h4>
-                  <p className="text-xs text-zinc-500">{vehicle.vehicleType}</p>
-                </div>
-
-                <div className="bg-zinc-50 p-2.5 rounded-lg border border-zinc-200 font-mono text-[11px] grid grid-cols-2 gap-2 text-zinc-700">
-                  <div>
-                    <span className="text-[9px] uppercase text-zinc-400 block font-sans">VIN</span>
-                    <span className="font-semibold text-zinc-900 truncate block">{vehicle.vin}</span>
-                  </div>
-                  <div>
-                    <span className="text-[9px] uppercase text-zinc-400 block font-sans">Branch</span>
-                    <span className="font-semibold text-zinc-900 truncate block">{vehicle.branchName}</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between pt-2 border-t border-zinc-100 text-xs font-mono">
-                  <span className="text-xs text-zinc-500 font-sans">Ex-Showroom:</span>
-                  <span className="font-bold text-zinc-900 text-sm">
-                    ₹{(vehicle.sellingPrice || 0).toLocaleString('en-IN')}
-                  </span>
-                </div>
-              </div>
-            </div>
-          ))}
+      {isLoading ? (
+        <div className="p-12 text-center text-xs font-mono text-zinc-500 bg-white rounded-xl border border-zinc-200">
+          <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-[#F5A800]" />
+          Loading vehicle inventory records from PostgreSQL...
         </div>
+      ) : viewMode === 'grid' ? (
+        vehicles.length === 0 ? (
+          <div className="p-12 text-center text-xs text-zinc-500 bg-white rounded-xl border border-zinc-200">
+            <Truck className="w-8 h-8 text-zinc-300 mx-auto mb-2" />
+            <p className="font-semibold text-zinc-700">No commercial vehicles match current search or filter criteria.</p>
+            <p className="text-zinc-400 mt-1">Try clearing filters or search terms.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {vehicles.map((vehicle) => (
+              <div
+                key={vehicle.id}
+                onClick={() => navigate(`/inventory/vehicles/${vehicle.id}`)}
+                className="cockpit-card rounded-xl border border-[#E5E5E5] bg-white cursor-pointer overflow-hidden flex flex-col justify-between hover:border-zinc-300 transition-all shadow-xs group"
+              >
+                {/* Vehicle Image Header */}
+                <div className="w-full h-44 bg-zinc-900 border-b border-zinc-200 overflow-hidden relative">
+                  <img
+                    src={vehicle.primaryPhoto || vehicle.photos?.[0] || 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=1200&q=80'}
+                    alt={vehicle.model}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute top-3 left-3 bg-black/80 text-[#F5A800] text-[10px] font-mono font-bold px-2 py-0.5 rounded uppercase">
+                    {vehicle.make}
+                  </div>
+                  <div className="absolute top-3 right-3">
+                    <StatusBadge status={vehicle.status} />
+                  </div>
+                </div>
+
+                {/* Vehicle Details */}
+                <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
+                  <div>
+                    <span className="font-mono text-[10px] text-amber-700 font-bold uppercase tracking-wider block">
+                      Reg: {vehicle.registrationNumber || 'Registration Pending'}
+                    </span>
+                    <h4 className="text-base font-bold text-[#111111] group-hover:text-[#F5A800] transition-colors mt-0.5">
+                      {vehicle.year} {vehicle.make} {vehicle.model}
+                    </h4>
+                    <p className="text-xs text-zinc-500">{vehicle.vehicleType}</p>
+                  </div>
+
+                  <div className="bg-zinc-50 p-2.5 rounded-lg border border-zinc-200 font-mono text-[11px] grid grid-cols-2 gap-2 text-zinc-700">
+                    <div>
+                      <span className="text-[9px] uppercase text-zinc-400 block font-sans">VIN</span>
+                      <span className="font-semibold text-zinc-900 truncate block">{vehicle.vin}</span>
+                    </div>
+                    <div>
+                      <span className="text-[9px] uppercase text-zinc-400 block font-sans">Branch</span>
+                      <span className="font-semibold text-zinc-900 truncate block">{vehicle.branchName}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-zinc-100 text-xs font-mono">
+                    <span className="text-xs text-zinc-500 font-sans">Ex-Showroom:</span>
+                    <span className="font-bold text-zinc-900 text-sm">
+                      ₹{(vehicle.sellingPrice || 0).toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )
       ) : (
         <DataTable<Vehicle>
           columns={columns}
-          data={filteredVehicles}
+          data={vehicles}
           isLoading={isLoading}
           emptyTitle="No commercial vehicles found"
           emptyDescription="There are no vehicle assets matching your criteria."

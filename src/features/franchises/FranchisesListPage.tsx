@@ -4,11 +4,13 @@ import { DataTable, Column } from '@/components/data-display/DataTable';
 import { Franchise } from '@/types/domain';
 import { useQuery } from '@tanstack/react-query';
 import { franchiseService } from '@/services/franchise.service';
-import { Plus, Edit, Eye } from 'lucide-react';
+import { Plus, Edit, Eye, Download, Upload, RefreshCw } from 'lucide-react';
 import { StatusBadge } from '@/components/data-display/StatusBadge';
 import { useAuth } from '@/app/providers/AuthContext';
 import { FranchiseFormModal } from './FranchiseFormModal';
 import { useNavigate } from 'react-router-dom';
+import { csvDataService } from '@/services/csv-data.service';
+import { CsvImportModal } from '@/components/forms/CsvImportModal';
 
 export const FranchisesListPage: React.FC = () => {
   const navigate = useNavigate();
@@ -16,12 +18,25 @@ export const FranchisesListPage: React.FC = () => {
   const isSuperAdmin = activeRole === 'SUPER_ADMIN';
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [editingFranchise, setEditingFranchise] = useState<Franchise | null>(null);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['franchises'],
     queryFn: () => franchiseService.getFranchises(),
   });
+
+  const handleExport = async () => {
+    try {
+      setExporting(true);
+      await csvDataService.exportData('franchises');
+    } catch (err: any) {
+      alert(err.message || 'Failed to export franchise data.');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const handleCreate = () => {
     setEditingFranchise(null);
@@ -73,14 +88,39 @@ export const FranchisesListPage: React.FC = () => {
         subtitle="Manage regional automotive dealership franchises & brand licenses"
         breadcrumbItems={[{ label: 'Organization' }, { label: 'Franchises' }]}
         actions={
-          isSuperAdmin ? (
+          <div className="flex items-center gap-2">
             <button
-              onClick={handleCreate}
-              className="inline-flex items-center gap-2 px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg transition-colors shadow-lg shadow-blue-600/20"
+              id="btn-export-csv"
+              onClick={handleExport}
+              disabled={exporting}
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 hover:text-white text-xs font-semibold rounded-lg border border-zinc-700 transition-colors"
             >
-              <Plus className="w-4 h-4" /> Create Franchise
+              {exporting ? (
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Download className="w-3.5 h-3.5 text-amber-400" />
+              )}
+              Export CSV
             </button>
-          ) : undefined
+            {isSuperAdmin && (
+              <button
+                id="btn-import-csv"
+                onClick={() => setIsImportModalOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 hover:text-white text-xs font-semibold rounded-lg border border-zinc-700 transition-colors"
+              >
+                <Upload className="w-3.5 h-3.5 text-amber-400" />
+                Import CSV
+              </button>
+            )}
+            {isSuperAdmin && (
+              <button
+                onClick={handleCreate}
+                className="inline-flex items-center gap-2 px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-black text-xs font-semibold rounded-lg transition-colors shadow-lg shadow-amber-500/20"
+              >
+                <Plus className="w-4 h-4" /> Create Franchise
+              </button>
+            )}
+          </div>
         }
       />
 
@@ -102,6 +142,14 @@ export const FranchisesListPage: React.FC = () => {
           console.log('Saved Franchise Data:', formData);
           refetch();
         }}
+      />
+
+      <CsvImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        entity="franchises"
+        title="Import Franchise Hubs (CSV)"
+        onImportComplete={() => refetch()}
       />
     </div>
   );

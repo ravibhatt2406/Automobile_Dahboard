@@ -5,6 +5,8 @@ import { useQuery } from '@tanstack/react-query';
 import { customerService } from '@/services/customer.service';
 import { StatusBadge } from '@/components/data-display/StatusBadge';
 import { EmptyState } from '@/components/feedback/EmptyState';
+import { AccessRestricted } from '@/components/feedback/AccessRestricted';
+import { LoadingState } from '@/components/feedback/LoadingState';
 import {
   User,
   Truck,
@@ -37,10 +39,39 @@ export const Customer360Page: React.FC = () => {
     | 'activity'
   >('overview');
 
-  const { data: customer, isLoading } = useQuery({
+  const { data: customer, isLoading, error } = useQuery({
     queryKey: ['customer', id],
     queryFn: () => (id ? customerService.getCustomerById(id) : null),
+    retry: false,
   });
+
+  if (isLoading) {
+    return <LoadingState message="Retrieving 360-degree customer ledger..." />;
+  }
+
+  if (error) {
+    const errObj = error as any;
+    if (errObj?.statusCode === 403 || errObj?.message?.toLowerCase().includes('scope')) {
+      return (
+        <AccessRestricted
+          reason="Multi-tenant Scope Restriction: This customer account is not associated with your authorized branch or franchise."
+        />
+      );
+    }
+    return (
+      <AccessRestricted
+        reason={errObj?.message || 'Customer account could not be found or access is restricted.'}
+      />
+    );
+  }
+
+  if (!customer) {
+    return (
+      <AccessRestricted
+        reason="Customer account record was not found or is not associated with your current branch."
+      />
+    );
+  }
 
   const tabs: Array<{
     id: typeof activeTab;
@@ -99,7 +130,7 @@ export const Customer360Page: React.FC = () => {
       </div>
 
       {/* 360 Navigation Tabs */}
-      <div className="flex items-center gap-1 overflow-x-auto pb-2 mb-6 border-b border-slate-800">
+      <div className="flex items-center gap-1 overflow-x-auto pb-2 mb-6 border-b border-zinc-200">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -110,7 +141,7 @@ export const Customer360Page: React.FC = () => {
               className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
                 isActive
                   ? 'bg-blue-600 text-white font-semibold shadow-md shadow-blue-600/20'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                  : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100'
               }`}
             >
               <Icon className="w-3.5 h-3.5" />
@@ -129,57 +160,57 @@ export const Customer360Page: React.FC = () => {
       >
         {activeTab === 'overview' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="cockpit-card p-6 rounded-xl border border-slate-800 space-y-3 text-xs">
-              <h3 className="text-sm font-semibold text-slate-200 border-b border-slate-800 pb-2">
+            <div className="cockpit-card p-6 rounded-xl border border-zinc-200 space-y-3 text-xs">
+              <h3 className="text-sm font-semibold text-zinc-900 border-b border-zinc-200 pb-2">
                 Company Registration & Tax Specs
               </h3>
               <div>
-                <span className="text-slate-500 block">Tax / GST Number</span>
-                <span className="font-mono text-slate-200">{customer?.taxId || '--'}</span>
+                <span className="text-zinc-500 block mb-0.5">Tax / GST Number</span>
+                <span className="font-mono text-zinc-800 font-medium">{customer?.taxId || '--'}</span>
               </div>
               <div>
-                <span className="text-slate-500 block">Registered Address</span>
-                <span className="text-slate-200">{customer?.address || '--'}</span>
+                <span className="text-zinc-500 block mb-0.5">Registered Address</span>
+                <span className="text-zinc-800">{customer?.address || '--'}</span>
               </div>
             </div>
 
-            <div className="cockpit-card p-6 rounded-xl border border-slate-800 space-y-3 text-xs">
-              <h3 className="text-sm font-semibold text-slate-200 border-b border-slate-800 pb-2">
+            <div className="cockpit-card p-6 rounded-xl border border-zinc-200 space-y-3 text-xs">
+              <h3 className="text-sm font-semibold text-zinc-900 border-b border-zinc-200 pb-2">
                 Financial Ledger Summary
               </h3>
-              <div className="flex justify-between items-center py-2 border-b border-slate-800/60">
-                <span className="text-slate-400">Total Invoiced</span>
-                <span className="font-mono font-bold text-slate-100">--</span>
+              <div className="flex justify-between items-center py-2 border-b border-zinc-100">
+                <span className="text-zinc-600">Total Invoiced</span>
+                <span className="font-mono font-bold text-zinc-900">--</span>
               </div>
-              <div className="flex justify-between items-center py-2 border-b border-slate-800/60">
-                <span className="text-slate-400">Total Payments Received</span>
-                <span className="font-mono font-bold text-emerald-400">--</span>
+              <div className="flex justify-between items-center py-2 border-b border-zinc-100">
+                <span className="text-zinc-600">Total Payments Received</span>
+                <span className="font-mono font-bold text-emerald-600">--</span>
               </div>
               <div className="flex justify-between items-center py-2">
-                <span className="text-slate-400">Outstanding Balance</span>
-                <span className="font-mono font-bold text-amber-400">--</span>
+                <span className="text-zinc-600">Outstanding Balance</span>
+                <span className="font-mono font-bold text-amber-600">--</span>
               </div>
             </div>
           </div>
         )}
 
         {activeTab === 'contact' && (
-          <div className="cockpit-card p-6 rounded-xl border border-slate-800 space-y-4 text-xs max-w-xl">
-            <h3 className="text-sm font-semibold text-slate-200 border-b border-slate-800 pb-2">
+          <div className="cockpit-card p-6 rounded-xl border border-zinc-200 space-y-4 text-xs max-w-xl">
+            <h3 className="text-sm font-semibold text-zinc-900 border-b border-zinc-200 pb-2">
               Primary Contact Personnel
             </h3>
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <User className="w-4 h-4 text-blue-400" />
-                <span className="text-slate-200 font-semibold">{customer?.contactPerson || '--'}</span>
+                <User className="w-4 h-4 text-blue-600" />
+                <span className="text-zinc-900 font-semibold">{customer?.contactPerson || '--'}</span>
               </div>
               <div className="flex items-center gap-2">
-                <Mail className="w-4 h-4 text-slate-400" />
-                <span className="font-mono text-slate-200">{customer?.email || '--'}</span>
+                <Mail className="w-4 h-4 text-zinc-500" />
+                <span className="font-mono text-zinc-800">{customer?.email || '--'}</span>
               </div>
               <div className="flex items-center gap-2">
-                <Phone className="w-4 h-4 text-slate-400" />
-                <span className="text-slate-200">{customer?.phone || '--'}</span>
+                <Phone className="w-4 h-4 text-zinc-500" />
+                <span className="text-zinc-800">{customer?.phone || '--'}</span>
               </div>
             </div>
           </div>

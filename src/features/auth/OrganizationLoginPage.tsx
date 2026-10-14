@@ -41,9 +41,9 @@ export const OrganizationLoginPage: React.FC = () => {
     }
   };
 
-  const setDemoAccount = (email: string) => {
+  const setDemoAccount = (email: string, pass: string) => {
     setEmailOrPhone(email);
-    setPassword('');
+    setPassword(pass);
   };
 
   return (
@@ -179,28 +179,28 @@ export const OrganizationLoginPage: React.FC = () => {
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
-                  onClick={() => setDemoAccount('admin@titanauto.com')}
+                  onClick={() => setDemoAccount('admin@titanauto.com', 'Admin123!')}
                   className="px-2.5 py-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-[11px] font-semibold text-left truncate transition-colors"
                 >
                   Super Admin
                 </button>
                 <button
                   type="button"
-                  onClick={() => setDemoAccount('branchmanager@titanauto.com')}
+                  onClick={() => setDemoAccount('branchmanager@titanauto.com', 'Manager123!')}
                   className="px-2.5 py-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-[11px] font-semibold text-left truncate transition-colors"
                 >
                   Branch Manager
                 </button>
                 <button
                   type="button"
-                  onClick={() => setDemoAccount('sales@titanauto.com')}
+                  onClick={() => setDemoAccount('sales@titanauto.com', 'Sales123!')}
                   className="px-2.5 py-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-[11px] font-semibold text-left truncate transition-colors"
                 >
                   Sales Executive
                 </button>
                 <button
                   type="button"
-                  onClick={() => setDemoAccount('mechanic@titanauto.com')}
+                  onClick={() => setDemoAccount('mechanic@titanauto.com', 'Mechanic123!')}
                   className="px-2.5 py-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-[11px] font-semibold text-left truncate transition-colors"
                 >
                   Service Mechanic

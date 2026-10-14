@@ -4,19 +4,24 @@ import { DataTable, Column } from '@/components/data-display/DataTable';
 import { Branch } from '@/types/domain';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { branchService } from '@/services/branch.service';
-import { Plus, Edit, Eye, PowerOff } from 'lucide-react';
+import { Plus, Edit, Eye, PowerOff, Download, Upload, RefreshCw } from 'lucide-react';
 import { StatusBadge } from '@/components/data-display/StatusBadge';
 import { useAuth } from '@/app/providers/AuthContext';
 import { BranchFormModal } from './BranchFormModal';
 import { useNavigate } from 'react-router-dom';
+import { csvDataService } from '@/services/csv-data.service';
+import { CsvImportModal } from '@/components/forms/CsvImportModal';
 
 export const BranchesListPage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { permissions } = useAuth();
+  const { permissions, activeRole } = useAuth();
   const canManage = permissions.canManageBranches;
+  const isSuperAdmin = activeRole === 'SUPER_ADMIN';
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [editingBranch, setEditingBranch] = useState<Branch | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -24,6 +29,17 @@ export const BranchesListPage: React.FC = () => {
     queryKey: ['branches'],
     queryFn: () => branchService.getBranches(),
   });
+
+  const handleExport = async () => {
+    try {
+      setExporting(true);
+      await csvDataService.exportData('branches');
+    } catch (err: any) {
+      setActionError(err.message || 'Failed to export branch data.');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const deactivateMutation = useMutation({
     mutationFn: (id: string) => branchService.updateBranchStatus(id, 'INACTIVE'),
@@ -115,14 +131,39 @@ export const BranchesListPage: React.FC = () => {
         subtitle="Locations, service hubs, and showroom facilities"
         breadcrumbItems={[{ label: 'Organization' }, { label: 'Branches' }]}
         actions={
-          canManage ? (
+          <div className="flex items-center gap-2">
             <button
-              onClick={handleCreate}
-              className="inline-flex items-center gap-2 px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg transition-colors shadow-lg shadow-blue-600/20"
+              id="btn-export-csv"
+              onClick={handleExport}
+              disabled={exporting}
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 hover:text-white text-xs font-semibold rounded-lg border border-zinc-700 transition-colors"
             >
-              <Plus className="w-4 h-4" /> Add Branch Location
+              {exporting ? (
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Download className="w-3.5 h-3.5 text-amber-400" />
+              )}
+              Export CSV
             </button>
-          ) : undefined
+            {isSuperAdmin && (
+              <button
+                id="btn-import-csv"
+                onClick={() => setIsImportModalOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 hover:text-white text-xs font-semibold rounded-lg border border-zinc-700 transition-colors"
+              >
+                <Upload className="w-3.5 h-3.5 text-amber-400" />
+                Import CSV
+              </button>
+            )}
+            {canManage && (
+              <button
+                onClick={handleCreate}
+                className="inline-flex items-center gap-2 px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-black text-xs font-semibold rounded-lg transition-colors shadow-lg shadow-amber-500/20"
+              >
+                <Plus className="w-4 h-4" /> Add Branch Location
+              </button>
+            )}
+          </div>
         }
       />
 
@@ -148,6 +189,14 @@ export const BranchesListPage: React.FC = () => {
         onClose={() => setIsModalOpen(false)}
         initialData={editingBranch}
         onSubmit={handleFormSubmit}
+      />
+
+      <CsvImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        entity="branches"
+        title="Import Dealership Branches (CSV)"
+        onImportComplete={() => refetch()}
       />
     </div>
   );

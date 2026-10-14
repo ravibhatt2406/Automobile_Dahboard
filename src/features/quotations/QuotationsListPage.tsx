@@ -34,12 +34,25 @@ export const QuotationsListPage: React.FC = () => {
     {
       header: 'Action',
       cell: (row) => (
-        <button
-          onClick={() => navigate(`/sales/quotations/${row.id}`)}
-          className="text-xs text-blue-400 hover:text-blue-300 font-medium underline"
-        >
-          View Quote
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate(`/sales/quotations/${row.id}`)}
+            className="text-xs text-blue-600 hover:text-blue-800 font-medium underline"
+          >
+            View
+          </button>
+          <button
+            onClick={() =>
+              navigate(
+                `/customer/chat?branchId=${(row as any).branchId || ''}&contextType=QUOTATION&contextId=${row.id}&subject=Quotation%20%23${row.quotationNumber}`
+              )
+            }
+            className="px-2 py-0.5 rounded bg-amber-100 hover:bg-amber-200 text-amber-900 text-[11px] font-semibold"
+            title="Chat regarding this quotation"
+          >
+            Chat
+          </button>
+        </div>
       ),
     },
   ];

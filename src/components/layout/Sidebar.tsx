@@ -24,6 +24,7 @@ import {
   ChevronRight,
   Shield,
   CheckSquare,
+  MessageSquare,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -54,6 +55,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { label: 'Browse Trucks', path: '/inventory/browse-trucks', icon: Truck },
         { label: 'My Vehicles', path: '/inventory/vehicles', icon: ShieldCheck },
         { label: 'My Enquiries & Bookings', path: '/sales/bookings', icon: ShoppingBag },
+        { label: 'Dealership Chat', path: '/customer/chat', icon: MessageSquare },
         { label: 'Payments', path: '/payments', icon: CreditCard },
         { label: 'Insurance & PUC', path: '/insurance', icon: ShieldCheck },
         { label: 'Documents & Invoices', path: '/billing/invoices', icon: FileText },
@@ -69,6 +71,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { label: 'Assigned Service Jobs', path: '/service/jobs', icon: Wrench },
         { label: 'Mechanic Bay Workspace', path: '/service/mechanic-workspace', icon: Shield },
         { label: 'Service Appointments', path: '/service/appointments', icon: CheckSquare },
+        { label: 'Customer Messages', path: '/chat', icon: MessageSquare },
         { label: 'Spare Parts Requisitions', path: '/spare-parts', icon: Package },
         { label: 'Notifications', path: '/notifications', icon: Bell },
         { label: 'Settings', path: '/settings', icon: Settings },
@@ -82,6 +85,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { label: 'Sales & Quotations', path: '/sales', icon: ShoppingBag },
         { label: 'Available Inventory', path: '/inventory/vehicles', icon: Truck },
         { label: 'Customer Bookings', path: '/sales/bookings', icon: PackageCheck },
+        { label: 'Customer Messages', path: '/chat', icon: MessageSquare },
         { label: 'Notifications', path: '/notifications', icon: Bell },
         { label: 'Settings', path: '/settings', icon: Settings },
       ];
@@ -90,6 +94,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
     // Default enterprise / manager / admin navigation
     const nav = [
       { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, show: true },
+      {
+        label: 'Customer Messages',
+        path: '/chat',
+        icon: MessageSquare,
+        show: true,
+      },
       {
         label: 'Franchises',
         path: '/organization/franchises',

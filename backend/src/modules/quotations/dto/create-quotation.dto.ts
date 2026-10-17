@@ -2,10 +2,10 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsDateString, IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
 export class CreateQuotationDto {
-  @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' })
+  @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', required: false })
   @IsString()
-  @IsNotEmpty()
-  customerId: string;
+  @IsOptional()
+  customerId?: string;
 
   @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', required: false })
   @IsString()
@@ -31,6 +31,11 @@ export class CreateQuotationDto {
   @IsString()
   @IsOptional()
   variantId?: string;
+
+  @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', required: false })
+  @IsString()
+  @IsOptional()
+  vehicleId?: string;
 
   @ApiProperty({ example: 1, default: 1 })
   @IsNumber()
@@ -62,10 +67,10 @@ export class CreateQuotationDto {
   @IsOptional()
   discountAmount?: number;
 
-  @ApiProperty({ example: '2026-11-01T00:00:00.000Z' })
+  @ApiProperty({ example: '2026-11-01T00:00:00.000Z', required: false })
   @IsDateString()
-  @IsNotEmpty()
-  validityDate: string;
+  @IsOptional()
+  validityDate?: string;
 
   @ApiProperty({ example: 'Standard fleet quotation with 2 years extended warranty', required: false })
   @IsString()

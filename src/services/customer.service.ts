@@ -62,4 +62,20 @@ export const customerService = {
     const res = await apiFetch<any>(`/customers/${id}`);
     return unwrapData<Customer>(res);
   },
+
+  async updateCustomer(id: string, data: Partial<Customer>): Promise<Customer> {
+    const res = await apiFetch<any>(`/customers/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+    return unwrapData<Customer>(res);
+  },
+
+  async updatePreferredBranch(id: string, branchId: string | null): Promise<Customer> {
+    const res = await apiFetch<any>(`/customers/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ preferredBranchId: branchId }),
+    });
+    return unwrapData<Customer>(res);
+  },
 };

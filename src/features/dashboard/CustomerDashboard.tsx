@@ -15,10 +15,18 @@ import {
   Building,
   CheckCircle2,
   MessageSquare,
+  MapPin,
+  Save,
+  RotateCcw,
+  Sparkles,
+  X,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { dashboardService, CustomerDashboardData } from '@/services/dashboard.service';
+import { branchService } from '@/services/branch.service';
+import { customerService } from '@/services/customer.service';
 import { ApiError } from '@/services/apiClient';
+import { Branch } from '@/types/domain';
 
 export const CustomerDashboard: React.FC = () => {
   const [data, setData] = useState<CustomerDashboardData | null>(null);
@@ -27,9 +35,34 @@ export const CustomerDashboard: React.FC = () => {
     null,
   );
 
+  // Preferred Branch State
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [cities, setCities] = useState<string[]>([]);
+  const [prefCity, setPrefCity] = useState<string>('');
+  const [prefBranchId, setPrefBranchId] = useState<string>('');
+  const [savingBranch, setSavingBranch] = useState<boolean>(false);
+  const [branchFeedback, setBranchFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(
+    null,
+  );
+
   useEffect(() => {
     loadDashboardData();
+    loadBranches();
   }, []);
+
+  const loadBranches = async () => {
+    try {
+      const activeBranches = await branchService.getPublicActiveBranches();
+      setBranches(activeBranches);
+
+      const uniqueCities = Array.from(
+        new Set(activeBranches.map((b) => b.city).filter(Boolean))
+      ).sort();
+      setCities(uniqueCities);
+    } catch (err) {
+      console.error('Failed to load branches:', err);
+    }
+  };
 
   const loadDashboardData = async () => {
     setLoading(true);
@@ -37,6 +70,12 @@ export const CustomerDashboard: React.FC = () => {
     try {
       const res = await dashboardService.getCustomer();
       setData(res);
+      if (res?.preferredBranchId) {
+        setPrefBranchId(res.preferredBranchId);
+        if (res.preferredBranch?.city) {
+          setPrefCity(res.preferredBranch.city);
+        }
+      }
     } catch (err: any) {
       if (err instanceof ApiError) {
         if (err.statusCode === 401) {
@@ -69,11 +108,68 @@ export const CustomerDashboard: React.FC = () => {
     }
   };
 
+  const handleSavePreferredBranch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!data?.id) return;
+
+    setSavingBranch(true);
+    setBranchFeedback(null);
+    try {
+      const updated = await customerService.updatePreferredBranch(
+        data.id,
+        prefBranchId || null
+      );
+      setBranchFeedback({
+        type: 'success',
+        message: prefBranchId
+          ? `Preferred branch successfully updated to ${updated.preferredBranch?.name || 'selected branch'}!`
+          : 'Preferred branch preference cleared. Defaulting to all branches.',
+      });
+      // Refresh dashboard data so UI syncs
+      await loadDashboardData();
+    } catch (err: any) {
+      setBranchFeedback({
+        type: 'error',
+        message: err.message || 'Failed to update preferred branch.',
+      });
+    } finally {
+      setSavingBranch(false);
+    }
+  };
+
+  const handleClearPreferredBranch = async () => {
+    if (!data?.id) return;
+    setSavingBranch(true);
+    setBranchFeedback(null);
+    try {
+      await customerService.updatePreferredBranch(data.id, null);
+      setPrefBranchId('');
+      setPrefCity('');
+      setBranchFeedback({
+        type: 'success',
+        message: 'Preferred branch cleared. You are browsing trucks from all branches.',
+      });
+      await loadDashboardData();
+    } catch (err: any) {
+      setBranchFeedback({
+        type: 'error',
+        message: err.message || 'Failed to clear preferred branch.',
+      });
+    } finally {
+      setSavingBranch(false);
+    }
+  };
+
   const vehicles = data?.vehicles || [];
   const quotations = data?.quotations || [];
   const bookings = data?.bookings || [];
   const policies = data?.insurancePolicies || [];
   const serviceJobs = data?.serviceJobs || [];
+
+  // Filter branches by city for dropdown
+  const filteredPrefBranches = prefCity
+    ? branches.filter((b) => b.city?.toLowerCase() === prefCity.toLowerCase())
+    : branches;
 
   // Derive counts directly from real database data
   const vehiclesCount = data?.summary?.vehiclesCount ?? vehicles.length;
@@ -254,7 +350,7 @@ export const CustomerDashboard: React.FC = () => {
 
           {/* Main Content Layout */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Column 1: Fleet & Bookings Overview */}
+            {/* Column 1: Fleet & Bookings & Quotations Overview */}
             <div className="lg:col-span-2 space-y-6">
               {/* Fleet Overview Box */}
               <div className="cockpit-card p-6 rounded-xl border border-[#E5E5E5] bg-white">
@@ -316,7 +412,7 @@ export const CustomerDashboard: React.FC = () => {
                 )}
               </div>
 
-              {/* Pending Bookings & Quotations */}
+              {/* Pending Bookings with Chat Link */}
               <div className="cockpit-card p-6 rounded-xl border border-[#E5E5E5] bg-white">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-sm font-bold text-[#111111] flex items-center gap-2">
@@ -343,10 +439,17 @@ export const CustomerDashboard: React.FC = () => {
                         className="p-4 rounded-xl bg-zinc-50 border border-zinc-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs"
                       >
                         <div>
-                          <span className="font-mono text-[10px] font-bold text-amber-700 uppercase">
-                            Booking #{b.bookingNumber}
-                          </span>
-                          <h4 className="font-bold text-zinc-900 text-sm">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-[10px] font-bold text-amber-700 uppercase">
+                              Booking #{b.bookingNumber}
+                            </span>
+                            {b.branch && (
+                              <span className="text-[10px] font-mono text-zinc-500 bg-zinc-200/70 px-1.5 py-0.5 rounded">
+                                {b.branch.name} ({b.branch.city})
+                              </span>
+                            )}
+                          </div>
+                          <h4 className="font-bold text-zinc-900 text-sm mt-0.5">
                             {b.vehicle?.variant?.name || b.vehicleModel || 'Commercial Vehicle'}
                           </h4>
                           <p className="text-zinc-500 mt-0.5">
@@ -360,7 +463,7 @@ export const CustomerDashboard: React.FC = () => {
                           {b.branchId && (
                             <Link
                               to={`/customer/chat?branchId=${b.branchId}&contextType=BOOKING&contextId=${b.id}&subject=Booking%20%23${b.bookingNumber}`}
-                              className="px-2.5 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 font-semibold rounded-lg flex items-center gap-1.5 transition-colors"
+                              className="px-2.5 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 font-semibold rounded-lg flex items-center gap-1.5 transition-colors border border-zinc-200"
                               title="Chat with Dealership Branch"
                             >
                               <MessageSquare className="w-3.5 h-3.5 text-[#F5A800]" />
@@ -379,10 +482,252 @@ export const CustomerDashboard: React.FC = () => {
                   </div>
                 )}
               </div>
+
+              {/* Quotations with Chat Link */}
+              <div className="cockpit-card p-6 rounded-xl border border-[#E5E5E5] bg-white">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-sm font-bold text-[#111111] flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-[#F5A800]" />
+                    Official Price Quotations
+                  </h3>
+                  <Link
+                    to="/sales/quotations"
+                    className="text-xs text-zinc-600 hover:text-zinc-900 font-semibold flex items-center gap-1"
+                  >
+                    View All ({quotations.length}) →
+                  </Link>
+                </div>
+
+                {quotations.length === 0 ? (
+                  <div className="p-4 text-center bg-zinc-50 rounded-xl border border-zinc-200 text-xs text-zinc-500">
+                    No active quotations requested yet. Browse trucks to request a formal quotation.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {quotations.slice(0, 3).map((q) => (
+                      <div
+                        key={q.id}
+                        className="p-4 rounded-xl bg-zinc-50 border border-zinc-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs"
+                      >
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-[10px] font-bold text-blue-700 uppercase">
+                              Quotation #{q.quotationNumber}
+                            </span>
+                            {q.branch && (
+                              <span className="text-[10px] font-mono text-zinc-500 bg-zinc-200/70 px-1.5 py-0.5 rounded">
+                                {q.branch.name} ({q.branch.city})
+                              </span>
+                            )}
+                          </div>
+                          <h4 className="font-bold text-zinc-900 text-sm mt-0.5">
+                            {q.variant?.name || q.vehicleModel || 'Commercial Vehicle'}
+                          </h4>
+                          <p className="text-zinc-500 mt-0.5">
+                            Estimate: ₹{Number(q.totalAmount || 0).toLocaleString('en-IN')}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <span className="px-2.5 py-1 rounded text-[11px] font-mono font-semibold bg-blue-100 text-blue-900 uppercase">
+                            {q.status}
+                          </span>
+                          {q.branchId && (
+                            <Link
+                              to={`/customer/chat?branchId=${q.branchId}&contextType=QUOTATION&contextId=${q.id}&subject=Quotation%20%23${q.quotationNumber}`}
+                              className="px-2.5 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 font-semibold rounded-lg flex items-center gap-1.5 transition-colors border border-zinc-200"
+                              title="Chat with Branch regarding Quotation"
+                            >
+                              <MessageSquare className="w-3.5 h-3.5 text-[#F5A800]" />
+                              <span>Chat</span>
+                            </Link>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Service Jobs with Chat Link */}
+              {serviceJobs.length > 0 && (
+                <div className="cockpit-card p-6 rounded-xl border border-[#E5E5E5] bg-white">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-sm font-bold text-[#111111] flex items-center gap-2">
+                      <Wrench className="w-4 h-4 text-[#F5A800]" />
+                      Active Maintenance & Workshop Jobs
+                    </h3>
+                    <Link
+                      to="/service/jobs"
+                      className="text-xs text-zinc-600 hover:text-zinc-900 font-semibold flex items-center gap-1"
+                    >
+                      View All ({serviceJobs.length}) →
+                    </Link>
+                  </div>
+
+                  <div className="space-y-3">
+                    {serviceJobs.slice(0, 3).map((job: any) => (
+                      <div
+                        key={job.id}
+                        className="p-4 rounded-xl bg-zinc-50 border border-zinc-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs"
+                      >
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-[10px] font-bold text-amber-800 uppercase">
+                              Job #{job.jobCardNumber || job.id.slice(0, 8)}
+                            </span>
+                            {job.branch && (
+                              <span className="text-[10px] font-mono text-zinc-500 bg-zinc-200/70 px-1.5 py-0.5 rounded">
+                                {job.branch.name}
+                              </span>
+                            )}
+                          </div>
+                          <h4 className="font-bold text-zinc-900 text-sm mt-0.5">
+                            {job.complaint || 'Scheduled Commercial Fleet Service'}
+                          </h4>
+                          <p className="text-zinc-500 mt-0.5 font-mono">
+                            Vehicle: {job.vehicle?.vin || 'Fleet Unit'} • Stage: {job.stage || job.status}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <span className="px-2.5 py-1 rounded text-[11px] font-mono font-semibold bg-zinc-200 text-zinc-800 uppercase">
+                            {job.status}
+                          </span>
+                          {job.branchId && (
+                            <Link
+                              to={`/customer/chat?branchId=${job.branchId}&contextType=SERVICE&contextId=${job.id}&subject=Job%20%23${job.jobCardNumber || job.id.slice(0, 8)}`}
+                              className="px-2.5 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 font-semibold rounded-lg flex items-center gap-1.5 transition-colors border border-zinc-200"
+                              title="Chat with Service Advisor"
+                            >
+                              <MessageSquare className="w-3.5 h-3.5 text-[#F5A800]" />
+                              <span>Chat</span>
+                            </Link>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Column 2: Vehicle Compliance & Health Section */}
+            {/* Column 2: Preferred Branch & Chat Section */}
             <div className="space-y-6">
+              {/* Preferred Branch Management Card */}
+              <div className="cockpit-card p-6 rounded-xl border border-zinc-200 bg-white space-y-4">
+                <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+                  <h3 className="text-sm font-bold text-zinc-900 flex items-center gap-2">
+                    <Building className="w-4 h-4 text-[#F5A800]" />
+                    Preferred Branch
+                  </h3>
+                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
+                    Convenience
+                  </span>
+                </div>
+
+                <div className="text-xs text-zinc-600">
+                  {data?.preferredBranch ? (
+                    <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900 space-y-1">
+                      <div className="flex items-center gap-1.5 font-bold">
+                        <MapPin className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>{data.preferredBranch.name}</span>
+                      </div>
+                      <p className="text-[11px] text-emerald-800 font-mono">
+                        {data.preferredBranch.city}, {data.preferredBranch.state}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="p-3 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-600">
+                      <p className="font-semibold text-zinc-800">No Preferred Branch Selected</p>
+                      <p className="text-[11px] text-zinc-500 mt-0.5">
+                        Browse Trucks shows all branches nationwide by default. You can select your local branch below for quicker booking and quotes.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Preferred Branch Feedback Message */}
+                {branchFeedback && (
+                  <div
+                    className={`p-3 rounded-lg text-xs font-semibold flex items-center justify-between ${
+                      branchFeedback.type === 'success'
+                        ? 'bg-emerald-50 border border-emerald-200 text-emerald-900'
+                        : 'bg-rose-50 border border-rose-200 text-rose-900'
+                    }`}
+                  >
+                    <span>{branchFeedback.message}</span>
+                    <button
+                      onClick={() => setBranchFeedback(null)}
+                      className="text-zinc-500 hover:text-zinc-800"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+
+                {/* Form to Select / Change Preferred Branch */}
+                <form onSubmit={handleSavePreferredBranch} className="space-y-3 text-xs">
+                  <div>
+                    <label className="block text-zinc-600 font-medium mb-1">Select City</label>
+                    <select
+                      value={prefCity}
+                      onChange={(e) => {
+                        setPrefCity(e.target.value);
+                        setPrefBranchId('');
+                      }}
+                      className="w-full h-9 px-3 rounded-lg border border-zinc-300 text-xs text-zinc-900 bg-zinc-50"
+                    >
+                      <option value="">All Cities / Select City</option>
+                      {cities.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-zinc-600 font-medium mb-1">Select Branch</label>
+                    <select
+                      value={prefBranchId}
+                      onChange={(e) => setPrefBranchId(e.target.value)}
+                      className="w-full h-9 px-3 rounded-lg border border-zinc-300 text-xs text-zinc-900 bg-zinc-50"
+                    >
+                      <option value="">None / Clear Selection</option>
+                      {filteredPrefBranches.map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {b.name} ({b.city})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-1">
+                    <button
+                      type="submit"
+                      disabled={savingBranch}
+                      className="flex-1 py-2 px-3 bg-[#111111] hover:bg-black text-[#F5A800] font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-colors shadow-xs"
+                    >
+                      <Save className="w-3.5 h-3.5" />
+                      <span>{savingBranch ? 'Saving...' : 'Save Preference'}</span>
+                    </button>
+                    {data?.preferredBranchId && (
+                      <button
+                        type="button"
+                        onClick={handleClearPreferredBranch}
+                        disabled={savingBranch}
+                        className="py-2 px-3 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-semibold rounded-lg flex items-center gap-1 border border-zinc-200 transition-colors"
+                        title="Clear preferred branch preference"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5 text-zinc-500" />
+                        <span>Clear</span>
+                      </button>
+                    )}
+                  </div>
+                </form>
+              </div>
+
               {/* Dealership Live Chat Support Card */}
               <div className="cockpit-card p-6 rounded-xl border border-zinc-200 bg-white space-y-3">
                 <div className="flex items-center justify-between">
@@ -395,7 +740,7 @@ export const CustomerDashboard: React.FC = () => {
                   </span>
                 </div>
                 <p className="text-xs text-zinc-500">
-                  Direct human-to-human communication with authorized branch advisors regarding truck delivery, bookings, or service jobs.
+                  Direct human-to-human communication with authorized branch advisors regarding truck delivery, quotations, bookings, or service jobs.
                 </p>
                 <Link
                   to="/customer/chat"
@@ -442,54 +787,6 @@ export const CustomerDashboard: React.FC = () => {
                       {vehicles.length} Units
                     </span>
                   </div>
-                </div>
-              </div>
-
-              {/* Quick Actions & Help */}
-              <div className="cockpit-card p-6 rounded-xl border border-[#E5E5E5] bg-white space-y-3">
-                <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-wider font-mono">
-                  Quick Customer Actions
-                </h4>
-                <div className="space-y-2 text-xs">
-                  <Link
-                    to="/service/jobs"
-                    className="w-full p-2.5 rounded-lg bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 flex items-center justify-between font-semibold text-zinc-900 transition-colors"
-                  >
-                    <span className="flex items-center gap-2">
-                      <Wrench className="w-4 h-4 text-[#F5A800]" /> Book Service Appointment
-                    </span>
-                    <ChevronRight className="w-4 h-4 text-zinc-400" />
-                  </Link>
-
-                  <Link
-                    to="/billing/invoices"
-                    className="w-full p-2.5 rounded-lg bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 flex items-center justify-between font-semibold text-zinc-900 transition-colors"
-                  >
-                    <span className="flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-zinc-700" /> Download GST Invoices
-                    </span>
-                    <ChevronRight className="w-4 h-4 text-zinc-400" />
-                  </Link>
-
-                  <Link
-                    to="/insurance"
-                    className="w-full p-2.5 rounded-lg bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 flex items-center justify-between font-semibold text-zinc-900 transition-colors"
-                  >
-                    <span className="flex items-center gap-2">
-                      <ShieldCheck className="w-4 h-4 text-emerald-600" /> Insurance & Fleet Certificates
-                    </span>
-                    <ChevronRight className="w-4 h-4 text-zinc-400" />
-                  </Link>
-
-                  <Link
-                    to="/customer/chat"
-                    className="w-full p-2.5 rounded-lg bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 flex items-center justify-between font-semibold text-zinc-900 transition-colors"
-                  >
-                    <span className="flex items-center gap-2">
-                      <MessageSquare className="w-4 h-4 text-[#F5A800]" /> Live Branch Chat & Inquiries
-                    </span>
-                    <ChevronRight className="w-4 h-4 text-zinc-400" />
-                  </Link>
                 </div>
               </div>
             </div>

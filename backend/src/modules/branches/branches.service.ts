@@ -68,7 +68,31 @@ export class BranchesService {
   async findAll(franchiseId?: string, user?: any) {
     const roles: string[] = user?.roles || [];
     const isSuperAdmin = user?.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN');
+    const isCustomer = user?.accountType === 'CUSTOMER' || (roles.includes('CUSTOMER') && !user?.employeeProfile);
     const isFranchiseLevel = roles.some((r) => ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r));
+
+    if (user && isCustomer) {
+      return this.prisma.branch.findMany({
+        where: {
+          status: 'ACTIVE',
+          ...(franchiseId ? { franchiseId } : {}),
+        },
+        select: {
+          id: true,
+          code: true,
+          name: true,
+          city: true,
+          state: true,
+          address: true,
+          status: true,
+          franchiseId: true,
+          franchise: {
+            select: { id: true, name: true, code: true },
+          },
+        },
+        orderBy: { name: 'asc' },
+      });
+    }
 
     if (user && !isSuperAdmin) {
       if (isFranchiseLevel) {
@@ -327,5 +351,28 @@ export class BranchesService {
     }).catch(() => {});
 
     return { success: true, message: `Branch '${branch.name}' deleted successfully` };
+  }
+
+  async findPublicActiveBranches(city?: string) {
+    return this.prisma.branch.findMany({
+      where: {
+        status: 'ACTIVE',
+        ...(city && city !== 'ALL' ? { city: { equals: city, mode: 'insensitive' } } : {}),
+      },
+      select: {
+        id: true,
+        code: true,
+        name: true,
+        city: true,
+        state: true,
+        address: true,
+        status: true,
+        franchiseId: true,
+        franchise: {
+          select: { id: true, name: true, code: true },
+        },
+      },
+      orderBy: { name: 'asc' },
+    });
   }
 }

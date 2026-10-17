@@ -189,6 +189,14 @@ export interface CustomerDashboardData {
   id: string | null;
   name: string;
   email?: string;
+  preferredBranchId?: string | null;
+  preferredBranch?: {
+    id: string;
+    code: string;
+    name: string;
+    city: string;
+    state?: string;
+  } | null;
   vehicles: Array<any>;
   bookings: Array<any>;
   quotations: Array<any>;

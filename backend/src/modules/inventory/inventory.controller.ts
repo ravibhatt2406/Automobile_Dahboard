@@ -6,6 +6,7 @@ import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
 import { TenantScopeGuard } from '@/common/guards/tenant-scope.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
+import { Public } from '@/common/decorators/public.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { VehicleStatus } from '@prisma/client';
 
@@ -15,6 +16,44 @@ import { VehicleStatus } from '@prisma/client';
 @Controller('vehicles')
 export class InventoryController {
   constructor(private readonly inventoryService: InventoryService) {}
+
+  @Public()
+  @Get('browse')
+  @ApiOperation({ summary: 'Customer-visible commercial truck inventory with real branch details and filtering' })
+  async browse(
+    @Query('search') search?: string,
+    @Query('city') city?: string,
+    @Query('branchId') branchId?: string,
+    @Query('modelId') modelId?: string,
+    @Query('variantId') variantId?: string,
+    @Query('category') category?: string,
+    @Query('status') status?: string,
+    @Query('minPrice') minPrice?: number,
+    @Query('maxPrice') maxPrice?: number,
+    @Query('limit') limit = 50,
+    @Query('offset') offset = 0,
+  ) {
+    return this.inventoryService.browseCustomerInventory({
+      search,
+      city,
+      branchId,
+      modelId,
+      variantId,
+      category,
+      status,
+      minPrice: minPrice !== undefined && Number.isFinite(Number(minPrice)) ? Number(minPrice) : undefined,
+      maxPrice: maxPrice !== undefined && Number.isFinite(Number(maxPrice)) ? Number(maxPrice) : undefined,
+      limit: limit ? Number(limit) : 50,
+      offset: offset ? Number(offset) : 0,
+    });
+  }
+
+  @Public()
+  @Get('equivalent-branches/:variantId')
+  @ApiOperation({ summary: 'Get available branches for an equivalent truck variant' })
+  async getEquivalentBranches(@Param('variantId') variantId: string) {
+    return this.inventoryService.getEquivalentBranches(variantId);
+  }
 
   @Post()
   @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER')
@@ -35,6 +74,7 @@ export class InventoryController {
     'SERVICE_ADVISOR',
     'MECHANIC',
     'EMPLOYEE',
+    'CUSTOMER',
   )
   @ApiOperation({ summary: 'Get list of physical vehicles in stock (filtered by branch, status, variant or search query)' })
   async findAll(
@@ -79,6 +119,7 @@ export class InventoryController {
     'SERVICE_ADVISOR',
     'MECHANIC',
     'EMPLOYEE',
+    'CUSTOMER',
   )
   @ApiOperation({ summary: 'Get physical vehicle details, PDI history, & allocation' })
   async findOne(@Param('id') id: string, @CurrentUser() user?: any) {

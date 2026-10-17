@@ -703,4 +703,226 @@ export class InventoryService {
       auditLogs,
     };
   }
+
+  async browseCustomerInventory(params: {
+    search?: string;
+    city?: string;
+    branchId?: string;
+    modelId?: string;
+    variantId?: string;
+    category?: string;
+    status?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    limit?: number;
+    offset?: number;
+  }) {
+    const limit = params.limit || 50;
+    const offset = params.offset || 0;
+
+    const where: any = {
+      branch: { status: 'ACTIVE' },
+    };
+
+    if (params.city && params.city !== 'ALL') {
+      where.branch = { ...where.branch, city: { equals: params.city.trim(), mode: 'insensitive' } };
+    }
+
+    if (params.branchId && params.branchId !== 'ALL') {
+      where.branchId = params.branchId;
+    }
+
+    if (params.variantId && params.variantId !== 'ALL') {
+      where.variantId = params.variantId;
+    }
+
+    if (params.modelId && params.modelId !== 'ALL') {
+      where.variant = { ...where.variant, modelId: params.modelId };
+    }
+
+    if (params.category && params.category !== 'ALL') {
+      where.variant = {
+        ...where.variant,
+        model: { category: { equals: params.category.trim(), mode: 'insensitive' } },
+      };
+    }
+
+    // Availability status filtering
+    if (params.status && params.status !== 'ALL') {
+      const s = params.status.toUpperCase();
+      if (s === 'AVAILABLE' || s === 'IN_STOCK') {
+        where.status = 'IN_STOCK';
+      } else if (s === 'RESERVED') {
+        where.status = { in: ['RESERVED', 'ALLOCATED'] };
+      } else if (s === 'SOLD' || s === 'DELIVERED') {
+        where.status = { in: ['DELIVERED', 'SOLD'] };
+      } else if (Object.values(VehicleStatus).includes(s as VehicleStatus)) {
+        where.status = s as VehicleStatus;
+      }
+    }
+
+    // Price range filtering
+    const minP = params.minPrice !== undefined && Number.isFinite(Number(params.minPrice)) ? Number(params.minPrice) : undefined;
+    const maxP = params.maxPrice !== undefined && Number.isFinite(Number(params.maxPrice)) ? Number(params.maxPrice) : undefined;
+
+    if (minP !== undefined || maxP !== undefined) {
+      where.sellingPrice = {
+        ...(minP !== undefined ? { gte: minP } : {}),
+        ...(maxP !== undefined ? { lte: maxP } : {}),
+      };
+    }
+
+    // Keyword search
+    if (params.search && params.search.trim()) {
+      const q = params.search.trim();
+      where.OR = [
+        { variant: { name: { contains: q, mode: 'insensitive' } } },
+        { variant: { model: { name: { contains: q, mode: 'insensitive' } } } },
+        { variant: { model: { category: { contains: q, mode: 'insensitive' } } } },
+        { variant: { model: { manufacturer: { name: { contains: q, mode: 'insensitive' } } } } },
+        { branch: { name: { contains: q, mode: 'insensitive' } } },
+        { branch: { city: { contains: q, mode: 'insensitive' } } },
+        { color: { contains: q, mode: 'insensitive' } },
+      ];
+    }
+
+    const [rawItems, total] = await Promise.all([
+      this.prisma.vehicle.findMany({
+        where,
+        take: limit,
+        skip: offset,
+        orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
+        select: {
+          id: true,
+          variantId: true,
+          branchId: true,
+          status: true,
+          color: true,
+          manufacturingYear: true,
+          sellingPrice: true,
+          images: true,
+          branch: {
+            select: {
+              id: true,
+              code: true,
+              name: true,
+              city: true,
+              state: true,
+              address: true,
+            },
+          },
+          variant: {
+            include: {
+              model: {
+                include: {
+                  manufacturer: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+      this.prisma.vehicle.count({ where }),
+    ]);
+
+    // Map to sanitized customer-safe inventory format (VIN, engine serial, and baseCost are hidden)
+    const items = rawItems.map((v) => {
+      const isAvailable = v.status === 'IN_STOCK';
+      const isReserved = ['RESERVED', 'ALLOCATED'].includes(v.status);
+      const isSold = ['DELIVERED', 'SOLD'].includes(v.status);
+
+      let availabilityLabel = 'Available';
+      if (isReserved) availabilityLabel = 'Reserved';
+      else if (isSold) availabilityLabel = 'Sold';
+      else if (!isAvailable) availabilityLabel = 'In Service';
+
+      const price = Number(v.sellingPrice || v.variant.basePrice);
+
+      return {
+        id: v.id,
+        variantId: v.variantId,
+        name: v.variant.name,
+        modelName: v.variant.model.name,
+        modelCategory: v.variant.model.category || 'Commercial Truck',
+        manufacturerName: v.variant.model.manufacturer.name,
+        branchId: v.branchId,
+        branchName: v.branch.name,
+        branchCity: v.branch.city || 'Standard Hub',
+        branchState: v.branch.state || '',
+        price,
+        basePrice: Number(v.variant.basePrice),
+        sellingPrice: Number(v.sellingPrice),
+        status: v.status,
+        availability: isAvailable ? 'AVAILABLE' : (isReserved ? 'RESERVED' : 'UNAVAILABLE'),
+        availabilityLabel,
+        isAvailable,
+        color: v.color || 'White',
+        manufacturingYear: v.manufacturingYear,
+        fuelType: v.variant.fuelType || 'DIESEL',
+        transmission: v.variant.transmission || 'Manual',
+        horsepower: v.variant.horsepower,
+        payload: v.variant.payload,
+        specifications: v.variant.specifications,
+        description: v.variant.description,
+        images: v.images && v.images.length > 0 ? v.images : v.variant.images,
+      };
+    });
+
+    return {
+      items,
+      total,
+      limit,
+      offset,
+      page: Math.floor(offset / limit) + 1,
+      totalPages: Math.ceil(total / limit) || 1,
+    };
+  }
+
+  async getEquivalentBranches(variantId: string) {
+    const vehicles = await this.prisma.vehicle.findMany({
+      where: {
+        variantId,
+        status: 'IN_STOCK',
+        branch: { status: 'ACTIVE' },
+      },
+      select: {
+        id: true,
+        sellingPrice: true,
+        color: true,
+        branch: {
+          select: {
+            id: true,
+            code: true,
+            name: true,
+            city: true,
+            state: true,
+          },
+        },
+      },
+    });
+
+    const branchMap = new Map<string, { branch: any; availableCount: number; vehicleIds: string[]; prices: number[] }>();
+
+    for (const v of vehicles) {
+      const bId = v.branch.id;
+      if (!branchMap.has(bId)) {
+        branchMap.set(bId, {
+          branch: v.branch,
+          availableCount: 0,
+          vehicleIds: [],
+          prices: [],
+        });
+      }
+      const entry = branchMap.get(bId)!;
+      entry.availableCount += 1;
+      entry.vehicleIds.push(v.id);
+      entry.prices.push(Number(v.sellingPrice));
+    }
+
+    return Array.from(branchMap.values()).map((item) => ({
+      ...item,
+      minPrice: Math.min(...item.prices),
+      sampleVehicleId: item.vehicleIds[0],
+    }));
+  }
 }

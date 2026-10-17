@@ -6,6 +6,7 @@ import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
 import { TenantScopeGuard } from '@/common/guards/tenant-scope.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
+import { Public } from '@/common/decorators/public.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 
 @ApiTags('Branches')
@@ -34,10 +35,18 @@ export class BranchesController {
     'SERVICE_ADVISOR',
     'MECHANIC',
     'EMPLOYEE',
+    'CUSTOMER',
   )
   @ApiOperation({ summary: 'Get list of branches (optionally filtered by franchiseId)' })
   async findAll(@Query('franchiseId') franchiseId: string | undefined, @CurrentUser() user: any) {
     return this.branchesService.findAll(franchiseId, user);
+  }
+
+  @Public()
+  @Get('public/active')
+  @ApiOperation({ summary: 'Get active branches for public customer browsing and selection' })
+  async findPublicActiveBranches(@Query('city') city?: string) {
+    return this.branchesService.findPublicActiveBranches(city);
   }
 
   @Get(':id')

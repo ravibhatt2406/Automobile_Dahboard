@@ -46,7 +46,7 @@ export const Customer360Page: React.FC = () => {
   });
 
   if (isLoading) {
-    return <LoadingState message="Retrieving 360-degree customer ledger..." />;
+    return <LoadingState label="Retrieving 360-degree customer ledger..." />;
   }
 
   if (error) {

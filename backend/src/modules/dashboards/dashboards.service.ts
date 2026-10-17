@@ -597,6 +597,9 @@ export class DashboardsService {
           include: { branch: true },
           orderBy: { createdAt: 'desc' },
         },
+        preferredBranch: {
+          select: { id: true, code: true, name: true, city: true, state: true },
+        },
       },
     });
 

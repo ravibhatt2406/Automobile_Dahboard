@@ -49,10 +49,10 @@ export const CustomersListPage: React.FC = () => {
   // Compute tenant scope banner text
   const scopeDescription = isSuperAdmin
     ? 'Global Fleet Directory (All Dealership Branches & Franchises)'
-    : user?.branch?.name
-    ? `Authorized Branch Directory: ${user.branch.name} (${user.branch.code || 'Assigned Branch'})`
-    : user?.franchise?.name
-    ? `Authorized Franchise Directory: ${user.franchise.name}`
+    : user?.assignedBranchName
+    ? `Authorized Branch Directory: ${user.assignedBranchName}`
+    : user?.assignedFranchiseName
+    ? `Authorized Franchise Directory: ${user.assignedFranchiseName}`
     : 'Authorized Customer Directory';
 
   const { data, isLoading, refetch, isFetching } = useQuery({

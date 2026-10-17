@@ -75,6 +75,14 @@ export interface Customer {
   fleetSize: number;
   customerType: 'corporate' | 'individual' | 'government';
   status: 'active' | 'lead' | 'inactive';
+  preferredBranchId?: string | null;
+  preferredBranch?: {
+    id: string;
+    code: string;
+    name: string;
+    city: string;
+    state?: string;
+  } | null;
   createdAt: string;
 }
 

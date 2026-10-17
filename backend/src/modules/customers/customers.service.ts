@@ -291,6 +291,7 @@ export class CustomersService {
         conversations: { include: { branch: true }, orderBy: { lastMessageAt: 'desc' } },
         leads: { include: { branch: true }, orderBy: { createdAt: 'desc' } },
         franchiseLinks: { include: { franchise: true } },
+        preferredBranch: { select: { id: true, code: true, name: true, city: true, state: true } },
       },
     });
 
@@ -366,6 +367,24 @@ export class CustomersService {
 
     const existing = await this.findOne(id, user);
 
+    let preferredBranchIdUpdate: string | null | undefined = undefined;
+    if ('preferredBranchId' in dto) {
+      if (dto.preferredBranchId && dto.preferredBranchId.trim() !== '') {
+        const branch = await this.prisma.branch.findUnique({
+          where: { id: dto.preferredBranchId.trim() },
+        });
+        if (!branch) {
+          throw new NotFoundException(`Branch '${dto.preferredBranchId}' not found`);
+        }
+        if (branch.status !== 'ACTIVE') {
+          throw new BadRequestException(`Cannot select inactive branch '${branch.name}' as preferred branch`);
+        }
+        preferredBranchIdUpdate = branch.id;
+      } else {
+        preferredBranchIdUpdate = null;
+      }
+    }
+
     const updated = await this.prisma.customer.update({
       where: { id: existing.id },
       data: {
@@ -378,6 +397,10 @@ export class CustomersService {
         pincode: dto.pincode,
         gstin: dto.gstin,
         companyName: dto.companyName,
+        ...(preferredBranchIdUpdate !== undefined ? { preferredBranchId: preferredBranchIdUpdate } : {}),
+      },
+      include: {
+        preferredBranch: { select: { id: true, code: true, name: true, city: true, state: true } },
       },
     });
 
@@ -386,7 +409,7 @@ export class CustomersService {
       action: 'CUSTOMER_UPDATED',
       entityType: 'Customer',
       entityId: id,
-      metadata: { name: dto.name },
+      metadata: { name: dto.name, preferredBranchId: preferredBranchIdUpdate },
     }).catch(() => {});
 
     return updated;

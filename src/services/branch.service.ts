@@ -55,6 +55,21 @@ export const branchService = {
     }
   },
 
+  async getPublicActiveBranches(city?: string): Promise<Branch[]> {
+    try {
+      const query = city && city !== 'ALL' ? `?city=${encodeURIComponent(city)}` : '';
+      const res = await apiFetch<any>(`/branches/public/active${query}`);
+      const unwrapped = unwrapData<any>(res);
+      if (Array.isArray(unwrapped)) {
+        return unwrapped.map(normalizeBranch);
+      }
+      return [];
+    } catch (err) {
+      console.error('Failed to load active branches:', err);
+      return [];
+    }
+  },
+
   async getBranchById(id: string): Promise<Branch | null> {
     try {
       const res = await apiFetch<any>(`/branches/${id}`);

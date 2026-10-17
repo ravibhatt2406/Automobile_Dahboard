@@ -72,6 +72,27 @@ export class QuotationsService {
       throw new BadRequestException('branchId is required for quotation');
     }
 
+    // Validate Vehicle if provided (inventory-specific quotation)
+    let selectedVehicle: any = null;
+    if (dto.vehicleId) {
+      selectedVehicle = await this.prisma.vehicle.findUnique({
+        where: { id: dto.vehicleId },
+        include: { branch: true },
+      });
+      if (!selectedVehicle) {
+        throw new NotFoundException(`Vehicle '${dto.vehicleId}' not found`);
+      }
+      if (selectedVehicle.branchId !== branch.id) {
+        throw new BadRequestException(`Selected vehicle is located at branch '${selectedVehicle.branch.name}', not '${branch.name}'`);
+      }
+      if (!['IN_STOCK', 'RESERVED'].includes(selectedVehicle.status)) {
+        throw new BadRequestException(`Vehicle is not available for quotation (current status: ${selectedVehicle.status})`);
+      }
+      if (variant && selectedVehicle.variantId !== variant.id) {
+        throw new BadRequestException('Selected vehicle does not match the quotation variant');
+      }
+    }
+
     // Scope check on branch for creator
     if (user && !isCustomer) {
       const roles: string[] = user.roles || [];
@@ -106,9 +127,19 @@ export class QuotationsService {
       salesperson = await this.prisma.employee.findFirst({
         where: { branchId: branch.id, status: 'ACTIVE' },
       });
+      if (!salesperson && branch.franchiseId) {
+        salesperson = await this.prisma.employee.findFirst({
+          where: { branch: { franchiseId: branch.franchiseId }, status: 'ACTIVE' },
+        });
+      }
+      if (!salesperson) {
+        salesperson = await this.prisma.employee.findFirst({
+          where: { status: 'ACTIVE' },
+        });
+      }
     }
     if (!salesperson) {
-      throw new BadRequestException('No active salesperson found for branch');
+      throw new BadRequestException('No active salesperson found to process quotation');
     }
 
     const unitBasePrice = Number(variant.basePrice);

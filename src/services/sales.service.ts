@@ -88,6 +88,7 @@ export const salesService = {
     customerId?: string;
     branchId?: string;
     variantId: string;
+    vehicleId?: string;
     quantity?: number;
     accessoriesAmount?: number;
     insuranceAmount?: number;

@@ -53,7 +53,102 @@ export interface VehicleStockSummary {
   totalValue: number;
 }
 
+export interface BrowseVehicleItem {
+  id: string;
+  variantId: string;
+  name: string;
+  modelName: string;
+  modelCategory: string;
+  manufacturerName: string;
+  branchId: string;
+  branchName: string;
+  branchCity: string;
+  branchState: string;
+  price: number;
+  basePrice: number;
+  sellingPrice: number;
+  status: string;
+  availability: 'AVAILABLE' | 'RESERVED' | 'UNAVAILABLE';
+  availabilityLabel: string;
+  isAvailable: boolean;
+  color: string;
+  manufacturingYear: number;
+  fuelType: string;
+  transmission: string;
+  horsepower?: number;
+  payload?: number;
+  specifications?: any;
+  description?: string;
+  images?: string[];
+}
+
+export interface EquivalentBranchItem {
+  branch: {
+    id: string;
+    code: string;
+    name: string;
+    city: string;
+    state?: string;
+  };
+  availableCount: number;
+  vehicleIds: string[];
+  prices: number[];
+  minPrice: number;
+  sampleVehicleId: string;
+}
+
+export interface BrowseParams {
+  search?: string;
+  city?: string;
+  branchId?: string;
+  category?: string;
+  status?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  page?: number;
+  pageSize?: number;
+}
+
 export const vehicleService = {
+  async browseVehicles(params?: BrowseParams): Promise<{
+    items: BrowseVehicleItem[];
+    total: number;
+    page: number;
+    totalPages: number;
+  }> {
+    const cleanParams: Record<string, string> = {};
+    if (params?.search) cleanParams.search = params.search;
+    if (params?.city && params.city !== 'ALL') cleanParams.city = params.city;
+    if (params?.branchId && params.branchId !== 'ALL') cleanParams.branchId = params.branchId;
+    if (params?.category && params.category !== 'ALL') cleanParams.category = params.category;
+    if (params?.status && params.status !== 'ALL') cleanParams.status = params.status;
+    if (params?.minPrice !== undefined && params.minPrice > 0) cleanParams.minPrice = String(params.minPrice);
+    if (params?.maxPrice !== undefined && params.maxPrice > 0) cleanParams.maxPrice = String(params.maxPrice);
+
+    const page = params?.page || 1;
+    const limit = params?.pageSize || 24;
+    const offset = (page - 1) * limit;
+    cleanParams.limit = String(limit);
+    cleanParams.offset = String(offset);
+
+    const query = new URLSearchParams(cleanParams).toString();
+    const response = await apiFetch<any>(`/vehicles/browse${query ? `?${query}` : ''}`);
+    const unwrapped = unwrapData<any>(response);
+
+    return {
+      items: unwrapped?.items || [],
+      total: unwrapped?.total || 0,
+      page: unwrapped?.page || page,
+      totalPages: unwrapped?.totalPages || 1,
+    };
+  },
+
+  async getEquivalentBranches(variantId: string): Promise<EquivalentBranchItem[]> {
+    const res = await apiFetch<any>(`/vehicles/equivalent-branches/${variantId}`);
+    const unwrapped = unwrapData<any>(res);
+    return Array.isArray(unwrapped) ? unwrapped : [];
+  },
+
   async getVehicles(params?: FilterParams & { variantId?: string }): Promise<PaginatedResponse<Vehicle>> {
     const cleanParams: Record<string, string> = {};
     if (params?.search) cleanParams.search = params.search;

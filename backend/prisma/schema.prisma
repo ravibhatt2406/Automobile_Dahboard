@@ -268,6 +268,7 @@ model Branch {
   serviceJobs        ServiceJob[]
   partStocks         PartStock[]
   conversations      Conversation[]
+  preferredCustomers Customer[]            @relation("CustomerPreferredBranch")
 
   @@map("branches")
 }
@@ -425,6 +426,8 @@ model Customer {
   serviceAppointments ServiceAppointment[]
   serviceJobs        ServiceJob[]
   conversations      Conversation[]
+  preferredBranchId  String?               @map("preferred_branch_id")
+  preferredBranch    Branch?               @relation("CustomerPreferredBranch", fields: [preferredBranchId], references: [id], onDelete: SetNull)
 
   @@map("customers")
 }

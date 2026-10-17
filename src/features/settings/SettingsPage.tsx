@@ -155,20 +155,164 @@ export const SettingsPage: React.FC = () => {
       )}
 
       {activeTab === 'preferences' && (
-        <div className="cockpit-card p-6 rounded-xl border border-slate-800 max-w-2xl space-y-4 text-xs">
-          <h3 className="text-sm font-semibold text-slate-200 flex items-center gap-2 border-b border-slate-800 pb-3">
-            <Sliders className="w-4 h-4 text-purple-400" /> Cockpit UI Preferences
-          </h3>
-          <div className="space-y-3">
-            <div>
-              <label className="block text-slate-400 mb-1">Cockpit Dark Theme Mode</label>
-              <select className="w-full h-9 px-3 rounded-lg bg-slate-900 border border-slate-800 text-slate-100">
-                <option value="dark">Titan Graphite Dark Cockpit (Default)</option>
-              </select>
+        <div className="space-y-6 max-w-2xl">
+          <div className="cockpit-card p-6 rounded-xl border border-slate-800 space-y-4 text-xs">
+            <h3 className="text-sm font-semibold text-slate-200 flex items-center gap-2 border-b border-slate-800 pb-3">
+              <Sliders className="w-4 h-4 text-purple-400" /> Cockpit UI Preferences
+            </h3>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-slate-400 mb-1">Cockpit Dark Theme Mode</label>
+                <select className="w-full h-9 px-3 rounded-lg bg-slate-900 border border-slate-800 text-slate-100">
+                  <option value="dark">Titan Graphite Dark Cockpit (Default)</option>
+                </select>
+              </div>
             </div>
           </div>
+
+          {activeRole === 'CUSTOMER' && (
+            <CustomerPreferredBranchSettings />
+          )}
         </div>
       )}
+    </div>
+  );
+};
+
+const CustomerPreferredBranchSettings: React.FC = () => {
+  const [branches, setBranches] = React.useState<any[]>([]);
+  const [cities, setCities] = React.useState<string[]>([]);
+  const [selectedCity, setSelectedCity] = React.useState<string>('');
+  const [selectedBranchId, setSelectedBranchId] = React.useState<string>('');
+  const [currentBranch, setCurrentBranch] = React.useState<any>(null);
+  const [customerId, setCustomerId] = React.useState<string | null>(null);
+  const [loading, setLoading] = React.useState<boolean>(true);
+  const [saving, setSaving] = React.useState<boolean>(false);
+  const [msg, setMsg] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    async function loadData() {
+      try {
+        const [dash, bList] = await Promise.all([
+          import('@/services/dashboard.service').then((m) => m.dashboardService.getCustomer()),
+          import('@/services/branch.service').then((m) => m.branchService.getPublicActiveBranches()),
+        ]);
+        setBranches(bList);
+        const uniqueCities = Array.from(new Set(bList.map((b) => b.city).filter(Boolean))).sort();
+        setCities(uniqueCities);
+
+        if (dash?.id) setCustomerId(dash.id);
+        if (dash?.preferredBranch) {
+          setCurrentBranch(dash.preferredBranch);
+          setSelectedBranchId(dash.preferredBranch.id);
+          if (dash.preferredBranch.city) setSelectedCity(dash.preferredBranch.city);
+        }
+      } catch (err) {
+        console.error('Failed to load customer settings:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!customerId) return;
+    setSaving(true);
+    setMsg(null);
+    try {
+      const { customerService } = await import('@/services/customer.service');
+      const updated = await customerService.updatePreferredBranch(customerId, selectedBranchId || null);
+      setCurrentBranch(updated.preferredBranch || null);
+      setMsg(selectedBranchId ? 'Preferred branch saved successfully!' : 'Preferred branch cleared.');
+    } catch (err: any) {
+      setMsg(err.message || 'Failed to update preferred branch.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const filteredBranches = selectedCity
+    ? branches.filter((b) => b.city?.toLowerCase() === selectedCity.toLowerCase())
+    : branches;
+
+  if (loading) return null;
+
+  return (
+    <div className="cockpit-card p-6 rounded-xl border border-slate-800 space-y-4 text-xs">
+      <h3 className="text-sm font-semibold text-slate-200 flex items-center gap-2 border-b border-slate-800 pb-3">
+        <Shield className="w-4 h-4 text-amber-400" /> Preferred Dealership Branch
+      </h3>
+      <p className="text-slate-400">
+        Choose your primary dealership branch for local servicing, quotations, and priority fulfillment.
+        Browse Trucks continues to display all branches by default.
+      </p>
+
+      {currentBranch ? (
+        <div className="p-3 rounded-lg bg-slate-900 border border-slate-800 text-slate-200">
+          <span className="text-slate-400 block text-[11px]">Currently Preferred Branch:</span>
+          <span className="font-semibold text-amber-400">{currentBranch.name}</span>
+          <span className="text-slate-400 ml-2">({currentBranch.city})</span>
+        </div>
+      ) : (
+        <div className="p-3 rounded-lg bg-slate-900/50 border border-slate-800 text-slate-400">
+          No preferred branch currently set. (All branches active)
+        </div>
+      )}
+
+      {msg && (
+        <div className="p-3 rounded-lg bg-blue-900/30 border border-blue-700 text-blue-200 font-semibold">
+          {msg}
+        </div>
+      )}
+
+      <form onSubmit={handleSave} className="space-y-3">
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-slate-400 mb-1">Filter by City</label>
+            <select
+              value={selectedCity}
+              onChange={(e) => {
+                setSelectedCity(e.target.value);
+                setSelectedBranchId('');
+              }}
+              className="w-full h-9 px-3 rounded-lg bg-slate-900 border border-slate-800 text-slate-100"
+            >
+              <option value="">All Cities</option>
+              {cities.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-slate-400 mb-1">Preferred Branch</label>
+            <select
+              value={selectedBranchId}
+              onChange={(e) => setSelectedBranchId(e.target.value)}
+              className="w-full h-9 px-3 rounded-lg bg-slate-900 border border-slate-800 text-slate-100"
+            >
+              <option value="">None / Clear Preference</option>
+              {filteredBranches.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name} ({b.city})
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          disabled={saving}
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md transition-colors"
+        >
+          {saving ? 'Saving...' : 'Save Branch Preference'}
+        </button>
+      </form>
     </div>
   );
 };

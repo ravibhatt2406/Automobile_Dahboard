@@ -35,8 +35,8 @@ export class AuthService {
     const normalizedEmail = dto.email.toLowerCase().trim();
     const normalizedPhone = dto.phone.trim();
 
-    // 1. Enforce unique email address across User and Customer records
-    const existingEmail = await this.prisma.user.findFirst({
+    // 1. Enforce unique email address across User records
+    const existingUser = await this.prisma.user.findFirst({
       where: {
         OR: [
           { email: normalizedEmail },
@@ -45,28 +45,47 @@ export class AuthService {
       },
     });
 
-    if (existingEmail) {
-      throw new ConflictException('An account with this email address already exists');
+    if (existingUser) {
+      throw new ConflictException('An account with this email address already exists. Please log in.');
     }
 
     // 2. Enforce unique phone number
+    const digits = normalizedPhone.replace(/\D/g, '');
+    const phoneList = [normalizedPhone];
+    if (digits.length >= 7) {
+      const last10 = digits.length >= 10 ? digits.slice(-10) : digits;
+      phoneList.push(digits, `+${digits}`, `+91${last10}`, last10);
+    }
+
     const existingPhone = await this.prisma.user.findFirst({
       where: {
         OR: [
-          { phone: normalizedPhone },
-          { customerProfile: { phone: normalizedPhone } },
+          { phone: { in: phoneList } },
+          { customerProfile: { phone: { in: phoneList } } },
         ],
       },
     });
 
     if (existingPhone) {
-      throw new ConflictException('An account with this phone number already exists');
+      throw new ConflictException('An account with this phone number already exists. Please log in.');
     }
 
-    // 3. Hash password using bcrypt (10 salt rounds) - never plaintext
+    // 3. Check for existing unlinked customer profile (e.g. from offline branch sales or bookings)
+    const unlinkedCustomer = await this.prisma.customer.findFirst({
+      where: {
+        email: normalizedEmail,
+        userId: null,
+      },
+    });
+
+    if (unlinkedCustomer && unlinkedCustomer.status === 'INACTIVE') {
+      throw new ForbiddenException('Customer profile is currently inactive. Please contact support.');
+    }
+
+    // 4. Hash password using bcrypt (10 salt rounds) - never plaintext
     const passwordHash = await bcrypt.hash(dto.password, 10);
 
-    // 4. Create User and Customer profile atomically in a database transaction
+    // 5. Create User and link to existing Customer profile or create new Customer profile atomically
     const result = await this.prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
         data: {
@@ -78,37 +97,56 @@ export class AuthService {
         },
       });
 
-      const customer = await tx.customer.create({
-        data: {
-          userId: user.id,
-          name: dto.name.trim(),
-          phone: normalizedPhone,
-          email: normalizedEmail,
-          customerType: 'INDIVIDUAL',
-          status: 'ACTIVE',
-        },
-      });
+      let customer;
+      if (unlinkedCustomer) {
+        // Link existing customer profile, preserving historical purchases, vehicles, and bookings
+        customer = await tx.customer.update({
+          where: { id: unlinkedCustomer.id },
+          data: {
+            userId: user.id,
+            ...(unlinkedCustomer.phone ? {} : { phone: normalizedPhone }),
+          },
+        });
+      } else {
+        // Create new customer profile
+        customer = await tx.customer.create({
+          data: {
+            userId: user.id,
+            name: dto.name.trim(),
+            phone: normalizedPhone,
+            email: normalizedEmail,
+            customerType: 'INDIVIDUAL',
+            status: 'ACTIVE',
+          },
+        });
+      }
 
       return { user, customer };
     });
 
-    // 5. Audit log customer registration
+    // 6. Audit log customer registration
     await this.auditService.log({
       actorUserId: result.user.id,
-      action: 'CUSTOMER_REGISTERED',
+      action: unlinkedCustomer ? 'CUSTOMER_ACCOUNT_LINKED' : 'CUSTOMER_REGISTERED',
       entityType: 'Customer',
       entityId: result.customer.id,
       ipAddress,
       userAgent,
-      metadata: { email: normalizedEmail, customerId: result.customer.id },
+      metadata: {
+        email: normalizedEmail,
+        customerId: result.customer.id,
+        linkedExisting: !!unlinkedCustomer,
+      },
     }).catch(() => {});
 
-    // 6. Generate authentication tokens
+    // 7. Generate authentication tokens
     const tokens = await this.generateTokens(result.user.id, result.user.email, result.user.accountType);
     const userProfile = await this.usersService.findById(result.user.id);
 
     return {
-      message: 'Customer registered successfully',
+      message: unlinkedCustomer
+        ? 'Customer profile successfully linked and account registered'
+        : 'Customer registered successfully',
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
       user: userProfile,
@@ -116,7 +154,12 @@ export class AuthService {
   }
 
   async login(dto: LoginDto, ipAddress?: string, userAgent?: string) {
-    const user = await this.usersService.findByEmail(dto.email);
+    const rawIdentifier = (dto.email || dto.emailOrPhone || '').trim();
+    if (!rawIdentifier) {
+      throw new BadRequestException('Email or phone number is required');
+    }
+
+    const user = await this.usersService.findByEmail(rawIdentifier);
 
     if (!user) {
       await this.auditService.log({
@@ -124,14 +167,26 @@ export class AuthService {
         entityType: 'User',
         ipAddress,
         userAgent,
-        metadata: { email: dto.email, reason: 'Invalid email' },
+        metadata: { identifier: rawIdentifier, reason: 'Invalid email or phone' },
       });
       throw new UnauthorizedException('Invalid email or password');
     }
 
     const empProfile = (user as any)?.employeeProfile;
-    if (user.status !== 'ACTIVE' || (empProfile && empProfile.status !== 'ACTIVE')) {
-      const statusReason = user.status !== 'ACTIVE' ? user.status : (empProfile?.status ?? 'INACTIVE');
+    const custProfile = (user as any)?.customerProfile;
+
+    if (
+      user.status !== 'ACTIVE' ||
+      (empProfile && empProfile.status !== 'ACTIVE') ||
+      (custProfile && custProfile.status !== 'ACTIVE')
+    ) {
+      const statusReason =
+        user.status !== 'ACTIVE'
+          ? user.status
+          : empProfile && empProfile.status !== 'ACTIVE'
+          ? empProfile.status
+          : custProfile?.status ?? 'INACTIVE';
+
       await this.auditService.log({
         actorUserId: user.id,
         action: 'FAILED_LOGIN',
@@ -139,7 +194,11 @@ export class AuthService {
         entityId: user.id,
         ipAddress,
         userAgent,
-        metadata: { email: dto.email, status: statusReason, reason: `Account is ${statusReason}` },
+        metadata: {
+          identifier: rawIdentifier,
+          status: statusReason,
+          reason: `Account is ${statusReason}`,
+        },
       });
 
       if (user.status === 'PENDING' || empProfile?.status === 'PENDING_APPROVAL') {
@@ -151,7 +210,20 @@ export class AuthService {
     let isPasswordValid = false;
     if (user.passwordHash && dto.password) {
       try {
-        isPasswordValid = await bcrypt.compare(dto.password, user.passwordHash);
+        if (user.passwordHash.startsWith('$2')) {
+          isPasswordValid = await bcrypt.compare(dto.password, user.passwordHash);
+        } else {
+          // Check for legacy SHA-256 hash migration
+          const sha256 = crypto.createHash('sha256').update(dto.password).digest('hex');
+          if (user.passwordHash === sha256) {
+            isPasswordValid = true;
+            const upgradedHash = await bcrypt.hash(dto.password, 10);
+            await this.prisma.user.update({
+              where: { id: user.id },
+              data: { passwordHash: upgradedHash },
+            }).catch(() => {});
+          }
+        }
       } catch {
         isPasswordValid = false;
       }
@@ -166,7 +238,7 @@ export class AuthService {
           entityId: user.id,
           ipAddress,
           userAgent,
-          metadata: { email: dto.email, reason: 'Invalid password' },
+          metadata: { identifier: rawIdentifier, reason: 'Invalid password' },
         }).catch(() => {});
       } catch {}
       throw new UnauthorizedException('Invalid email or password');
@@ -198,6 +270,7 @@ export class AuthService {
       user: userProfile,
     };
   }
+
 
   async authenticateGoogle(dto: GoogleAuthDto, ipAddress?: string, userAgent?: string) {
     const googleClientId = this.configService.get<string>('GOOGLE_CLIENT_ID');
@@ -332,6 +405,15 @@ export class AuthService {
     const fullName = payload.name || `${payload.given_name || ''} ${payload.family_name || ''}`.trim() || 'Google Customer';
     const unguessablePassword = await bcrypt.hash(crypto.randomUUID() + '_google_auth_sec_' + Date.now(), 10);
 
+    // Check if an unlinked customer profile exists for this verified Google email
+    const unlinkedCust = await this.prisma.customer.findFirst({
+      where: { email, userId: null },
+    });
+
+    if (unlinkedCust && unlinkedCust.status === 'INACTIVE') {
+      throw new ForbiddenException('Customer profile is currently inactive. Please contact support.');
+    }
+
     const created = await this.prisma.$transaction(async (tx) => {
       const newUser = await tx.user.create({
         data: {
@@ -343,19 +425,31 @@ export class AuthService {
         },
       });
 
-      const newCustomer = await tx.customer.create({
-        data: {
-          userId: newUser.id,
-          name: fullName,
-          email,
-          phone: payload.phone_number || payload.phone || '',
-          customerType: 'INDIVIDUAL',
-          status: 'ACTIVE',
-        },
-      });
+      let customer;
+      if (unlinkedCust) {
+        customer = await tx.customer.update({
+          where: { id: unlinkedCust.id },
+          data: {
+            userId: newUser.id,
+            ...(unlinkedCust.phone ? {} : { phone: payload.phone_number || payload.phone || '' }),
+          },
+        });
+      } else {
+        customer = await tx.customer.create({
+          data: {
+            userId: newUser.id,
+            name: fullName,
+            email,
+            phone: payload.phone_number || payload.phone || '',
+            customerType: 'INDIVIDUAL',
+            status: 'ACTIVE',
+          },
+        });
+      }
 
-      return { user: newUser, customer: newCustomer };
+      return { user: newUser, customer };
     });
+
 
     await this.auditService.log({
       actorUserId: created.user.id,

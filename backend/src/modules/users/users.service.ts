@@ -125,23 +125,48 @@ export class UsersService {
     };
   }
 
-  async findByEmail(email: string) {
-    if (!email) return null;
-    const clean = email.trim();
+  async findByEmail(identifier: string) {
+    if (!identifier) return null;
+    const clean = identifier.trim();
     const targetEmail = clean.toLowerCase();
 
-    const user = await this.prisma.user.findFirst({
+    // Extract numerical digits for phone format normalization
+    const digits = clean.replace(/\D/g, '');
+    const phoneVariants = new Set<string>([clean]);
+
+    if (digits.length >= 7) {
+      phoneVariants.add(digits);
+      phoneVariants.add(`+${digits}`);
+
+      const last10 = digits.length >= 10 ? digits.slice(-10) : digits;
+      phoneVariants.add(last10);
+      phoneVariants.add(`+91${last10}`);
+      phoneVariants.add(`0${last10}`);
+
+      if (last10.length === 10) {
+        const formattedWithSpace = `${last10.slice(0, 5)} ${last10.slice(5)}`;
+        phoneVariants.add(formattedWithSpace);
+        phoneVariants.add(`+91 ${formattedWithSpace}`);
+      }
+    }
+
+    const phoneList = Array.from(phoneVariants);
+
+    const orConditions: any[] = [
+      { email: targetEmail },
+      { customerProfile: { email: targetEmail } },
+      { phone: { in: phoneList } },
+      { customerProfile: { phone: { in: phoneList } } },
+    ];
+
+    let user = await this.prisma.user.findFirst({
       where: {
-        OR: [
-          { email: targetEmail },
-          { phone: clean },
-          { customerProfile: { email: targetEmail } },
-          { customerProfile: { phone: clean } },
-        ],
+        OR: orConditions,
       },
       include: {
         employeeProfile: {
           include: {
+            branch: { include: { franchise: true } },
             roleAssignments: { include: { role: true } },
           },
         },
@@ -149,6 +174,30 @@ export class UsersService {
       },
     });
 
+    // If user is a customer but customerProfile is not linked, attempt safe linkage
+    if (user && !user.customerProfile && user.accountType === 'CUSTOMER') {
+      const existingCustomer = await this.prisma.customer.findFirst({
+        where: {
+          OR: [
+            { userId: user.id },
+            ...(user.email ? [{ email: user.email }] : []),
+            ...(user.phone ? [{ phone: { in: phoneList } }] : []),
+          ],
+        },
+      });
+
+      if (existingCustomer) {
+        if (!existingCustomer.userId) {
+          await this.prisma.customer.update({
+            where: { id: existingCustomer.id },
+            data: { userId: user.id },
+          }).catch(() => {});
+        }
+        (user as any).customerProfile = existingCustomer;
+      }
+    }
+
     return user;
   }
 }
+

@@ -74,7 +74,6 @@ export class InventoryController {
     'SERVICE_ADVISOR',
     'MECHANIC',
     'EMPLOYEE',
-    'CUSTOMER',
   )
   @ApiOperation({ summary: 'Get list of physical vehicles in stock (filtered by branch, status, variant or search query)' })
   async findAll(
@@ -119,8 +118,8 @@ export class InventoryController {
     'SERVICE_ADVISOR',
     'MECHANIC',
     'EMPLOYEE',
-    'CUSTOMER',
   )
+
   @ApiOperation({ summary: 'Get physical vehicle details, PDI history, & allocation' })
   async findOne(@Param('id') id: string, @CurrentUser() user?: any) {
     return this.inventoryService.findOne(id, user);

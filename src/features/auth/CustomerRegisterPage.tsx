@@ -35,9 +35,12 @@ export const CustomerRegisterPage: React.FC = () => {
       errors.email = 'Please enter a valid email address.';
     }
 
-    if (formData.phone && !/^\+?[0-9\s-]{10,15}$/.test(formData.phone.trim())) {
+    if (!formData.phone.trim()) {
+      errors.phone = 'Phone number is required.';
+    } else if (!/^\+?[0-9\s-]{10,15}$/.test(formData.phone.trim())) {
       errors.phone = 'Please enter a valid phone number (e.g. +91 9876543210).';
     }
+
 
     if (!formData.password) {
       errors.password = 'Password is required.';
@@ -235,8 +238,9 @@ export const CustomerRegisterPage: React.FC = () => {
               {/* Phone */}
               <div>
                 <label className="block text-[11px] font-semibold text-zinc-700 uppercase tracking-wider mb-1">
-                  Phone Number
+                  Phone Number <span className="text-rose-500">*</span>
                 </label>
+
                 <div className="relative flex items-center">
                   <Phone className="w-4 h-4 text-zinc-400 absolute left-3 pointer-events-none" />
                   <input

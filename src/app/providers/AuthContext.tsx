@@ -206,12 +206,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         id: backendUser.id,
         email: backendUser.email,
         phone: backendUser.phone,
-        firstName: backendUser.name?.split(' ')[0] || 'Customer',
-        lastName: backendUser.name?.split(' ').slice(1).join(' ') || '',
+        firstName: backendUser.name?.split(' ')[0] || backendUser.firstName || 'Customer',
+        lastName: backendUser.name?.split(' ').slice(1).join(' ') || backendUser.lastName || '',
         roles: ['CUSTOMER'],
         activeRole: 'CUSTOMER',
       };
       setUser(authenticatedUser);
+      localStorage.setItem('titan_is_authenticated', 'true');
+      localStorage.setItem('titan_user_profile', JSON.stringify(authenticatedUser));
       return authenticatedUser;
     } finally {
       setIsLoading(false);
@@ -226,11 +228,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error('Google authentication succeeded but profile could not be loaded.');
       }
       setUser(res.user);
+      localStorage.setItem('titan_is_authenticated', 'true');
+      localStorage.setItem('titan_user_profile', JSON.stringify(res.user));
       return res.user;
     } finally {
       setIsLoading(false);
     }
   };
+
 
   const logout = async () => {
     await authService.logout();

@@ -32,9 +32,18 @@ export const authService = {
       body: JSON.stringify(payload),
     });
 
-    const accessToken = response?.tokens?.accessToken || response?.data?.tokens?.accessToken;
-    const refreshToken = response?.tokens?.refreshToken || response?.data?.tokens?.refreshToken;
-    const user = response?.user || response?.data?.user;
+    const accessToken =
+      response?.data?.accessToken ||
+      response?.accessToken ||
+      response?.tokens?.accessToken ||
+      response?.data?.tokens?.accessToken;
+    const refreshToken =
+      response?.data?.refreshToken ||
+      response?.refreshToken ||
+      response?.tokens?.refreshToken ||
+      response?.data?.tokens?.refreshToken;
+    const user = response?.data?.user || response?.user;
+
 
     if (accessToken) {
       localStorage.setItem('titan_auth_token', accessToken);

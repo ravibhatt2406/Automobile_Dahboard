@@ -108,9 +108,10 @@ export class CustomersService {
         if (!assignedBranchId) {
           throw new ForbiddenException('Branch user does not have an assigned branch scope');
         }
-        // Customer must be associated with the employee's branch through any legitimate operation
+        // Customer must be associated with the employee's branch through preferred branch or any legitimate operation
         conditions.push({
           OR: [
+            { preferredBranchId: assignedBranchId },
             { quotations: { some: { branchId: assignedBranchId } } },
             { bookings: { some: { branchId: assignedBranchId } } },
             { vehicles: { some: { branchId: assignedBranchId } } },
@@ -126,11 +127,12 @@ export class CustomersService {
         if (!assignedFranchiseId) {
           throw new ForbiddenException('Franchise user does not have an assigned franchise scope');
         }
-        if (franchiseIdFilter && franchiseIdFilter !== assignedFranchiseId) {
+        if (franchiseIdFilter && franchiseIdFilter !== 'ALL' && franchiseIdFilter !== assignedFranchiseId) {
           throw new ForbiddenException('Multi-tenant scope violation: Unauthorized franchise access');
         }
         conditions.push({
           OR: [
+            { preferredBranch: { franchiseId: assignedFranchiseId } },
             { franchiseLinks: { some: { franchiseId: assignedFranchiseId } } },
             { leads: { some: { franchiseId: assignedFranchiseId } } },
             { quotations: { some: { franchiseId: assignedFranchiseId } } },
@@ -142,12 +144,35 @@ export class CustomersService {
             { invoices: { some: { branch: { franchiseId: assignedFranchiseId } } } },
           ],
         });
+
+        if (branchIdFilter && branchIdFilter !== 'ALL') {
+          const b = await this.prisma.branch.findFirst({
+            where: { id: branchIdFilter, franchiseId: assignedFranchiseId },
+          });
+          if (!b) {
+            throw new ForbiddenException('Multi-tenant scope violation: Branch does not belong to your franchise');
+          }
+          conditions.push({
+            OR: [
+              { preferredBranchId: branchIdFilter },
+              { quotations: { some: { branchId: branchIdFilter } } },
+              { bookings: { some: { branchId: branchIdFilter } } },
+              { vehicles: { some: { branchId: branchIdFilter } } },
+              { leads: { some: { branchId: branchIdFilter } } },
+              { serviceAppointments: { some: { branchId: branchIdFilter } } },
+              { serviceJobs: { some: { branchId: branchIdFilter } } },
+              { conversations: { some: { branchId: branchIdFilter } } },
+              { invoices: { some: { branchId: branchIdFilter } } },
+            ],
+          });
+        }
       }
     } else {
       // Super Admin or unauthenticated internal
-      if (franchiseIdFilter) {
+      if (franchiseIdFilter && franchiseIdFilter !== 'ALL') {
         conditions.push({
           OR: [
+            { preferredBranch: { franchiseId: franchiseIdFilter } },
             { franchiseLinks: { some: { franchiseId: franchiseIdFilter } } },
             { leads: { some: { franchiseId: franchiseIdFilter } } },
             { quotations: { some: { franchiseId: franchiseIdFilter } } },
@@ -158,10 +183,19 @@ export class CustomersService {
             { conversations: { some: { branch: { franchiseId: franchiseIdFilter } } } },
           ],
         });
+        if (branchIdFilter && branchIdFilter !== 'ALL') {
+          const b = await this.prisma.branch.findFirst({
+            where: { OR: [{ id: branchIdFilter }, { code: branchIdFilter }] },
+          });
+          if (b && b.franchiseId !== franchiseIdFilter) {
+            throw new BadRequestException('Selected branch does not belong to the selected franchise');
+          }
+        }
       }
-      if (branchIdFilter) {
+      if (branchIdFilter && branchIdFilter !== 'ALL') {
         conditions.push({
           OR: [
+            { preferredBranchId: branchIdFilter },
             { quotations: { some: { branchId: branchIdFilter } } },
             { bookings: { some: { branchId: branchIdFilter } } },
             { vehicles: { some: { branchId: branchIdFilter } } },

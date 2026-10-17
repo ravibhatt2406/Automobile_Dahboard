@@ -138,6 +138,7 @@ export class InventoryService {
     limit = 50,
     offset = 0,
     user?: any,
+    franchiseId?: string,
   ) {
     const roles: string[] = user?.roles || [];
     const isSuperAdmin = user?.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN');
@@ -159,7 +160,10 @@ export class InventoryService {
       const userFranchiseId = user.franchiseId || user.assignedFranchiseId || user.employeeProfile?.branch?.franchiseId;
 
       if (isFranchiseLevel) {
-        if (branchId) {
+        if (franchiseId && franchiseId !== 'ALL' && franchiseId !== userFranchiseId) {
+          throw new ForbiddenException('Multi-tenant scope violation: Unauthorized franchise access');
+        }
+        if (branchId && branchId !== 'ALL') {
           const b = await this.prisma.branch.findFirst({
             where: { OR: [{ id: branchId }, { code: branchId }] },
           });
@@ -174,6 +178,7 @@ export class InventoryService {
         // Branch Level
         if (
           branchId &&
+          branchId !== 'ALL' &&
           branchId !== userBranchId &&
           branchId !== user.employeeProfile?.branch?.code
         ) {
@@ -181,8 +186,25 @@ export class InventoryService {
         }
         where.branchId = userBranchId;
       }
-    } else if (branchId) {
-      where.branchId = branchId;
+    } else {
+      // Super Admin or system internal
+      if (franchiseId && franchiseId !== 'ALL') {
+        where.branch = { franchiseId };
+        if (branchId && branchId !== 'ALL') {
+          const b = await this.prisma.branch.findFirst({
+            where: { OR: [{ id: branchId }, { code: branchId }] },
+          });
+          if (b && b.franchiseId !== franchiseId) {
+            throw new BadRequestException('Selected branch does not belong to the selected franchise');
+          }
+          where.branchId = b ? b.id : branchId;
+        }
+      } else if (branchId && branchId !== 'ALL') {
+        const b = await this.prisma.branch.findFirst({
+          where: { OR: [{ id: branchId }, { code: branchId }] },
+        });
+        where.branchId = b ? b.id : branchId;
+      }
     }
 
     if (search && search.trim()) {
@@ -220,7 +242,7 @@ export class InventoryService {
     return { items, total, limit, offset };
   }
 
-  async getStockSummary(branchId?: string, user?: any) {
+  async getStockSummary(branchId?: string, user?: any, franchiseId?: string) {
     const roles: string[] = user?.roles || [];
     const isSuperAdmin = user?.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN');
     const isFranchiseLevel = roles.some((r) => ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r));
@@ -251,7 +273,10 @@ export class InventoryService {
       const userFranchiseId = user.franchiseId || user.assignedFranchiseId || user.employeeProfile?.branch?.franchiseId;
 
       if (isFranchiseLevel) {
-        if (branchId) {
+        if (franchiseId && franchiseId !== 'ALL' && franchiseId !== userFranchiseId) {
+          throw new ForbiddenException('Multi-tenant scope violation: Unauthorized franchise access');
+        }
+        if (branchId && branchId !== 'ALL') {
           const b = await this.prisma.branch.findFirst({
             where: { OR: [{ id: branchId }, { code: branchId }] },
           });
@@ -266,8 +291,25 @@ export class InventoryService {
       } else {
         where.branchId = userBranchId;
       }
-    } else if (branchId) {
-      where.branchId = branchId;
+    } else {
+      // Super Admin or unauthenticated internal
+      if (franchiseId && franchiseId !== 'ALL') {
+        where.branch = { franchiseId };
+        if (branchId && branchId !== 'ALL') {
+          const b = await this.prisma.branch.findFirst({
+            where: { OR: [{ id: branchId }, { code: branchId }] },
+          });
+          if (b && b.franchiseId !== franchiseId) {
+            throw new BadRequestException('Selected branch does not belong to the selected franchise');
+          }
+          where.branchId = b ? b.id : branchId;
+        }
+      } else if (branchId && branchId !== 'ALL') {
+        const b = await this.prisma.branch.findFirst({
+          where: { OR: [{ id: branchId }, { code: branchId }] },
+        });
+        where.branchId = b ? b.id : branchId;
+      }
     }
 
     const [statusCounts, inStockSum] = await Promise.all([

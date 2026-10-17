@@ -321,12 +321,74 @@ export class PartsService {
     return updated;
   }
 
-  async findAllParts(category?: string, search?: string, branchId?: string, limit = 50, offset = 0) {
+  async findAllParts(
+    category?: string,
+    search?: string,
+    branchId?: string,
+    limit = 50,
+    offset = 0,
+    user?: any,
+    franchiseId?: string,
+  ) {
+    const roles: string[] = user?.roles || [];
+    const isSuperAdmin = user?.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN');
+    const isFranchiseLevel = roles.some((r) => ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r));
+
     const where: any = {};
     if (category && category !== 'ALL') where.category = category;
-    if (branchId && branchId !== 'ALL') {
-      where.stocks = { some: { branchId } };
+
+    if (user && !isSuperAdmin) {
+      if (isFranchiseLevel) {
+        const userFranchiseId = user.franchiseId || user.assignedFranchiseId;
+        if (franchiseId && franchiseId !== 'ALL' && franchiseId !== userFranchiseId) {
+          throw new ForbiddenException('Multi-tenant scope violation: Unauthorized franchise access');
+        }
+        if (branchId && branchId !== 'ALL') {
+          const b = await this.prisma.branch.findFirst({
+            where: { OR: [{ id: branchId }, { code: branchId }] },
+          });
+          if (!b || b.franchiseId !== userFranchiseId) {
+            throw new ForbiddenException('Multi-tenant scope violation: Unauthorized branch access');
+          }
+          where.stocks = { some: { branchId: b.id } };
+        } else {
+          where.stocks = { some: { branch: { franchiseId: userFranchiseId } } };
+        }
+      } else {
+        // Branch Level
+        const userBranchId = user.branchId || user.assignedBranchId || user.employeeProfile?.branchId;
+        if (
+          branchId &&
+          branchId !== 'ALL' &&
+          branchId !== userBranchId &&
+          branchId !== user.employeeProfile?.branch?.code
+        ) {
+          throw new ForbiddenException('Multi-tenant scope violation: Unauthorized branch access');
+        }
+        where.stocks = { some: { branchId: userBranchId } };
+      }
+    } else {
+      // Super Admin or system internal
+      if (franchiseId && franchiseId !== 'ALL') {
+        if (branchId && branchId !== 'ALL') {
+          const b = await this.prisma.branch.findFirst({
+            where: { OR: [{ id: branchId }, { code: branchId }] },
+          });
+          if (b && b.franchiseId !== franchiseId) {
+            throw new BadRequestException('Selected branch does not belong to the selected franchise');
+          }
+          where.stocks = { some: { branchId: b ? b.id : branchId } };
+        } else {
+          where.stocks = { some: { branch: { franchiseId } } };
+        }
+      } else if (branchId && branchId !== 'ALL') {
+        const b = await this.prisma.branch.findFirst({
+          where: { OR: [{ id: branchId }, { code: branchId }] },
+        });
+        where.stocks = { some: { branchId: b ? b.id : branchId } };
+      }
     }
+
     if (search && search.trim()) {
       const s = search.trim();
       where.OR = [
@@ -355,9 +417,18 @@ export class PartsService {
     if (user) {
       const userRoles = Array.isArray(user?.roles) ? user.roles : [];
       const isSuperAdmin = userRoles.includes('SUPER_ADMIN');
+      const isFranchiseLevel = userRoles.some((r) => ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r));
       if (!isSuperAdmin) {
-        if (user.branchId && user.branchId !== branchId) {
-          throw new ForbiddenException('Cannot view stock for another branch');
+        if (isFranchiseLevel) {
+          const userFranchiseId = user.franchiseId || user.assignedFranchiseId;
+          const branch = await this.prisma.branch.findFirst({ where: { id: branchId } });
+          if (!branch || branch.franchiseId !== userFranchiseId) {
+            throw new ForbiddenException('Cannot view stock for a branch in another franchise');
+          }
+        } else {
+          if (user.branchId && user.branchId !== branchId) {
+            throw new ForbiddenException('Cannot view stock for another branch');
+          }
         }
       }
     }

@@ -469,6 +469,9 @@ export class ServiceJobsService {
     limit = 50,
     offset = 0,
     user?: any,
+    franchiseId?: string,
+    startDate?: string,
+    endDate?: string,
   ) {
     const where: any = {};
     const userRoles = Array.isArray(user?.roles) ? user.roles : [];
@@ -497,13 +500,16 @@ export class ServiceJobsService {
       }
     } else if (!isSuperAdmin) {
       if (user?.branchId) {
-        if (branchId && branchId !== user.branchId) {
+        if (branchId && branchId !== 'ALL' && branchId !== user.branchId) {
           throw new ForbiddenException('Cannot access service jobs from another branch');
         }
         where.branchId = user.branchId;
       } else if (user?.franchiseId) {
+        if (franchiseId && franchiseId !== 'ALL' && franchiseId !== user.franchiseId) {
+          throw new ForbiddenException('Cannot access service jobs from another franchise');
+        }
         where.branch = { franchiseId: user.franchiseId };
-        if (branchId) {
+        if (branchId && branchId !== 'ALL') {
           const branchInFranchise = await this.prisma.branch.findFirst({
             where: { id: branchId, franchiseId: user.franchiseId },
           });
@@ -514,11 +520,36 @@ export class ServiceJobsService {
         }
       }
     } else {
-      if (branchId) where.branchId = branchId;
+      // Super Admin
+      if (franchiseId && franchiseId !== 'ALL') {
+        where.branch = { franchiseId };
+        if (branchId && branchId !== 'ALL') {
+          const b = await this.prisma.branch.findFirst({
+            where: { OR: [{ id: branchId }, { code: branchId }] },
+          });
+          if (b && b.franchiseId !== franchiseId) {
+            throw new BadRequestException('Selected branch does not belong to the selected franchise');
+          }
+          where.branchId = b ? b.id : branchId;
+        }
+      } else if (branchId && branchId !== 'ALL') {
+        const b = await this.prisma.branch.findFirst({
+          where: { OR: [{ id: branchId }, { code: branchId }] },
+        });
+        where.branchId = b ? b.id : branchId;
+      }
       if (customerId) where.customerId = customerId;
     }
 
     if (status) where.status = status;
+
+    if (startDate && endDate) {
+      where.createdAt = { gte: new Date(startDate), lte: new Date(endDate) };
+    } else if (startDate) {
+      where.createdAt = { gte: new Date(startDate) };
+    } else if (endDate) {
+      where.createdAt = { lte: new Date(endDate) };
+    }
 
     if (search && search.trim()) {
       const s = search.trim();

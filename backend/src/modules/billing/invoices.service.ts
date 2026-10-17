@@ -182,7 +182,16 @@ export class InvoicesService {
     };
   }
 
-  async findAll(branchId?: string, status?: InvoiceStatus, limit = 50, offset = 0, user?: any) {
+  async findAll(
+    branchId?: string,
+    status?: InvoiceStatus,
+    limit = 50,
+    offset = 0,
+    user?: any,
+    franchiseId?: string,
+    startDate?: string,
+    endDate?: string,
+  ) {
     const where: any = {};
     const userRoles = Array.isArray(user?.roles) ? user.roles : [];
     const isSuperAdmin = userRoles.includes('SUPER_ADMIN');
@@ -195,13 +204,16 @@ export class InvoicesService {
       where.customerId = user.customerId;
     } else if (!isSuperAdmin) {
       if (user?.branchId) {
-        if (branchId && branchId !== user.branchId) {
+        if (branchId && branchId !== 'ALL' && branchId !== user.branchId) {
           throw new ForbiddenException('Cannot access invoices from another branch');
         }
         where.branchId = user.branchId;
       } else if (user?.franchiseId) {
+        if (franchiseId && franchiseId !== 'ALL' && franchiseId !== user.franchiseId) {
+          throw new ForbiddenException('Cannot access invoices from another franchise');
+        }
         where.franchiseId = user.franchiseId;
-        if (branchId) {
+        if (branchId && branchId !== 'ALL') {
           const branchInFranchise = await this.prisma.branch.findFirst({
             where: { id: branchId, franchiseId: user.franchiseId },
           });
@@ -212,10 +224,35 @@ export class InvoicesService {
         }
       }
     } else {
-      if (branchId) where.branchId = branchId;
+      // Super Admin
+      if (franchiseId && franchiseId !== 'ALL') {
+        where.franchiseId = franchiseId;
+        if (branchId && branchId !== 'ALL') {
+          const b = await this.prisma.branch.findFirst({
+            where: { OR: [{ id: branchId }, { code: branchId }] },
+          });
+          if (b && b.franchiseId !== franchiseId) {
+            throw new BadRequestException('Selected branch does not belong to the selected franchise');
+          }
+          where.branchId = b ? b.id : branchId;
+        }
+      } else if (branchId && branchId !== 'ALL') {
+        const b = await this.prisma.branch.findFirst({
+          where: { OR: [{ id: branchId }, { code: branchId }] },
+        });
+        where.branchId = b ? b.id : branchId;
+      }
     }
 
     if (status) where.status = status;
+
+    if (startDate && endDate) {
+      where.createdAt = { gte: new Date(startDate), lte: new Date(endDate) };
+    } else if (startDate) {
+      where.createdAt = { gte: new Date(startDate) };
+    } else if (endDate) {
+      where.createdAt = { lte: new Date(endDate) };
+    }
 
     const [items, total] = await Promise.all([
       this.prisma.invoice.findMany({

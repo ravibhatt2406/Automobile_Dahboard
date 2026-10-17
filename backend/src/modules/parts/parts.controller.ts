@@ -52,16 +52,19 @@ export class PartsController {
   @ApiQuery({ name: 'category', required: false })
   @ApiQuery({ name: 'search', required: false })
   @ApiQuery({ name: 'branchId', required: false })
+  @ApiQuery({ name: 'franchiseId', required: false })
   @ApiQuery({ name: 'limit', required: false })
   @ApiQuery({ name: 'offset', required: false })
   findAllParts(
     @Query('category') category?: string,
     @Query('search') search?: string,
     @Query('branchId') branchId?: string,
+    @Query('franchiseId') franchiseId?: string,
     @Query('limit') limit?: number,
     @Query('offset') offset?: number,
+    @CurrentUser() user?: any,
   ) {
-    return this.partsService.findAllParts(category, search, branchId, limit ? +limit : 50, offset ? +offset : 0);
+    return this.partsService.findAllParts(category, search, branchId, limit ? +limit : 50, offset ? +offset : 0, user, franchiseId);
   }
 
   @Get('stock/branch/:branchId')

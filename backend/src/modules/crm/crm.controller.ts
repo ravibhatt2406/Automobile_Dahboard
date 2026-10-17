@@ -13,7 +13,7 @@ import { LeadStatus } from '@prisma/client';
 @ApiTags('CRM & Leads')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard, TenantScopeGuard)
-@Controller(['leads', 'sales/leads'])
+@Controller(['leads', 'sales/leads', 'crm/leads'])
 export class CrmController {
   constructor(private readonly crmService: CrmService) {}
 
@@ -26,15 +26,27 @@ export class CrmController {
 
   @Get()
   @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE')
-  @ApiOperation({ summary: 'Get list of leads (filtered by branchId or status)' })
+  @ApiOperation({ summary: 'Get list of leads (filtered by branchId, franchiseId, or status)' })
   async findAllLeads(
     @Query('branchId') branchId?: string,
+    @Query('franchiseId') franchiseId?: string,
     @Query('status') status?: LeadStatus,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
     @Query('limit') limit = 50,
     @Query('offset') offset = 0,
     @CurrentUser() user?: any,
   ) {
-    return this.crmService.findAllLeads(branchId, status, Number(limit), Number(offset), user);
+    return this.crmService.findAllLeads(
+      branchId,
+      status,
+      Number(limit),
+      Number(offset),
+      user,
+      franchiseId,
+      startDate,
+      endDate,
+    );
   }
 
   @Get(':id')

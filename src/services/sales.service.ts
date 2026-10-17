@@ -3,10 +3,17 @@ import { FilterParams, PaginatedResponse } from '@/types/common';
 import { apiFetch, unwrapData } from './apiClient';
 
 export const salesService = {
-  async getLeads(params?: FilterParams): Promise<PaginatedResponse<Lead>> {
+  async getLeads(params?: FilterParams & { franchiseId?: string; startDate?: string; endDate?: string }): Promise<PaginatedResponse<Lead>> {
     const cleanParams: Record<string, string> = {};
-    if (params?.branchId) cleanParams.branchId = params.branchId;
-    if (params?.status) cleanParams.status = params.status;
+    if (params?.branchId && params.branchId !== 'ALL') cleanParams.branchId = params.branchId;
+    if (params?.franchiseId && params.franchiseId !== 'ALL') cleanParams.franchiseId = params.franchiseId;
+    if (params?.status && params.status !== 'ALL') cleanParams.status = params.status;
+    if (params?.search) cleanParams.search = params.search;
+    if (params?.startDate) cleanParams.startDate = params.startDate;
+    if (params?.endDate) cleanParams.endDate = params.endDate;
+    if (params?.page) cleanParams.offset = String(((params.page - 1) * (params.pageSize || 50)));
+    if (params?.pageSize) cleanParams.limit = String(params.pageSize);
+
     const query = new URLSearchParams(cleanParams).toString();
     const res = await apiFetch<any>(`/leads${query ? `?${query}` : ''}`);
     const unwrapped = unwrapData<any>(res);
@@ -17,13 +24,26 @@ export const salesService = {
       : Array.isArray(unwrapped?.data)
       ? unwrapped.data
       : [];
-    return { data: items, total: unwrapped?.total ?? items.length, page: 1, pageSize: items.length || 10, totalPages: 1 };
+    return {
+      data: items,
+      total: unwrapped?.total ?? items.length,
+      page: params?.page ?? 1,
+      pageSize: params?.pageSize ?? (items.length || 50),
+      totalPages: Math.ceil((unwrapped?.total ?? items.length) / (params?.pageSize || 50)) || 1,
+    };
   },
 
-  async getQuotations(params?: FilterParams): Promise<PaginatedResponse<Quotation>> {
+  async getQuotations(params?: FilterParams & { franchiseId?: string; startDate?: string; endDate?: string }): Promise<PaginatedResponse<Quotation>> {
     const cleanParams: Record<string, string> = {};
-    if (params?.branchId) cleanParams.branchId = params.branchId;
-    if (params?.status) cleanParams.status = params.status;
+    if (params?.branchId && params.branchId !== 'ALL') cleanParams.branchId = params.branchId;
+    if (params?.franchiseId && params.franchiseId !== 'ALL') cleanParams.franchiseId = params.franchiseId;
+    if (params?.status && params.status !== 'ALL') cleanParams.status = params.status;
+    if (params?.search) cleanParams.search = params.search;
+    if (params?.startDate) cleanParams.startDate = params.startDate;
+    if (params?.endDate) cleanParams.endDate = params.endDate;
+    if (params?.page) cleanParams.offset = String(((params.page - 1) * (params.pageSize || 50)));
+    if (params?.pageSize) cleanParams.limit = String(params.pageSize);
+
     const query = new URLSearchParams(cleanParams).toString();
     const res = await apiFetch<any>(`/quotations${query ? `?${query}` : ''}`);
     const unwrapped = unwrapData<any>(res);
@@ -34,13 +54,26 @@ export const salesService = {
       : Array.isArray(unwrapped?.data)
       ? unwrapped.data
       : [];
-    return { data: items, total: unwrapped?.total ?? items.length, page: 1, pageSize: items.length || 10, totalPages: 1 };
+    return {
+      data: items,
+      total: unwrapped?.total ?? items.length,
+      page: params?.page ?? 1,
+      pageSize: params?.pageSize ?? (items.length || 50),
+      totalPages: Math.ceil((unwrapped?.total ?? items.length) / (params?.pageSize || 50)) || 1,
+    };
   },
 
-  async getBookings(params?: FilterParams): Promise<PaginatedResponse<Booking>> {
+  async getBookings(params?: FilterParams & { franchiseId?: string; startDate?: string; endDate?: string }): Promise<PaginatedResponse<Booking>> {
     const cleanParams: Record<string, string> = {};
-    if (params?.branchId) cleanParams.branchId = params.branchId;
-    if (params?.status) cleanParams.status = params.status;
+    if (params?.branchId && params.branchId !== 'ALL') cleanParams.branchId = params.branchId;
+    if (params?.franchiseId && params.franchiseId !== 'ALL') cleanParams.franchiseId = params.franchiseId;
+    if (params?.status && params.status !== 'ALL') cleanParams.status = params.status;
+    if (params?.search) cleanParams.search = params.search;
+    if (params?.startDate) cleanParams.startDate = params.startDate;
+    if (params?.endDate) cleanParams.endDate = params.endDate;
+    if (params?.page) cleanParams.offset = String(((params.page - 1) * (params.pageSize || 50)));
+    if (params?.pageSize) cleanParams.limit = String(params.pageSize);
+
     const query = new URLSearchParams(cleanParams).toString();
     const res = await apiFetch<any>(`/bookings${query ? `?${query}` : ''}`);
     const unwrapped = unwrapData<any>(res);
@@ -51,7 +84,13 @@ export const salesService = {
       : Array.isArray(unwrapped?.data)
       ? unwrapped.data
       : [];
-    return { data: items, total: unwrapped?.total ?? items.length, page: 1, pageSize: items.length || 10, totalPages: 1 };
+    return {
+      data: items,
+      total: unwrapped?.total ?? items.length,
+      page: params?.page ?? 1,
+      pageSize: params?.pageSize ?? (items.length || 50),
+      totalPages: Math.ceil((unwrapped?.total ?? items.length) / (params?.pageSize || 50)) || 1,
+    };
   },
 
   async getLeadById(id: string): Promise<Lead | null> {

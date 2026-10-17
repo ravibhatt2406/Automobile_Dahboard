@@ -10,16 +10,26 @@ import { Plus, Search, Wrench, Clock, CheckCircle2, AlertCircle, X, ShieldAlert,
 import { StatusBadge } from '@/components/data-display/StatusBadge';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/app/providers/AuthContext';
+import { useScope } from '@/app/providers/ScopeContext';
+import { BranchFilterBar } from '@/components/data-display/BranchFilterBar';
 
 export const ServiceJobsListPage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { activeRole } = useAuth();
+  const {
+    selectedBranchId,
+    selectedFranchiseId,
+    activeBranchName,
+    activeFranchiseName,
+  } = useScope();
+
   const isCustomer = activeRole === 'CUSTOMER';
 
   const [search, setSearch] = useState('');
-  const [selectedBranch, setSelectedBranch] = useState('ALL');
   const [selectedStatus, setSelectedStatus] = useState('ALL');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
@@ -36,12 +46,23 @@ export const ServiceJobsListPage: React.FC = () => {
 
   // Queries
   const { data: jobsData, isLoading, error: queryError } = useQuery({
-    queryKey: ['serviceJobs', search, selectedBranch, selectedStatus],
+    queryKey: [
+      'serviceJobs',
+      search,
+      selectedBranchId,
+      selectedFranchiseId,
+      selectedStatus,
+      startDate,
+      endDate,
+    ],
     queryFn: () =>
       serviceManagementService.getServiceJobs({
         search: search || undefined,
-        branchId: selectedBranch !== 'ALL' ? selectedBranch : undefined,
+        branchId: selectedBranchId !== 'ALL' ? selectedBranchId : undefined,
+        franchiseId: selectedFranchiseId !== 'ALL' ? selectedFranchiseId : undefined,
         status: selectedStatus !== 'ALL' ? selectedStatus : undefined,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
       }),
   });
 
@@ -257,52 +278,40 @@ export const ServiceJobsListPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Search & Filters */}
-      <div className="p-4 bg-white rounded-xl border border-zinc-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
-        <div className="relative flex-1 min-w-[240px]">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-          <input
-            type="text"
-            placeholder="Search by Job Card #, VIN, or customer name..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-medium text-zinc-900 placeholder-zinc-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#F5A800]"
-          />
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3">
-          <select
-            value={selectedBranch}
-            onChange={(e) => setSelectedBranch(e.target.value)}
-            className="text-xs font-medium py-2 px-3 bg-zinc-50 border border-zinc-200 rounded-lg text-zinc-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#F5A800]"
-          >
-            <option value="ALL">All Workshop Branches</option>
-            {branches.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name} ({b.city})
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="text-xs font-medium py-2 px-3 bg-zinc-50 border border-zinc-200 rounded-lg text-zinc-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#F5A800]"
-          >
-            <option value="ALL">All Statuses</option>
-            <option value="OPEN">Open (Logged)</option>
-            <option value="CHECKED_IN">Checked-in</option>
-            <option value="DIAGNOSIS">Diagnosis</option>
-            <option value="WAITING_FOR_APPROVAL">Waiting Approval</option>
-            <option value="IN_PROGRESS">In Progress</option>
-            <option value="WAITING_FOR_PARTS">Waiting For Parts</option>
-            <option value="QUALITY_CHECK">Quality Check</option>
-            <option value="READY_FOR_DELIVERY">Ready For Delivery</option>
-            <option value="COMPLETED">Completed</option>
-            <option value="CANCELLED">Cancelled</option>
-          </select>
-        </div>
-      </div>
+      {/* Search & Branch Cascading Filters */}
+      <BranchFilterBar
+        searchPlaceholder="Search by Job Card #, VIN, or customer name..."
+        searchValue={search}
+        onSearchChange={setSearch}
+        statusValue={selectedStatus}
+        onStatusChange={setSelectedStatus}
+        statusOptions={[
+          { label: 'All Statuses', value: 'ALL' },
+          { label: 'Open (Logged)', value: 'OPEN' },
+          { label: 'Checked-in', value: 'CHECKED_IN' },
+          { label: 'Diagnosis', value: 'DIAGNOSIS' },
+          { label: 'Waiting Approval', value: 'WAITING_FOR_APPROVAL' },
+          { label: 'In Progress', value: 'IN_PROGRESS' },
+          { label: 'Waiting For Parts', value: 'WAITING_FOR_PARTS' },
+          { label: 'Quality Check', value: 'QUALITY_CHECK' },
+          { label: 'Ready For Delivery', value: 'READY_FOR_DELIVERY' },
+          { label: 'Completed', value: 'COMPLETED' },
+          { label: 'Cancelled', value: 'CANCELLED' },
+        ]}
+        showDateRange={true}
+        startDate={startDate}
+        endDate={endDate}
+        onDateChange={(start, end) => {
+          setStartDate(start);
+          setEndDate(end);
+        }}
+        onReset={() => {
+          setSearch('');
+          setSelectedStatus('ALL');
+          setStartDate('');
+          setEndDate('');
+        }}
+      />
 
       {queryError && (
         <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 flex items-center gap-2">

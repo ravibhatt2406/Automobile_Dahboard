@@ -212,6 +212,9 @@ export class QuotationsService {
     limit = 50,
     offset = 0,
     user?: any,
+    franchiseId?: string,
+    startDate?: string,
+    endDate?: string,
   ) {
     const roles: string[] = user?.roles || [];
     const isSuperAdmin = user?.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN');
@@ -226,7 +229,10 @@ export class QuotationsService {
         const userCustId = user.customerProfile?.id || user.customerId;
         where.customerId = userCustId;
       } else if (isFranchiseLevel) {
-        if (branchId) {
+        if (franchiseId && franchiseId !== 'ALL' && franchiseId !== user.assignedFranchiseId) {
+          throw new ForbiddenException('Multi-tenant scope violation: Unauthorized franchise access');
+        }
+        if (branchId && branchId !== 'ALL') {
           const b = await this.prisma.branch.findFirst({
             where: { OR: [{ id: branchId }, { code: branchId }] },
           });
@@ -241,6 +247,7 @@ export class QuotationsService {
         // Branch Level
         if (
           branchId &&
+          branchId !== 'ALL' &&
           branchId !== user.assignedBranchId &&
           branchId !== user.employeeProfile?.branch?.code
         ) {
@@ -249,8 +256,33 @@ export class QuotationsService {
         where.branchId = user.assignedBranchId;
       }
     } else {
-      if (branchId) where.branchId = branchId;
+      // Super Admin
+      if (franchiseId && franchiseId !== 'ALL') {
+        where.branch = { franchiseId };
+        if (branchId && branchId !== 'ALL') {
+          const b = await this.prisma.branch.findFirst({
+            where: { OR: [{ id: branchId }, { code: branchId }] },
+          });
+          if (b && b.franchiseId !== franchiseId) {
+            throw new BadRequestException('Selected branch does not belong to the selected franchise');
+          }
+          where.branchId = b ? b.id : branchId;
+        }
+      } else if (branchId && branchId !== 'ALL') {
+        const b = await this.prisma.branch.findFirst({
+          where: { OR: [{ id: branchId }, { code: branchId }] },
+        });
+        where.branchId = b ? b.id : branchId;
+      }
       if (customerId) where.customerId = customerId;
+    }
+
+    if (startDate && endDate) {
+      where.createdAt = { gte: new Date(startDate), lte: new Date(endDate) };
+    } else if (startDate) {
+      where.createdAt = { gte: new Date(startDate) };
+    } else if (endDate) {
+      where.createdAt = { lte: new Date(endDate) };
     }
 
     const [items, total] = await Promise.all([

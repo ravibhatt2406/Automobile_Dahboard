@@ -1,7 +1,7 @@
 import React from 'react';
 import { useScope } from '@/app/providers/ScopeContext';
 import { useAuth } from '@/app/providers/AuthContext';
-import { Building, Store, Lock } from 'lucide-react';
+import { Building, Store, Lock, Loader2 } from 'lucide-react';
 
 export const ScopeSelector: React.FC = () => {
   const {
@@ -10,12 +10,16 @@ export const ScopeSelector: React.FC = () => {
     setSelectedFranchiseId,
     setSelectedBranchId,
     isBranchLocked,
+    isFranchiseLocked,
     activeBranchName,
     activeFranchiseName,
+    franchises,
+    branches,
+    isLoadingScope,
   } = useScope();
   const { permissions, activeRole, user } = useAuth();
 
-  // Customer does not see organization scope selector
+  // Customer does not see internal scope selector
   if (activeRole === 'CUSTOMER') {
     return null;
   }
@@ -34,7 +38,7 @@ export const ScopeSelector: React.FC = () => {
         <div className="flex items-center gap-1.5 text-zinc-200">
           <Store className="w-3.5 h-3.5 text-amber-400" />
           <span className="font-semibold text-white">
-            {user?.assignedBranchName || activeBranchName || 'Jaipur Branch'}
+            {user?.assignedBranchName || activeBranchName || 'Assigned Branch'}
           </span>
           <span className="inline-flex items-center gap-1 ml-1 px-1.5 py-0.5 rounded text-[10px] bg-amber-500/20 text-amber-300 font-sans">
             <Lock className="w-2.5 h-2.5" /> Assigned
@@ -44,54 +48,94 @@ export const ScopeSelector: React.FC = () => {
     );
   }
 
+  // Franchise-level managers: Locked to franchise, but can cascade-filter branches
+  if (isFranchiseLocked) {
+    return (
+      <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs">
+        <div className="flex items-center gap-1.5 text-zinc-300">
+          <Building className="w-3.5 h-3.5 text-[#F5A800]" />
+          <span className="font-bold text-[#F5A800] uppercase tracking-wider">
+            {user?.assignedFranchiseName || activeFranchiseName || 'Franchise Network'}
+          </span>
+          <span className="inline-flex items-center gap-1 ml-0.5 px-1.5 py-0.5 rounded text-[10px] bg-zinc-800 text-zinc-300 font-sans">
+            <Lock className="w-2.5 h-2.5" />
+          </span>
+        </div>
+
+        <span className="text-zinc-700">|</span>
+
+        <div className="flex items-center gap-1.5 text-zinc-300">
+          <Store className="w-3.5 h-3.5 text-amber-400" />
+          <select
+            value={selectedBranchId}
+            onChange={(e) => setSelectedBranchId(e.target.value)}
+            className="bg-transparent text-xs text-white focus:outline-none cursor-pointer font-medium"
+            disabled={isLoadingScope}
+          >
+            <option value="ALL" className="bg-zinc-900 text-white">
+              All Authorized Branches
+            </option>
+            {branches.map((b) => (
+              <option key={b.id} value={b.id} className="bg-zinc-900 text-white">
+                {b.name} {b.city ? `(${b.city})` : ''}
+              </option>
+            ))}
+          </select>
+          {isLoadingScope && <Loader2 className="w-3 h-3 text-amber-400 animate-spin ml-1" />}
+        </div>
+      </div>
+    );
+  }
+
+  // Super Admin: Full cross-franchise and cross-branch cascading selector
   return (
-    <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-50 border border-zinc-200 text-xs">
+    <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs shadow-xs">
       {permissions.canViewAllFranchises && (
-        <div className="flex items-center gap-1.5 text-zinc-700">
+        <div className="flex items-center gap-1.5 text-zinc-300">
           <Building className="w-3.5 h-3.5 text-[#F5A800]" />
           <select
             value={selectedFranchiseId}
             onChange={(e) => {
               setSelectedFranchiseId(e.target.value);
-              setSelectedBranchId('ALL');
             }}
-            className="bg-transparent text-xs text-zinc-900 focus:outline-none cursor-pointer font-medium"
+            className="bg-transparent text-xs text-white focus:outline-none cursor-pointer font-medium"
           >
-            <option value="ALL" className="bg-white text-zinc-900">
+            <option value="ALL" className="bg-zinc-900 text-white">
               All Franchises
             </option>
-            <option value="fr-ashok-leyland" className="bg-white text-zinc-900">
-              Ashok Leyland Franchises
-            </option>
+            {franchises.map((f) => (
+              <option key={f.id} value={f.id} className="bg-zinc-900 text-white">
+                {f.name}
+              </option>
+            ))}
           </select>
         </div>
       )}
 
       {permissions.canViewBranches && (
         <>
-          <span className="text-zinc-300">|</span>
-          <div className="flex items-center gap-1.5 text-zinc-700">
-            <Store className="w-3.5 h-3.5 text-amber-600" />
+          <span className="text-zinc-700">|</span>
+          <div className="flex items-center gap-1.5 text-zinc-300">
+            <Store className="w-3.5 h-3.5 text-amber-400" />
             <select
               value={selectedBranchId}
               onChange={(e) => setSelectedBranchId(e.target.value)}
-              className="bg-transparent text-xs text-zinc-900 focus:outline-none cursor-pointer font-medium"
+              className="bg-transparent text-xs text-white focus:outline-none cursor-pointer font-medium"
+              disabled={isLoadingScope}
             >
-              <option value="ALL" className="bg-white text-zinc-900">
-                All Branches
+              <option value="ALL" className="bg-zinc-900 text-white">
+                All Authorized Branches
               </option>
-              <option value="br-jaipur" className="bg-white text-zinc-900">
-                Jaipur Branch
-              </option>
-              <option value="br-jodhpur" className="bg-white text-zinc-900">
-                Jodhpur Branch
-              </option>
+              {branches.map((b) => (
+                <option key={b.id} value={b.id} className="bg-zinc-900 text-white">
+                  {b.name} {b.city ? `(${b.city})` : ''}
+                </option>
+              ))}
             </select>
+            {isLoadingScope && <Loader2 className="w-3 h-3 text-amber-400 animate-spin ml-1" />}
           </div>
         </>
       )}
     </div>
   );
 };
-
-

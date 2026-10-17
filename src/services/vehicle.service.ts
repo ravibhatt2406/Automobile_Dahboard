@@ -149,10 +149,11 @@ export const vehicleService = {
     return Array.isArray(unwrapped) ? unwrapped : [];
   },
 
-  async getVehicles(params?: FilterParams & { variantId?: string }): Promise<PaginatedResponse<Vehicle>> {
+  async getVehicles(params?: FilterParams & { variantId?: string; franchiseId?: string }): Promise<PaginatedResponse<Vehicle>> {
     const cleanParams: Record<string, string> = {};
     if (params?.search) cleanParams.search = params.search;
-    if (params?.branchId) cleanParams.branchId = params.branchId;
+    if (params?.branchId && params.branchId !== 'ALL') cleanParams.branchId = params.branchId;
+    if (params?.franchiseId && params.franchiseId !== 'ALL') cleanParams.franchiseId = params.franchiseId;
     if (params?.status && params.status !== 'ALL') cleanParams.status = params.status;
     if (params?.variantId && params.variantId !== 'ALL') cleanParams.variantId = params.variantId;
     if (params?.page) cleanParams.offset = String(((params.page - 1) * (params.pageSize || 50)));
@@ -196,9 +197,12 @@ export const vehicleService = {
     };
   },
 
-  async getStockSummary(branchId?: string): Promise<VehicleStockSummary> {
-    const query = branchId && branchId !== 'ALL' ? `?branchId=${encodeURIComponent(branchId)}` : '';
-    const res = await apiFetch<any>(`/vehicles/stock-summary${query}`);
+  async getStockSummary(branchId?: string, franchiseId?: string): Promise<VehicleStockSummary> {
+    const params: Record<string, string> = {};
+    if (branchId && branchId !== 'ALL') params.branchId = branchId;
+    if (franchiseId && franchiseId !== 'ALL') params.franchiseId = franchiseId;
+    const query = new URLSearchParams(params).toString();
+    const res = await apiFetch<any>(`/vehicles/stock-summary${query ? `?${query}` : ''}`);
     return unwrapData<VehicleStockSummary>(res);
   },
 

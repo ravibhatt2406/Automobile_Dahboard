@@ -9,16 +9,41 @@ import { StatusBadge } from '@/components/data-display/StatusBadge';
 import { VisualSalesPipeline } from './VisualSalesPipeline';
 import { LeadFormModal } from './LeadFormModal';
 import { useNavigate } from 'react-router-dom';
+import { useScope } from '@/app/providers/ScopeContext';
+import { BranchFilterBar } from '@/components/data-display/BranchFilterBar';
 
 export const LeadsListPage: React.FC = () => {
   const navigate = useNavigate();
+  const { selectedBranchId, selectedFranchiseId, activeBranchName, activeFranchiseName } = useScope();
+
   const [viewMode, setViewMode] = useState<'pipeline' | 'table'>('pipeline');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
 
+  const [search, setSearch] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('ALL');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['leads'],
-    queryFn: () => salesService.getLeads(),
+    queryKey: [
+      'leads',
+      selectedBranchId,
+      selectedFranchiseId,
+      search,
+      selectedStatus,
+      startDate,
+      endDate,
+    ],
+    queryFn: () =>
+      salesService.getLeads({
+        branchId: selectedBranchId !== 'ALL' ? selectedBranchId : undefined,
+        franchiseId: selectedFranchiseId !== 'ALL' ? selectedFranchiseId : undefined,
+        search: search || undefined,
+        status: selectedStatus !== 'ALL' ? selectedStatus : undefined,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
+      }),
   });
 
   const handleCreate = () => {
@@ -31,12 +56,12 @@ export const LeadsListPage: React.FC = () => {
       header: 'Lead / Customer',
       cell: (row) => (
         <div>
-          <span className="font-semibold text-slate-100 block">{row.customerName}</span>
-          <span className="text-xs text-slate-400">{row.companyName || '--'}</span>
+          <span className="font-semibold text-zinc-900 block">{row.customerName}</span>
+          <span className="text-xs text-zinc-500">{row.companyName || '--'}</span>
         </div>
       ),
     },
-    { header: 'Email', accessorKey: 'email', className: 'font-mono text-xs' },
+    { header: 'Email', accessorKey: 'email', className: 'font-mono text-xs text-zinc-600' },
     { header: 'Units Req.', accessorKey: 'estimatedUnits' },
     { header: 'Assigned Salesperson', accessorKey: 'assignedEmployeeName' },
     {
@@ -52,7 +77,7 @@ export const LeadsListPage: React.FC = () => {
       cell: (row) => (
         <button
           onClick={() => navigate(`/crm/leads/${row.id}`)}
-          className="text-xs text-blue-400 hover:text-blue-300 font-medium underline"
+          className="text-xs text-blue-600 hover:text-blue-800 font-medium underline"
         >
           Details
         </button>
@@ -61,20 +86,20 @@ export const LeadsListPage: React.FC = () => {
   ];
 
   return (
-    <div>
+    <div className="space-y-6">
       <PageHeader
         title="CRM & Commercial Lead Pipeline"
-        subtitle="Lead opportunities, fleet requirement tracking, and pipeline progression"
+        subtitle={`Lead opportunities for ${activeFranchiseName} • ${activeBranchName}`}
         breadcrumbItems={[{ label: 'CRM' }, { label: 'Leads' }]}
         actions={
           <div className="flex items-center gap-3">
-            <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg p-0.5">
+            <div className="flex items-center bg-zinc-100 border border-zinc-200 rounded-lg p-0.5">
               <button
                 onClick={() => setViewMode('pipeline')}
                 className={`p-1.5 rounded-md text-xs flex items-center gap-1 font-medium transition-colors ${
                   viewMode === 'pipeline'
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-[#111111] text-[#F5A800] shadow-xs'
+                    : 'text-zinc-600 hover:text-zinc-900'
                 }`}
                 title="Pipeline Kanban View"
               >
@@ -84,8 +109,8 @@ export const LeadsListPage: React.FC = () => {
                 onClick={() => setViewMode('table')}
                 className={`p-1.5 rounded-md text-xs flex items-center gap-1 font-medium transition-colors ${
                   viewMode === 'table'
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-[#111111] text-[#F5A800] shadow-xs'
+                    : 'text-zinc-600 hover:text-zinc-900'
                 }`}
                 title="Table View"
               >
@@ -95,12 +120,43 @@ export const LeadsListPage: React.FC = () => {
 
             <button
               onClick={handleCreate}
-              className="inline-flex items-center gap-2 px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg transition-colors shadow-lg shadow-blue-600/20"
+              className="inline-flex items-center gap-2 px-3.5 py-2 bg-[#111111] hover:bg-black text-[#F5A800] text-xs font-semibold rounded-lg transition-colors shadow-xs"
             >
               <Plus className="w-4 h-4" /> Create Lead Opportunity
             </button>
           </div>
         }
+      />
+
+      <BranchFilterBar
+        searchPlaceholder="Search customer, company or email..."
+        searchValue={search}
+        onSearchChange={setSearch}
+        statusValue={selectedStatus}
+        onStatusChange={setSelectedStatus}
+        statusOptions={[
+          { label: 'All Stages', value: 'ALL' },
+          { label: 'New', value: 'NEW' },
+          { label: 'Contacted', value: 'CONTACTED' },
+          { label: 'Qualified', value: 'QUALIFIED' },
+          { label: 'Proposal Sent', value: 'PROPOSAL_SENT' },
+          { label: 'Negotiating', value: 'NEGOTIATING' },
+          { label: 'Won', value: 'WON' },
+          { label: 'Lost', value: 'LOST' },
+        ]}
+        showDateRange={true}
+        startDate={startDate}
+        endDate={endDate}
+        onDateChange={(start, end) => {
+          setStartDate(start);
+          setEndDate(end);
+        }}
+        onReset={() => {
+          setSearch('');
+          setSelectedStatus('ALL');
+          setStartDate('');
+          setEndDate('');
+        }}
       />
 
       {viewMode === 'pipeline' ? (
@@ -114,8 +170,8 @@ export const LeadsListPage: React.FC = () => {
           columns={columns}
           data={data?.data || []}
           isLoading={isLoading}
-          emptyTitle="No leads assigned to you"
-          emptyDescription="There are no active lead records in the CRM sales pipeline."
+          emptyTitle="No leads found"
+          emptyDescription="There are no active lead records matching your active branch and filter criteria."
           emptyActionLabel="Create Lead Opportunity"
           onEmptyAction={handleCreate}
         />

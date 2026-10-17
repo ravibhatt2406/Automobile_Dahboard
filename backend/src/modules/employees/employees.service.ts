@@ -348,6 +348,13 @@ export class EmployeesService {
         }
         effectiveBranchId = user.assignedBranchId;
       }
+    } else if (isSuperAdmin && effectiveBranchId && effectiveFranchiseId) {
+      const b = await this.prisma.branch.findFirst({
+        where: { OR: [{ id: effectiveBranchId }, { code: effectiveBranchId }] },
+      });
+      if (b && b.franchiseId !== effectiveFranchiseId) {
+        throw new BadRequestException('Selected branch does not belong to the selected franchise');
+      }
     }
 
     return this.prisma.employee.findMany({

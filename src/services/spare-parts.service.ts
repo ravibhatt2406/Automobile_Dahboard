@@ -29,12 +29,13 @@ export function normalizeSparePart(p: any): SparePart & Record<string, any> {
 
 export const sparePartsService = {
   async getSpareParts(
-    params?: FilterParams & { category?: string; branchId?: string },
+    params?: FilterParams & { category?: string; branchId?: string; franchiseId?: string },
   ): Promise<PaginatedResponse<SparePart & Record<string, any>>> {
     const cleanParams: Record<string, string> = {};
     if (params?.search) cleanParams.search = params.search;
     if (params?.category && params.category !== 'ALL') cleanParams.category = params.category;
     if (params?.branchId && params.branchId !== 'ALL') cleanParams.branchId = params.branchId;
+    if (params?.franchiseId && params.franchiseId !== 'ALL') cleanParams.franchiseId = params.franchiseId;
     if (params?.page) cleanParams.offset = String(((params.page - 1) * (params.pageSize || 50)));
     if (params?.pageSize) cleanParams.limit = String(params.pageSize);
 

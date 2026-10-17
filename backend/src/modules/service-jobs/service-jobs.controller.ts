@@ -36,21 +36,38 @@ export class ServiceJobsController {
   @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SERVICE_ADVISOR', 'MECHANIC', 'CUSTOMER')
   @ApiOperation({ summary: 'List service jobs' })
   @ApiQuery({ name: 'branchId', required: false })
+  @ApiQuery({ name: 'franchiseId', required: false })
   @ApiQuery({ name: 'customerId', required: false })
   @ApiQuery({ name: 'status', required: false, enum: ServiceJobStatus })
   @ApiQuery({ name: 'search', required: false })
+  @ApiQuery({ name: 'startDate', required: false })
+  @ApiQuery({ name: 'endDate', required: false })
   @ApiQuery({ name: 'limit', required: false })
   @ApiQuery({ name: 'offset', required: false })
   findAll(
     @Query('branchId') branchId?: string,
+    @Query('franchiseId') franchiseId?: string,
     @Query('customerId') customerId?: string,
     @Query('status') status?: ServiceJobStatus,
     @Query('search') search?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
     @Query('limit') limit?: number,
     @Query('offset') offset?: number,
     @CurrentUser() user?: any,
   ) {
-    return this.serviceJobsService.findAll(branchId, customerId, status, search, limit ? +limit : 50, offset ? +offset : 0, user);
+    return this.serviceJobsService.findAll(
+      branchId,
+      customerId,
+      status,
+      search,
+      limit ? +limit : 50,
+      offset ? +offset : 0,
+      user,
+      franchiseId,
+      startDate,
+      endDate,
+    );
   }
 
   @Get('mechanic/my-jobs')

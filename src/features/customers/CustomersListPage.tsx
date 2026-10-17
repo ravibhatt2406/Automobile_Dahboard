@@ -29,10 +29,18 @@ import { useNavigate } from 'react-router-dom';
 import { csvDataService } from '@/services/csv-data.service';
 import { CsvImportModal } from '@/components/forms/CsvImportModal';
 import { useAuth } from '@/app/providers/AuthContext';
+import { useScope } from '@/app/providers/ScopeContext';
+import { BranchFilterBar } from '@/components/data-display/BranchFilterBar';
 
 export const CustomersListPage: React.FC = () => {
   const navigate = useNavigate();
   const { user, activeRole } = useAuth();
+  const {
+    selectedBranchId,
+    selectedFranchiseId,
+    activeBranchName,
+    activeFranchiseName,
+  } = useScope();
 
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -48,7 +56,11 @@ export const CustomersListPage: React.FC = () => {
 
   // Compute tenant scope banner text
   const scopeDescription = isSuperAdmin
-    ? 'Global Fleet Directory (All Dealership Branches & Franchises)'
+    ? selectedBranchId !== 'ALL'
+      ? `Branch Directory: ${activeBranchName}`
+      : selectedFranchiseId !== 'ALL'
+      ? `Franchise Directory: ${activeFranchiseName}`
+      : 'Global Fleet Directory (All Dealership Branches & Franchises)'
     : user?.assignedBranchName
     ? `Authorized Branch Directory: ${user.assignedBranchName}`
     : user?.assignedFranchiseName
@@ -56,10 +68,21 @@ export const CustomersListPage: React.FC = () => {
     : 'Authorized Customer Directory';
 
   const { data, isLoading, refetch, isFetching } = useQuery({
-    queryKey: ['customers', searchTerm, customerTypeFilter, statusFilter, page, pageSize],
+    queryKey: [
+      'customers',
+      selectedBranchId,
+      selectedFranchiseId,
+      searchTerm,
+      customerTypeFilter,
+      statusFilter,
+      page,
+      pageSize,
+    ],
     queryFn: () =>
       customerService.getCustomers({
         search: searchTerm || undefined,
+        branchId: selectedBranchId !== 'ALL' ? selectedBranchId : undefined,
+        franchiseId: selectedFranchiseId !== 'ALL' ? selectedFranchiseId : undefined,
         customerType: customerTypeFilter || undefined,
         status: statusFilter || undefined,
         page,
@@ -275,50 +298,27 @@ export const CustomersListPage: React.FC = () => {
         }
       />
 
-      {/* Directory Search & Filters Toolbar */}
-      <div className="bg-[#111111] border border-zinc-800/80 rounded-xl p-4 shadow-md space-y-3">
-        <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
-          {/* Live Search */}
-          <div className="relative flex-1 max-w-md">
-            <Search className="w-4 h-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setPage(1);
-              }}
-              placeholder="Search by client name, phone, email, or company..."
-              className="w-full bg-zinc-900 border border-zinc-800 rounded-lg pl-9 pr-3 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500/80 transition-colors"
-            />
-            {searchTerm && (
-              <button
-                onClick={() => setSearchTerm('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white text-xs"
-              >
-                ✕
-              </button>
-            )}
-          </div>
-
-          {/* Type & Status Filters */}
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <div className="flex items-center gap-1.5 text-xs text-zinc-400">
-              <Filter className="w-3.5 h-3.5 text-amber-500" />
-              <span>Filters:</span>
-            </div>
-
+      {/* Unified Cascading Branch & Filter Bar */}
+      <BranchFilterBar
+        searchPlaceholder="Search by client name, phone, email, or company..."
+        searchValue={searchTerm}
+        onSearchChange={(v) => {
+          setSearchTerm(v);
+          setPage(1);
+        }}
+        extraFilters={
+          <div className="flex items-center gap-2">
             <select
               value={customerTypeFilter}
               onChange={(e) => {
                 setCustomerTypeFilter(e.target.value);
                 setPage(1);
               }}
-              className="bg-zinc-900 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-amber-500/80"
+              className="bg-zinc-950 border border-zinc-800 text-zinc-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none cursor-pointer"
             >
               <option value="">All Account Types</option>
-              <option value="BUSINESS">Corporate / Business</option>
-              <option value="INDIVIDUAL">Individual / Fleet</option>
+              <option value="BUSINESS" className="bg-zinc-900 text-white">Corporate / Business</option>
+              <option value="INDIVIDUAL" className="bg-zinc-900 text-white">Individual / Fleet</option>
             </select>
 
             <select
@@ -327,40 +327,21 @@ export const CustomersListPage: React.FC = () => {
                 setStatusFilter(e.target.value);
                 setPage(1);
               }}
-              className="bg-zinc-900 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-amber-500/80"
+              className="bg-zinc-950 border border-zinc-800 text-zinc-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none cursor-pointer"
             >
               <option value="">All Statuses</option>
-              <option value="ACTIVE">Active Accounts</option>
-              <option value="INACTIVE">Inactive Accounts</option>
+              <option value="ACTIVE" className="bg-zinc-900 text-white">Active Accounts</option>
+              <option value="INACTIVE" className="bg-zinc-900 text-white">Inactive Accounts</option>
             </select>
-
-            {(searchTerm || customerTypeFilter || statusFilter) && (
-              <button
-                onClick={() => {
-                  setSearchTerm('');
-                  setCustomerTypeFilter('');
-                  setStatusFilter('');
-                  setPage(1);
-                }}
-                className="text-xs text-amber-400 hover:text-amber-300 font-medium px-2 py-1 underline"
-              >
-                Reset Filters
-              </button>
-            )}
           </div>
-        </div>
-
-        {/* Directory Summary Bar */}
-        <div className="flex items-center justify-between text-[11px] text-zinc-400 pt-1 border-t border-zinc-800/40">
-          <div className="flex items-center gap-1.5">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Server-side tenant security active: Showing authorized branch-linked customer records</span>
-          </div>
-          <div>
-            Total Clients: <span className="font-bold text-zinc-200">{totalRecords}</span>
-          </div>
-        </div>
-      </div>
+        }
+        onReset={() => {
+          setSearchTerm('');
+          setCustomerTypeFilter('');
+          setStatusFilter('');
+          setPage(1);
+        }}
+      />
 
       {/* Authorized Customer Records DataTable */}
       <DataTable<Customer>

@@ -56,13 +56,23 @@ export function normalizeServiceJob(j: any): ServiceJob & Record<string, any> {
 
 export const serviceManagementService = {
   async getServiceJobs(
-    params?: FilterParams & { status?: string; branchId?: string; customerId?: string },
+    params?: FilterParams & {
+      status?: string;
+      branchId?: string;
+      franchiseId?: string;
+      customerId?: string;
+      startDate?: string;
+      endDate?: string;
+    },
   ): Promise<PaginatedResponse<ServiceJob & Record<string, any>>> {
     const cleanParams: Record<string, string> = {};
     if (params?.search) cleanParams.search = params.search;
     if (params?.branchId && params.branchId !== 'ALL') cleanParams.branchId = params.branchId;
+    if (params?.franchiseId && params.franchiseId !== 'ALL') cleanParams.franchiseId = params.franchiseId;
     if (params?.status && params.status !== 'ALL') cleanParams.status = params.status;
     if (params?.customerId) cleanParams.customerId = params.customerId;
+    if (params?.startDate) cleanParams.startDate = params.startDate;
+    if (params?.endDate) cleanParams.endDate = params.endDate;
     if (params?.page) cleanParams.offset = String(((params.page - 1) * (params.pageSize || 50)));
     if (params?.pageSize) cleanParams.limit = String(params.pageSize);
 

@@ -10,50 +10,55 @@ import { Plus, LayoutGrid, Table, Filter, Archive, Search, RefreshCw, AlertTrian
 import { StatusBadge } from '@/components/data-display/StatusBadge';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/app/providers/AuthContext';
+import { useScope } from '@/app/providers/ScopeContext';
+import { BranchFilterBar } from '@/components/data-display/BranchFilterBar';
 
 export const VehiclesListPage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { activeRole, permissions } = useAuth();
+  const {
+    selectedBranchId,
+    selectedFranchiseId,
+    activeBranchName,
+    activeFranchiseName,
+  } = useScope();
+
   const isCustomer = activeRole === 'CUSTOMER';
   const canManage = permissions.canManageInventory || permissions.canManageBranches;
 
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const [filterBranch, setFilterBranch] = useState<string>('ALL');
   const [filterVariant, setFilterVariant] = useState<string>('ALL');
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
   const [actionError, setActionError] = useState<string | null>(null);
 
-  // 1. Fetch authorized branches for filter
-  const { data: branchesRes } = useQuery({
-    queryKey: ['branches'],
-    queryFn: () => branchService.getBranches(),
-    enabled: !isCustomer,
-  });
-  const branches = branchesRes?.data || [];
-
-  // 2. Fetch variants for filter
+  // 1. Fetch variants for filter
   const { data: variants = [] } = useQuery({
     queryKey: ['catalogVariants'],
     queryFn: () => catalogueService.getVariants(),
     enabled: !isCustomer,
   });
 
-  // 3. Fetch real stock summary metrics from backend
+  // 2. Fetch real stock summary metrics from backend synchronized with scope
   const { data: stockSummary } = useQuery({
-    queryKey: ['stockSummary', filterBranch],
-    queryFn: () => vehicleService.getStockSummary(filterBranch !== 'ALL' ? filterBranch : undefined),
+    queryKey: ['stockSummary', selectedBranchId, selectedFranchiseId],
+    queryFn: () =>
+      vehicleService.getStockSummary(
+        selectedBranchId !== 'ALL' ? selectedBranchId : undefined,
+        selectedFranchiseId !== 'ALL' ? selectedFranchiseId : undefined,
+      ),
     enabled: !isCustomer,
   });
 
-  // 4. Fetch vehicles with real filters
+  // 3. Fetch vehicles with real branch, franchise, and status filters
   const { data, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ['vehicles', searchTerm, filterBranch, filterVariant, filterStatus],
+    queryKey: ['vehicles', searchTerm, selectedBranchId, selectedFranchiseId, filterVariant, filterStatus],
     queryFn: () =>
       vehicleService.getVehicles({
         search: searchTerm.trim() || undefined,
-        branchId: filterBranch !== 'ALL' ? filterBranch : undefined,
+        branchId: selectedBranchId !== 'ALL' ? selectedBranchId : undefined,
+        franchiseId: selectedFranchiseId !== 'ALL' ? selectedFranchiseId : undefined,
         variantId: filterVariant !== 'ALL' ? filterVariant : undefined,
         status: filterStatus !== 'ALL' ? filterStatus : undefined,
       }),
@@ -251,78 +256,46 @@ export const VehiclesListPage: React.FC = () => {
         </div>
       )}
 
-      {/* Filter and Search Bar */}
-      <div className="cockpit-card p-4 rounded-xl border border-[#E5E5E5] bg-white space-y-3">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 text-xs">
-          {/* Search Input */}
-          <div className="lg:col-span-4 relative flex items-center">
-            <Search className="w-4 h-4 text-zinc-400 absolute left-3 pointer-events-none" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by VIN, Engine #, Model or Color..."
-              className="w-full h-9 pl-9 pr-3 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-900 placeholder-zinc-400 focus:outline-none focus:border-[#F5A800]"
-            />
-          </div>
-
-          {/* Branch Filter */}
-          {!isCustomer && (
-            <div className="lg:col-span-3">
-              <select
-                value={filterBranch}
-                onChange={(e) => setFilterBranch(e.target.value)}
-                className="w-full h-9 px-3 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-900 focus:outline-none focus:border-[#F5A800]"
-              >
-                <option value="ALL">All Authorized Branches</option>
-                {branches.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name} ({b.code})
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* Variant Filter */}
-          {!isCustomer && (
-            <div className="lg:col-span-3">
-              <select
-                value={filterVariant}
-                onChange={(e) => setFilterVariant(e.target.value)}
-                className="w-full h-9 px-3 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-900 focus:outline-none focus:border-[#F5A800]"
-              >
-                <option value="ALL">All Truck Variants</option>
-                {variants.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {v.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* Status Filter */}
-          <div className={isCustomer ? 'lg:col-span-8' : 'lg:col-span-2'}>
+      {/* Unified Cascading Branch & Filter Bar */}
+      <BranchFilterBar
+        searchPlaceholder="Search by VIN, Engine #, Model or Color..."
+        searchValue={searchTerm}
+        onSearchChange={(v) => setSearchTerm(v)}
+        statusValue={filterStatus === 'ALL' ? '' : filterStatus}
+        onStatusChange={(v) => setFilterStatus(v || 'ALL')}
+        statusOptions={[
+          { label: 'In Stock (Available)', value: 'IN_STOCK' },
+          { label: 'Reserved', value: 'RESERVED' },
+          { label: 'Allocated', value: 'ALLOCATED' },
+          { label: 'PDI Pending', value: 'PDI_PENDING' },
+          { label: 'PDI Completed', value: 'PDI_COMPLETED' },
+          { label: 'Under Service', value: 'SERVICE' },
+          { label: 'Delivered', value: 'DELIVERED' },
+          { label: 'Sold', value: 'SOLD' },
+          { label: 'Archived / Blocked', value: 'BLOCKED' },
+        ]}
+        extraFilters={
+          !isCustomer && (
             <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full h-9 px-3 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-900 focus:outline-none focus:border-[#F5A800]"
+              value={filterVariant}
+              onChange={(e) => setFilterVariant(e.target.value)}
+              className="bg-zinc-950 border border-zinc-800 text-zinc-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none cursor-pointer"
             >
-              <option value="ALL">All Statuses</option>
-              <option value="IN_STOCK">In Stock (Available)</option>
-              <option value="RESERVED">Reserved</option>
-              <option value="ALLOCATED">Allocated</option>
-              <option value="PDI_PENDING">PDI Pending</option>
-              <option value="PDI_COMPLETED">PDI Completed</option>
-              <option value="SERVICE">Under Service</option>
-              <option value="DELIVERED">Delivered</option>
-              <option value="SOLD">Sold</option>
-              <option value="BLOCKED">Archived / Blocked</option>
+              <option value="ALL">All Truck Variants</option>
+              {variants.map((v) => (
+                <option key={v.id} value={v.id} className="bg-zinc-900 text-white">
+                  {v.name}
+                </option>
+              ))}
             </select>
-          </div>
-        </div>
-      </div>
+          )
+        }
+        onReset={() => {
+          setSearchTerm('');
+          setFilterVariant('ALL');
+          setFilterStatus('ALL');
+        }}
+      />
 
       {isLoading ? (
         <div className="p-12 text-center text-xs font-mono text-zinc-500 bg-white rounded-xl border border-zinc-200">

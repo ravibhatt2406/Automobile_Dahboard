@@ -21,7 +21,7 @@ import { InvoiceStatus } from '@prisma/client';
 @ApiTags('Invoices')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard, TenantScopeGuard)
-@Controller('invoices')
+@Controller(['invoices', 'billing/invoices'])
 export class InvoicesController {
   constructor(private readonly invoicesService: InvoicesService) {}
 
@@ -36,17 +36,32 @@ export class InvoicesController {
   @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'ACCOUNTANT', 'SALES_EMPLOYEE', 'CUSTOMER')
   @ApiOperation({ summary: 'List invoices' })
   @ApiQuery({ name: 'branchId', required: false })
+  @ApiQuery({ name: 'franchiseId', required: false })
   @ApiQuery({ name: 'status', required: false, enum: InvoiceStatus })
+  @ApiQuery({ name: 'startDate', required: false })
+  @ApiQuery({ name: 'endDate', required: false })
   @ApiQuery({ name: 'limit', required: false })
   @ApiQuery({ name: 'offset', required: false })
   findAll(
     @Query('branchId') branchId?: string,
+    @Query('franchiseId') franchiseId?: string,
     @Query('status') status?: InvoiceStatus,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
     @Query('limit') limit?: number,
     @Query('offset') offset?: number,
     @CurrentUser() user?: any,
   ) {
-    return this.invoicesService.findAll(branchId, status, limit ? +limit : 50, offset ? +offset : 0, user);
+    return this.invoicesService.findAll(
+      branchId,
+      status,
+      limit ? +limit : 50,
+      offset ? +offset : 0,
+      user,
+      franchiseId,
+      startDate,
+      endDate,
+    );
   }
 
   @Get(':id')

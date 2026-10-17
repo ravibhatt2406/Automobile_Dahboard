@@ -13,7 +13,7 @@ import { VehicleStatus } from '@prisma/client';
 @ApiTags('Physical Vehicle Inventory')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard, TenantScopeGuard)
-@Controller('vehicles')
+@Controller(['vehicles', 'inventory/vehicles'])
 export class InventoryController {
   constructor(private readonly inventoryService: InventoryService) {}
 
@@ -75,9 +75,10 @@ export class InventoryController {
     'MECHANIC',
     'EMPLOYEE',
   )
-  @ApiOperation({ summary: 'Get list of physical vehicles in stock (filtered by branch, status, variant or search query)' })
+  @ApiOperation({ summary: 'Get list of physical vehicles in stock (filtered by branch, franchise, status, variant or search query)' })
   async findAll(
     @Query('branchId') branchId: string | undefined,
+    @Query('franchiseId') franchiseId: string | undefined,
     @Query('status') status: VehicleStatus | undefined,
     @Query('variantId') variantId: string | undefined,
     @Query('search') search: string | undefined,
@@ -85,7 +86,7 @@ export class InventoryController {
     @Query('offset') offset = 0,
     @CurrentUser() user?: any,
   ) {
-    return this.inventoryService.findAll(branchId, status, variantId, search, Number(limit), Number(offset), user);
+    return this.inventoryService.findAll(branchId, status, variantId, search, Number(limit), Number(offset), user, franchiseId);
   }
 
   @Get('stock-summary')
@@ -102,8 +103,12 @@ export class InventoryController {
     'EMPLOYEE',
   )
   @ApiOperation({ summary: 'Get real stock counts and inventory metrics by status' })
-  async getStockSummary(@Query('branchId') branchId?: string, @CurrentUser() user?: any) {
-    return this.inventoryService.getStockSummary(branchId, user);
+  async getStockSummary(
+    @Query('branchId') branchId?: string,
+    @Query('franchiseId') franchiseId?: string,
+    @CurrentUser() user?: any,
+  ) {
+    return this.inventoryService.getStockSummary(branchId, user, franchiseId);
   }
 
   @Get(':id')

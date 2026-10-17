@@ -8,15 +8,17 @@ import { branchService } from '@/services/branch.service';
 import { Package, Plus, Sliders, Search, AlertCircle, Edit, Building, Layers, DollarSign, X, RefreshCw } from 'lucide-react';
 import { StockAdjustmentModal } from './StockAdjustmentModal';
 import { useAuth } from '@/app/providers/AuthContext';
+import { useScope } from '@/app/providers/ScopeContext';
+import { BranchFilterBar } from '@/components/data-display/BranchFilterBar';
 
 export const SparePartsListPage: React.FC = () => {
   const queryClient = useQueryClient();
   const { activeRole } = useAuth();
+  const { selectedBranchId, selectedFranchiseId, activeBranchName, activeFranchiseName } = useScope();
   const isCustomer = activeRole === 'CUSTOMER';
 
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
-  const [selectedBranch, setSelectedBranch] = useState('ALL');
 
   // Modals state
   const [selectedPart, setSelectedPart] = useState<any | null>(null);
@@ -37,12 +39,13 @@ export const SparePartsListPage: React.FC = () => {
 
   // Query parts
   const { data: partsData, isLoading, error: queryError } = useQuery({
-    queryKey: ['spareParts', search, selectedCategory, selectedBranch],
+    queryKey: ['spareParts', search, selectedCategory, selectedBranchId, selectedFranchiseId],
     queryFn: () =>
       sparePartsService.getSpareParts({
         search: search || undefined,
         category: selectedCategory !== 'ALL' ? selectedCategory : undefined,
-        branchId: selectedBranch !== 'ALL' ? selectedBranch : undefined,
+        branchId: selectedBranchId !== 'ALL' ? selectedBranchId : undefined,
+        franchiseId: selectedFranchiseId !== 'ALL' ? selectedFranchiseId : undefined,
       }),
   });
 
@@ -306,47 +309,26 @@ export const SparePartsListPage: React.FC = () => {
       </div>
 
       {/* Filters & Search */}
-      <div className="p-4 bg-white rounded-xl border border-zinc-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
-        <div className="relative flex-1 min-w-[240px]">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-          <input
-            type="text"
-            placeholder="Search by part number, name, or manufacturer..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-medium text-zinc-900 placeholder-zinc-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#F5A800]"
-          />
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3">
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="text-xs font-medium py-2 px-3 bg-zinc-50 border border-zinc-200 rounded-lg text-zinc-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#F5A800]"
-          >
-            <option value="ALL">All Categories</option>
-            <option value="BRAKES">Brakes</option>
-            <option value="ENGINE">Engine & Powertrain</option>
-            <option value="TRANSMISSION">Transmission</option>
-            <option value="ELECTRICAL">Electrical</option>
-            <option value="FILTERS">Filters & Fluids</option>
-            <option value="SUSPENSION">Suspension</option>
-          </select>
-
-          <select
-            value={selectedBranch}
-            onChange={(e) => setSelectedBranch(e.target.value)}
-            className="text-xs font-medium py-2 px-3 bg-zinc-50 border border-zinc-200 rounded-lg text-zinc-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#F5A800]"
-          >
-            <option value="ALL">All Branch Warehouses</option>
-            {branches.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name} ({b.city})
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
+      <BranchFilterBar
+        searchPlaceholder="Search by part number, name, or manufacturer..."
+        searchValue={search}
+        onSearchChange={setSearch}
+        statusValue={selectedCategory}
+        onStatusChange={setSelectedCategory}
+        statusOptions={[
+          { label: 'All Categories', value: 'ALL' },
+          { label: 'Brakes', value: 'BRAKES' },
+          { label: 'Engine & Powertrain', value: 'ENGINE' },
+          { label: 'Transmission', value: 'TRANSMISSION' },
+          { label: 'Electrical', value: 'ELECTRICAL' },
+          { label: 'Filters & Fluids', value: 'FILTERS' },
+          { label: 'Suspension', value: 'SUSPENSION' },
+        ]}
+        onReset={() => {
+          setSearch('');
+          setSelectedCategory('ALL');
+        }}
+      />
 
       {queryError && (
         <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 flex items-center gap-2">

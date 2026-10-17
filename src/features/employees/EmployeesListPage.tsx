@@ -13,24 +13,34 @@ import { useNavigate } from 'react-router-dom';
 import { csvDataService } from '@/services/csv-data.service';
 import { CsvImportModal } from '@/components/forms/CsvImportModal';
 
+import { useScope } from '@/app/providers/ScopeContext';
+import { BranchFilterBar } from '@/components/data-display/BranchFilterBar';
+
 export const EmployeesListPage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { permissions, activeRole } = useAuth();
+  const { selectedBranchId, selectedFranchiseId, activeBranchName, activeFranchiseName } = useScope();
   const canManage =
     permissions.canManageEmployees ||
     ['SUPER_ADMIN', 'FRANCHISE_OWNER', 'FRANCHISE_MANAGER', 'BRANCH_OWNER', 'BRANCH_MANAGER'].includes(
       activeRole || '',
     );
 
+  const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['employees'],
-    queryFn: () => employeeService.getEmployees(),
+    queryKey: ['employees', selectedBranchId, selectedFranchiseId, search],
+    queryFn: () =>
+      employeeService.getEmployees({
+        branchId: selectedBranchId !== 'ALL' ? selectedBranchId : undefined,
+        franchiseId: selectedFranchiseId !== 'ALL' ? selectedFranchiseId : undefined,
+        search: search || undefined,
+      }),
   });
 
   const handleExport = async () => {
@@ -186,13 +196,20 @@ export const EmployeesListPage: React.FC = () => {
           </div>
         }
       />
+ 
+      <BranchFilterBar
+        searchPlaceholder="Search employees by name, email, code or designation..."
+        searchValue={search}
+        onSearchChange={setSearch}
+        onReset={() => setSearch('')}
+      />
 
       <DataTable<Employee>
         columns={columns}
         data={employeesList}
         isLoading={isLoading}
         emptyTitle="No employees found"
-        emptyDescription="No employee staff profiles are currently registered."
+        emptyDescription="No employee staff profiles match your active branch and filter criteria."
         emptyActionLabel={canManage ? 'Add Employee Profile' : undefined}
         onEmptyAction={canManage ? handleCreate : undefined}
       />

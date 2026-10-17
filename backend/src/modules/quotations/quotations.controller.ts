@@ -33,15 +33,28 @@ export class QuotationsController {
     'SALES_EMPLOYEE',
     'CUSTOMER',
   )
-  @ApiOperation({ summary: 'Get list of quotations (filtered by branchId or status)' })
+  @ApiOperation({ summary: 'Get list of quotations (filtered by branchId, franchiseId, or status)' })
   async findAll(
     @Query('branchId') branchId?: string,
+    @Query('franchiseId') franchiseId?: string,
     @Query('status') status?: QuotationStatus,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
     @Query('limit') limit = 50,
     @Query('offset') offset = 0,
     @CurrentUser() user?: any,
   ) {
-    return this.quotationsService.findAll(branchId, undefined, status, Number(limit), Number(offset), user);
+    return this.quotationsService.findAll(
+      branchId,
+      undefined,
+      status,
+      Number(limit),
+      Number(offset),
+      user,
+      franchiseId,
+      startDate,
+      endDate,
+    );
   }
 
   @Get(':id')

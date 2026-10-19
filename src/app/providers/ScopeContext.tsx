@@ -33,8 +33,9 @@ const ScopeContext = createContext<ScopeContextType | undefined>(undefined);
 export const ScopeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, activeRole } = useAuth();
 
-  const isBranchLocked = BRANCH_SCOPED_ROLES.includes(activeRole);
-  const isFranchiseLocked = ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(activeRole);
+  const isRealSuperAdmin = user?.accountType === 'SUPER_ADMIN' || user?.roles.includes('SUPER_ADMIN');
+  const isBranchLocked = !isRealSuperAdmin && BRANCH_SCOPED_ROLES.includes(activeRole);
+  const isFranchiseLocked = !isRealSuperAdmin && ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(activeRole);
 
   const assignedBranchId = user?.assignedBranchId || '';
   const assignedBranchName = user?.assignedBranchName || '';
@@ -59,14 +60,31 @@ export const ScopeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (isBranchLocked && assignedFranchiseId) return assignedFranchiseId;
     if (isFranchiseLocked && assignedFranchiseId) return assignedFranchiseId;
     if (initialUrlScope.urlFranchise && initialUrlScope.urlFranchise !== 'ALL') return initialUrlScope.urlFranchise;
-    return 'ALL';
+    return localStorage.getItem('titan_active_franchise_id') || 'ALL';
   });
 
   const [selectedBranchId, setSelectedBranchState] = useState<string | 'ALL'>(() => {
     if (isBranchLocked && assignedBranchId) return assignedBranchId;
     if (initialUrlScope.urlBranch && initialUrlScope.urlBranch !== 'ALL') return initialUrlScope.urlBranch;
-    return 'ALL';
+    return localStorage.getItem('titan_active_branch_id') || 'ALL';
   });
+
+  // Sync localStorage with active branch/franchise
+  useEffect(() => {
+    if (selectedBranchId && selectedBranchId !== 'ALL') {
+      localStorage.setItem('titan_active_branch_id', selectedBranchId);
+    } else {
+      localStorage.removeItem('titan_active_branch_id');
+    }
+  }, [selectedBranchId]);
+
+  useEffect(() => {
+    if (selectedFranchiseId && selectedFranchiseId !== 'ALL') {
+      localStorage.setItem('titan_active_franchise_id', selectedFranchiseId);
+    } else {
+      localStorage.removeItem('titan_active_franchise_id');
+    }
+  }, [selectedFranchiseId]);
 
   const [franchises, setFranchises] = useState<Franchise[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);

@@ -1,5 +1,5 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { DashboardsService } from './dashboards.service';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
@@ -17,13 +17,20 @@ export class DashboardsController {
   @Get('super-admin')
   @Roles('SUPER_ADMIN')
   @ApiOperation({ summary: 'Super Admin Overview Dashboard' })
-  getSuperAdminDashboard() {
-    return this.dashboardsService.getSuperAdminDashboard();
+  @ApiQuery({ name: 'franchiseId', required: false })
+  @ApiQuery({ name: 'branchId', required: false })
+  getSuperAdminDashboard(
+    @Query('franchiseId') queryFranchiseId?: string,
+    @Query('branchId') queryBranchId?: string,
+    @CurrentUser() user?: any,
+  ) {
+    return this.dashboardsService.getSuperAdminDashboard(queryFranchiseId, queryBranchId, user);
   }
 
   @Get('franchise')
   @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'FRANCHISE_MANAGER')
   @ApiOperation({ summary: 'Franchise Executive Dashboard' })
+  @ApiQuery({ name: 'franchiseId', required: false })
   getFranchiseDashboard(
     @Query('franchiseId') queryFranchiseId: string,
     @CurrentUser() user: any,
@@ -34,6 +41,7 @@ export class DashboardsController {
   @Get('organization')
   @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'FRANCHISE_MANAGER')
   @ApiOperation({ summary: 'Organization / Franchise Dashboard Alias' })
+  @ApiQuery({ name: 'franchiseId', required: false })
   getOrganizationDashboard(
     @Query('franchiseId') queryFranchiseId: string,
     @CurrentUser() user: any,
@@ -44,6 +52,7 @@ export class DashboardsController {
   @Get('branch')
   @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'FRANCHISE_MANAGER', 'BRANCH_OWNER', 'BRANCH_MANAGER')
   @ApiOperation({ summary: 'Branch Operational Dashboard' })
+  @ApiQuery({ name: 'branchId', required: false })
   getBranchDashboard(
     @Query('branchId') queryBranchId: string,
     @CurrentUser() user: any,
@@ -54,6 +63,7 @@ export class DashboardsController {
   @Get('branch-manager')
   @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'FRANCHISE_MANAGER', 'BRANCH_OWNER', 'BRANCH_MANAGER')
   @ApiOperation({ summary: 'Branch Manager Operational Dashboard Alias' })
+  @ApiQuery({ name: 'branchId', required: false })
   getBranchManagerDashboard(
     @Query('branchId') queryBranchId: string,
     @CurrentUser() user: any,
@@ -71,8 +81,12 @@ export class DashboardsController {
     'SALES_EMPLOYEE',
   )
   @ApiOperation({ summary: 'Sales Executive Workload Dashboard' })
-  getSalesDashboard(@CurrentUser() user: any) {
-    return this.dashboardsService.getSalesDashboard(user);
+  @ApiQuery({ name: 'branchId', required: false })
+  getSalesDashboard(
+    @Query('branchId') queryBranchId: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.dashboardsService.getSalesDashboard(user, queryBranchId);
   }
 
   @Get('service-advisor')
@@ -85,8 +99,12 @@ export class DashboardsController {
     'SERVICE_ADVISOR',
   )
   @ApiOperation({ summary: 'Service Advisor Operations Dashboard' })
-  getServiceAdvisorDashboard(@CurrentUser() user: any) {
-    return this.dashboardsService.getServiceAdvisorDashboard(user);
+  @ApiQuery({ name: 'branchId', required: false })
+  getServiceAdvisorDashboard(
+    @Query('branchId') queryBranchId: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.dashboardsService.getServiceAdvisorDashboard(user, queryBranchId);
   }
 
   @Get('mechanic')
@@ -94,7 +112,7 @@ export class DashboardsController {
   @ApiOperation({ summary: 'Mechanic Workstation & Active Job Dashboard' })
   getMechanicDashboard(@CurrentUser() user: any) {
     const mechanicEmployeeId = user?.employeeId || user?.employeeProfile?.id || user?.id;
-    return this.dashboardsService.getMechanicDashboard(mechanicEmployeeId);
+    return this.dashboardsService.getMechanicDashboard(mechanicEmployeeId, user);
   }
 
   @Get('customer')

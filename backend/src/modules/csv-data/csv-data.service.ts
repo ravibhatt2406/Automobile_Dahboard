@@ -173,13 +173,14 @@ export class CsvDataService {
   async exportData(entity: string, user: any): Promise<{ filename: string; content: string }> {
     const normalized = entity.toLowerCase();
     const roles: string[] = Array.isArray(user?.roles) ? user.roles : [];
-    const isSuperAdmin = user?.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN');
-    const isFranchiseLevel = roles.some((r) => ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r));
-    const isBranchLevel = roles.some((r) =>
+    const scope = user?.effectiveScope;
+    const isSuperAdmin = scope ? scope.isActingSuperAdmin : (user?.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN'));
+    const isFranchiseLevel = scope ? scope.isActingFranchiseLevel : roles.some((r) => ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r));
+    const isBranchLevel = scope ? scope.isActingBranchLevel : roles.some((r) =>
       ['BRANCH_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE', 'SERVICE_ADVISOR', 'MECHANIC'].includes(r),
     );
-    const assignedFranchiseId = user?.assignedFranchiseId;
-    const assignedBranchId = user?.assignedBranchId;
+    const assignedFranchiseId = scope?.effectiveFranchiseId || user?.assignedFranchiseId;
+    const assignedBranchId = scope?.effectiveBranchId || user?.assignedBranchId;
 
     switch (normalized) {
       case 'franchises': {

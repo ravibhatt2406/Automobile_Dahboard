@@ -130,6 +130,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const updatedUser: UserProfile = { ...user, activeRole: role };
     setUser(updatedUser);
     localStorage.setItem('titan_user_profile', JSON.stringify(updatedUser));
+    localStorage.setItem('titan_active_role', role);
     return true;
   };
 
@@ -179,6 +180,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(authenticatedUser);
       localStorage.setItem('titan_is_authenticated', 'true');
       localStorage.setItem('titan_user_profile', JSON.stringify(authenticatedUser));
+      localStorage.setItem('titan_active_role', activeRole);
       return authenticatedUser;
     } catch (err: any) {
       console.warn('Backend authentication failed:', err?.message || err);
@@ -238,6 +240,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 
   const logout = async () => {
+    localStorage.removeItem('titan_active_role');
+    localStorage.removeItem('titan_active_branch_id');
+    localStorage.removeItem('titan_active_franchise_id');
     await authService.logout();
     setUser(null);
   };

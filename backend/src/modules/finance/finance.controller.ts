@@ -33,26 +33,31 @@ export class FinanceController {
   }
 
   @Get()
-  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE', 'FINANCE_MANAGER')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE', 'FINANCE_MANAGER', 'CUSTOMER')
   @ApiOperation({ summary: 'List finance applications' })
+  @ApiQuery({ name: 'branchId', required: false })
+  @ApiQuery({ name: 'franchiseId', required: false })
   @ApiQuery({ name: 'customerId', required: false })
   @ApiQuery({ name: 'status', required: false, enum: FinanceStatus })
   @ApiQuery({ name: 'limit', required: false })
   @ApiQuery({ name: 'offset', required: false })
   findAll(
+    @Query('branchId') branchId?: string,
+    @Query('franchiseId') franchiseId?: string,
     @Query('customerId') customerId?: string,
     @Query('status') status?: FinanceStatus,
     @Query('limit') limit?: number,
     @Query('offset') offset?: number,
+    @CurrentUser() user?: any,
   ) {
-    return this.financeService.findAll(customerId, status, limit ? +limit : 50, offset ? +offset : 0);
+    return this.financeService.findAll(customerId, status, limit ? +limit : 50, offset ? +offset : 0, user, branchId, franchiseId);
   }
 
   @Get(':id')
-  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE', 'FINANCE_MANAGER')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE', 'FINANCE_MANAGER', 'CUSTOMER')
   @ApiOperation({ summary: 'Get finance application details' })
-  findOne(@Param('id') id: string) {
-    return this.financeService.findOne(id);
+  findOne(@Param('id') id: string, @CurrentUser() user?: any) {
+    return this.financeService.findOne(id, user);
   }
 
   @Patch(':id/status')

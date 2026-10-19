@@ -175,11 +175,34 @@ export class PaymentsService {
         }).catch(() => {});
       }
 
-      if (payment.invoiceId) {
-        await tx.invoice.update({
-          where: { id: payment.invoiceId },
-          data: { paymentStatus: 'PAID' },
-        }).catch(() => {});
+      const targetInvoiceId =
+        payment.invoiceId ||
+        (
+          await tx.invoice.findFirst({
+            where: { bookingId: payment.bookingId, status: { not: 'CANCELLED' } },
+          })
+        )?.id;
+
+      if (targetInvoiceId) {
+        const inv = await tx.invoice.findUnique({ where: { id: targetInvoiceId } });
+        if (inv) {
+          const invPayments = await tx.payment.aggregate({
+            where: {
+              OR: [{ invoiceId: targetInvoiceId }, { bookingId: payment.bookingId }],
+              status: 'SUCCESS',
+            },
+            _sum: { amount: true },
+          });
+          const totalPaid = Number(invPayments._sum.amount || 0) + Number(payment.amount);
+          const isFullyPaid = totalPaid >= Number(inv.totalAmount);
+          await tx.invoice.update({
+            where: { id: targetInvoiceId },
+            data: {
+              paymentStatus: isFullyPaid ? 'PAID' : 'PARTIALLY_PAID',
+              status: isFullyPaid ? 'PAID' : inv.status,
+            },
+          }).catch(() => {});
+        }
       }
 
       return updatedPayment;

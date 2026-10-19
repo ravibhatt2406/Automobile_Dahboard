@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '@/database/prisma.service';
 import { CreateFinanceApplicationDto } from './dto/create-finance-application.dto';
 import { AuditService } from '../audit/audit.service';
 import { FinanceStatus } from '@prisma/client';
+import { resolveUserScope } from '@/common/utils/scope.util';
 
 @Injectable()
 export class FinanceService {
@@ -74,10 +75,49 @@ export class FinanceService {
     return updated;
   }
 
-  async findAll(customerId?: string, status?: FinanceStatus, limit = 50, offset = 0) {
+  async findAll(
+    customerId?: string,
+    status?: FinanceStatus,
+    limit = 50,
+    offset = 0,
+    user?: any,
+    branchId?: string,
+    franchiseId?: string,
+  ) {
     const where: any = {};
     if (customerId) where.customerId = customerId;
     if (status) where.status = status;
+
+    const scope = user?.effectiveScope || (user ? await resolveUserScope(this.prisma, user, branchId, franchiseId) : null);
+
+    if (scope?.isCustomer) {
+      const resolvedCustomerId =
+        user?.customerId ||
+        user?.customerProfile?.id ||
+        (await this.prisma.customer.findFirst({ where: { userId: user?.id } }))?.id;
+      if (!resolvedCustomerId) {
+        return { items: [], total: 0, limit, offset };
+      }
+      where.customerId = resolvedCustomerId;
+    } else if (scope && !scope.isActingSuperAdmin) {
+      if (scope.isActingFranchiseLevel) {
+        where.booking = { branch: { franchiseId: scope.effectiveFranchiseId } };
+        if (scope.effectiveBranchId) {
+          where.booking = { branchId: scope.effectiveBranchId };
+        }
+      } else {
+        where.booking = { branchId: scope.effectiveBranchId };
+      }
+    } else if (scope?.isActingSuperAdmin) {
+      if (scope.effectiveFranchiseId) {
+        where.booking = { branch: { franchiseId: scope.effectiveFranchiseId } };
+        if (scope.effectiveBranchId) {
+          where.booking = { branchId: scope.effectiveBranchId };
+        }
+      } else if (scope.effectiveBranchId) {
+        where.booking = { branchId: scope.effectiveBranchId };
+      }
+    }
 
     const [items, total] = await Promise.all([
       this.prisma.financeApplication.findMany({
@@ -85,7 +125,10 @@ export class FinanceService {
         take: limit,
         skip: offset,
         orderBy: { createdAt: 'desc' },
-        include: { customer: true, booking: true },
+        include: {
+          customer: true,
+          booking: { include: { branch: true } },
+        },
       }),
       this.prisma.financeApplication.count({ where }),
     ]);
@@ -93,13 +136,43 @@ export class FinanceService {
     return { items, total, limit, offset };
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, user?: any) {
     const app = await this.prisma.financeApplication.findUnique({
       where: { id },
-      include: { customer: true, booking: true },
+      include: {
+        customer: true,
+        booking: { include: { branch: true } },
+      },
     });
 
     if (!app) throw new NotFoundException(`Finance Application ID '${id}' not found`);
+
+    if (user) {
+      const scope = user?.effectiveScope || (await resolveUserScope(this.prisma, user));
+      if (scope.isCustomer) {
+        const resolvedCustomerId =
+          user.customerId ||
+          user.customerProfile?.id ||
+          (await this.prisma.customer.findFirst({ where: { userId: user.id } }))?.id;
+        if (!resolvedCustomerId || app.customerId !== resolvedCustomerId) {
+          throw new ForbiddenException('Access denied to finance application');
+        }
+      } else if (!scope.isActingSuperAdmin) {
+        if (scope.isActingFranchiseLevel) {
+          if (scope.effectiveFranchiseId && app.booking?.branch?.franchiseId !== scope.effectiveFranchiseId) {
+            throw new ForbiddenException('Access denied to finance application in another franchise');
+          }
+          if (scope.effectiveBranchId && app.booking?.branchId !== scope.effectiveBranchId) {
+            throw new ForbiddenException('Access denied to finance application in another branch');
+          }
+        } else {
+          if (scope.effectiveBranchId && app.booking?.branchId !== scope.effectiveBranchId) {
+            throw new ForbiddenException('Access denied to finance application in another branch');
+          }
+        }
+      }
+    }
+
     return app;
   }
 }

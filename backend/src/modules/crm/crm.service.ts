@@ -4,6 +4,7 @@ import { CreateLeadDto } from './dto/create-lead.dto';
 import { CreateFollowUpDto } from './dto/create-followup.dto';
 import { AuditService } from '../audit/audit.service';
 import { LeadStatus } from '@prisma/client';
+import { resolveUserScope } from '@/common/utils/scope.util';
 
 @Injectable()
 export class CrmService {
@@ -91,48 +92,25 @@ export class CrmService {
     endDate?: string,
   ) {
     const where: any = {};
-    const userRoles = Array.isArray(user?.roles) ? user.roles : [];
-    const isSuperAdmin = userRoles.includes('SUPER_ADMIN');
+    const scope = user?.effectiveScope || (user ? await resolveUserScope(this.prisma, user, branchId, franchiseId) : null);
 
-    if (!isSuperAdmin) {
-      if (user?.branchId) {
-        if (branchId && branchId !== 'ALL' && branchId !== user.branchId) {
-          throw new ForbiddenException('Cannot access leads from another branch');
+    if (scope && !scope.isActingSuperAdmin) {
+      if (scope.isActingFranchiseLevel) {
+        where.franchiseId = scope.effectiveFranchiseId;
+        if (scope.effectiveBranchId) {
+          where.branchId = scope.effectiveBranchId;
         }
-        where.branchId = user.branchId;
-      } else if (user?.franchiseId) {
-        if (franchiseId && franchiseId !== 'ALL' && franchiseId !== user.franchiseId) {
-          throw new ForbiddenException('Cannot access leads from another franchise');
-        }
-        where.franchiseId = user.franchiseId;
-        if (branchId && branchId !== 'ALL') {
-          const branchInFranchise = await this.prisma.branch.findFirst({
-            where: { id: branchId, franchiseId: user.franchiseId },
-          });
-          if (!branchInFranchise) {
-            throw new ForbiddenException('Branch does not belong to your franchise');
-          }
-          where.branchId = branchId;
-        }
+      } else {
+        where.branchId = scope.effectiveBranchId;
       }
-    } else {
-      // Super Admin
-      if (franchiseId && franchiseId !== 'ALL') {
-        where.franchiseId = franchiseId;
-        if (branchId && branchId !== 'ALL') {
-          const b = await this.prisma.branch.findFirst({
-            where: { OR: [{ id: branchId }, { code: branchId }] },
-          });
-          if (b && b.franchiseId !== franchiseId) {
-            throw new BadRequestException('Selected branch does not belong to the selected franchise');
-          }
-          where.branchId = b ? b.id : branchId;
+    } else if (scope?.isActingSuperAdmin) {
+      if (scope.effectiveFranchiseId) {
+        where.franchiseId = scope.effectiveFranchiseId;
+        if (scope.effectiveBranchId) {
+          where.branchId = scope.effectiveBranchId;
         }
-      } else if (branchId && branchId !== 'ALL') {
-        const b = await this.prisma.branch.findFirst({
-          where: { OR: [{ id: branchId }, { code: branchId }] },
-        });
-        where.branchId = b ? b.id : branchId;
+      } else if (scope.effectiveBranchId) {
+        where.branchId = scope.effectiveBranchId;
       }
     }
 
@@ -182,15 +160,19 @@ export class CrmService {
     }
 
     if (user) {
-      const userRoles = Array.isArray(user?.roles) ? user.roles : [];
-      const isSuperAdmin = userRoles.includes('SUPER_ADMIN');
-
-      if (!isSuperAdmin) {
-        if (user.branchId && lead.branchId !== user.branchId) {
-          throw new ForbiddenException('Access denied to lead in another branch');
-        }
-        if (user.franchiseId && lead.franchiseId !== user.franchiseId) {
-          throw new ForbiddenException('Access denied to lead in another franchise');
+      const scope = user?.effectiveScope || (await resolveUserScope(this.prisma, user));
+      if (!scope.isActingSuperAdmin) {
+        if (scope.isActingFranchiseLevel) {
+          if (scope.effectiveFranchiseId && lead.franchiseId !== scope.effectiveFranchiseId) {
+            throw new ForbiddenException('Access denied to lead in another franchise');
+          }
+          if (scope.effectiveBranchId && lead.branchId !== scope.effectiveBranchId) {
+            throw new ForbiddenException('Access denied to lead in another branch');
+          }
+        } else {
+          if (scope.effectiveBranchId && lead.branchId !== scope.effectiveBranchId) {
+            throw new ForbiddenException('Access denied to lead in another branch');
+          }
         }
       }
     }

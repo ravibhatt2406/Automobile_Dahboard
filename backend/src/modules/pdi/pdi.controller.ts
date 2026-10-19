@@ -5,9 +5,10 @@ import {
   Patch,
   Body,
   Param,
+  Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { PdiService } from './pdi.service';
 import { CreatePdiDto } from './dto/create-pdi.dto';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
@@ -48,8 +49,18 @@ export class PdiController {
   @Get('pdi')
   @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'PDI_INSPECTOR', 'SALES_EMPLOYEE')
   @ApiOperation({ summary: 'List all PDI inspections' })
-  findAll() {
-    return this.pdiService.findAll();
+  @ApiQuery({ name: 'branchId', required: false })
+  @ApiQuery({ name: 'franchiseId', required: false })
+  @ApiQuery({ name: 'limit', required: false })
+  @ApiQuery({ name: 'offset', required: false })
+  findAll(
+    @Query('branchId') branchId?: string,
+    @Query('franchiseId') franchiseId?: string,
+    @Query('limit') limit?: number,
+    @Query('offset') offset?: number,
+    @CurrentUser() user?: any,
+  ) {
+    return this.pdiService.findAll(limit ? +limit : 50, offset ? +offset : 0, user, branchId, franchiseId);
   }
 
   @Patch('pdi/:id')
@@ -66,14 +77,14 @@ export class PdiController {
   @Get('vehicles/:id/pdi')
   @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'PDI_INSPECTOR', 'SALES_EMPLOYEE')
   @ApiOperation({ summary: 'Get PDI inspections for vehicle' })
-  findByVehicle(@Param('id') vehicleId: string) {
-    return this.pdiService.findByVehicle(vehicleId);
+  findByVehicle(@Param('id') vehicleId: string, @CurrentUser() user?: any) {
+    return this.pdiService.findByVehicle(vehicleId, user);
   }
 
   @Get('pdi/:id')
   @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'PDI_INSPECTOR', 'SALES_EMPLOYEE')
   @ApiOperation({ summary: 'Get PDI inspection details' })
-  findOne(@Param('id') id: string) {
-    return this.pdiService.findOne(id);
+  findOne(@Param('id') id: string, @CurrentUser() user?: any) {
+    return this.pdiService.findOne(id, user);
   }
 }

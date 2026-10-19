@@ -37,6 +37,22 @@ export async function apiFetch<T>(
     headers['Authorization'] = `Bearer ${token}`;
   }
 
+  // Active role and branch/franchise scope headers for authoritative server-side filtering
+  const activeRole = localStorage.getItem('titan_active_role');
+  if (activeRole && !headers['x-active-role']) {
+    headers['x-active-role'] = activeRole;
+  }
+
+  const activeBranchId = localStorage.getItem('titan_active_branch_id');
+  if (activeBranchId && activeBranchId !== 'ALL' && !headers['x-active-branch-id']) {
+    headers['x-active-branch-id'] = activeBranchId;
+  }
+
+  const activeFranchiseId = localStorage.getItem('titan_active_franchise_id');
+  if (activeFranchiseId && activeFranchiseId !== 'ALL' && !headers['x-active-franchise-id']) {
+    headers['x-active-franchise-id'] = activeFranchiseId;
+  }
+
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       ...options,

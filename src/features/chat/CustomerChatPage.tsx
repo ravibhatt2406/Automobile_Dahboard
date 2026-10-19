@@ -257,7 +257,7 @@ export const CustomerChatPage: React.FC = () => {
     const q = searchQuery.toLowerCase();
     const branchName = c.branch?.name?.toLowerCase() || '';
     const subject = c.subject?.toLowerCase() || '';
-    const lastMsg = c.messages?.[0]?.message?.toLowerCase() || '';
+    const lastMsg = (c.lastMessage?.message || c.messages?.[0]?.message || '').toLowerCase();
     return branchName.includes(q) || subject.includes(q) || lastMsg.includes(q);
   });
 
@@ -360,7 +360,7 @@ export const CustomerChatPage: React.FC = () => {
             ) : (
               filteredConversations.map((conv) => {
                 const isSelected = selectedConversation?.id === conv.id;
-                const lastMsg = conv.messages?.[0];
+                const lastMsg = conv.lastMessage || conv.messages?.[0];
                 const unread = conv.unreadCount || 0;
 
                 return (

@@ -41,16 +41,20 @@ export class DeliveriesController {
   @Get()
   @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'DELIVERY_EXECUTIVE', 'SALES_EMPLOYEE', 'CUSTOMER')
   @ApiOperation({ summary: 'List deliveries' })
+  @ApiQuery({ name: 'branchId', required: false })
+  @ApiQuery({ name: 'franchiseId', required: false })
   @ApiQuery({ name: 'status', required: false, enum: DeliveryStatus })
   @ApiQuery({ name: 'limit', required: false })
   @ApiQuery({ name: 'offset', required: false })
   findAll(
+    @Query('branchId') branchId?: string,
+    @Query('franchiseId') franchiseId?: string,
     @Query('status') status?: DeliveryStatus,
     @Query('limit') limit?: number,
     @Query('offset') offset?: number,
     @CurrentUser() user?: any,
   ) {
-    return this.deliveriesService.findAll(status, limit ? +limit : 50, offset ? +offset : 0, user);
+    return this.deliveriesService.findAll(status, limit ? +limit : 50, offset ? +offset : 0, user, branchId, franchiseId);
   }
 
   @Get(':id')

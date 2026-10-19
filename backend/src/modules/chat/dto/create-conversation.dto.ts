@@ -31,4 +31,9 @@ export class CreateConversationDto {
   @IsString()
   @IsOptional()
   initialMessage?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  franchiseId?: string;
 }

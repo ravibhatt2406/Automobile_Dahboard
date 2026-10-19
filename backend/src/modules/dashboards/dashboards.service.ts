@@ -1,11 +1,41 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '@/database/prisma.service';
+import { resolveUserScope } from '@/common/utils/scope.util';
 
 @Injectable()
 export class DashboardsService {
   constructor(private prisma: PrismaService) {}
 
-  async getSuperAdminDashboard() {
+  async getSuperAdminDashboard(queryFranchiseId?: string, queryBranchId?: string, user?: any) {
+    const scope = user
+      ? await resolveUserScope(this.prisma, user, queryBranchId, queryFranchiseId, 'SUPER_ADMIN')
+      : null;
+
+    const franchiseWhere: any = { status: 'ACTIVE' };
+    const branchWhere: any = { status: 'ACTIVE' };
+    const employeeWhere: any = { status: 'ACTIVE' };
+    const vehicleWhere: any = {};
+    const bookingWhere: any = {};
+    const serviceJobWhere: any = {};
+    const approvalWhere: any = { status: 'PENDING' };
+
+    if (scope?.effectiveBranchId) {
+      branchWhere.id = scope.effectiveBranchId;
+      employeeWhere.branchId = scope.effectiveBranchId;
+      vehicleWhere.branchId = scope.effectiveBranchId;
+      bookingWhere.branchId = scope.effectiveBranchId;
+      serviceJobWhere.branchId = scope.effectiveBranchId;
+      approvalWhere.employee = { branchId: scope.effectiveBranchId };
+    } else if (scope?.effectiveFranchiseId) {
+      franchiseWhere.id = scope.effectiveFranchiseId;
+      branchWhere.franchiseId = scope.effectiveFranchiseId;
+      employeeWhere.branch = { franchiseId: scope.effectiveFranchiseId };
+      vehicleWhere.branch = { franchiseId: scope.effectiveFranchiseId };
+      bookingWhere.branch = { franchiseId: scope.effectiveFranchiseId };
+      serviceJobWhere.branch = { franchiseId: scope.effectiveFranchiseId };
+      approvalWhere.employee = { branch: { franchiseId: scope.effectiveFranchiseId } };
+    }
+
     const [
       franchiseCount,
       branchCount,
@@ -21,21 +51,24 @@ export class DashboardsService {
       recentBookings,
       topBranches,
     ] = await Promise.all([
-      this.prisma.franchise.count({ where: { status: 'ACTIVE' } }),
-      this.prisma.branch.count({ where: { status: 'ACTIVE' } }),
-      this.prisma.employee.count({ where: { status: 'ACTIVE' } }),
+      this.prisma.franchise.count({ where: franchiseWhere }),
+      this.prisma.branch.count({ where: branchWhere }),
+      this.prisma.employee.count({ where: employeeWhere }),
       this.prisma.customer.count({ where: { status: 'ACTIVE' } }),
-      this.prisma.vehicle.count(),
-      this.prisma.vehicle.count({ where: { status: 'IN_STOCK' } }),
-      this.prisma.booking.count(),
-      this.prisma.serviceJob.count(),
-      this.prisma.serviceJob.count({ where: { status: { notIn: ['COMPLETED', 'CANCELLED'] } } }),
-      this.prisma.employeeApprovalRequest.count({ where: { status: 'PENDING' } }),
+      this.prisma.vehicle.count({ where: vehicleWhere }),
+      this.prisma.vehicle.count({ where: { ...vehicleWhere, status: 'IN_STOCK' } }),
+      this.prisma.booking.count({ where: bookingWhere }),
+      this.prisma.serviceJob.count({ where: serviceJobWhere }),
+      this.prisma.serviceJob.count({
+        where: { ...serviceJobWhere, status: { notIn: ['COMPLETED', 'CANCELLED'] } },
+      }),
+      this.prisma.employeeApprovalRequest.count({ where: approvalWhere }),
       this.prisma.booking.aggregate({
-        where: { status: { in: ['CONFIRMED', 'CONVERTED_TO_DELIVERY'] } },
+        where: { ...bookingWhere, status: { in: ['CONFIRMED', 'CONVERTED_TO_DELIVERY'] } },
         _sum: { totalAmount: true },
       }),
       this.prisma.booking.findMany({
+        where: bookingWhere,
         take: 5,
         orderBy: { createdAt: 'desc' },
         include: {
@@ -45,8 +78,8 @@ export class DashboardsService {
         },
       }),
       this.prisma.branch.findMany({
+        where: branchWhere,
         take: 5,
-        where: { status: 'ACTIVE' },
         include: {
           franchise: { select: { name: true } },
           _count: {
@@ -79,32 +112,18 @@ export class DashboardsService {
   }
 
   async getFranchiseDashboard(queryFranchiseId?: string, user?: any) {
-    const userRoles = Array.isArray(user?.roles) ? user.roles : [];
-    const isSuperAdmin = userRoles.includes('SUPER_ADMIN') || user?.accountType === 'SUPER_ADMIN';
+    const scope = await resolveUserScope(
+      this.prisma,
+      user,
+      undefined,
+      queryFranchiseId,
+      user?.effectiveScope?.activeRole || 'FRANCHISE_OWNER',
+    );
 
-    let franchiseIdToUse = queryFranchiseId;
-
-    if (!isSuperAdmin) {
-      const userFranchiseId = user?.franchiseId || user?.assignedFranchiseId;
-      if (!userFranchiseId) {
-        throw new ForbiddenException('User is not assigned to any franchise');
-      }
-      if (queryFranchiseId && queryFranchiseId !== 'ALL' && queryFranchiseId !== userFranchiseId) {
-        throw new ForbiddenException('Cannot access dashboard for another franchise');
-      }
-      franchiseIdToUse = userFranchiseId;
-    } else {
-      if (!franchiseIdToUse || franchiseIdToUse === 'ALL') {
-        const firstFranchise = await this.prisma.franchise.findFirst({
-          where: { status: 'ACTIVE' },
-          select: { id: true },
-        });
-        franchiseIdToUse = firstFranchise?.id;
-      }
-    }
+    const franchiseIdToUse = scope.effectiveFranchiseId;
 
     if (!franchiseIdToUse) {
-      throw new NotFoundException('No active franchise found');
+      throw new BadRequestException('Please select an authorized franchise');
     }
 
     const franchise = await this.prisma.franchise.findUnique({
@@ -201,46 +220,30 @@ export class DashboardsService {
   }
 
   async getBranchDashboard(queryBranchId?: string, user?: any) {
-    const userRoles = Array.isArray(user?.roles) ? user.roles : [];
-    const isSuperAdmin = userRoles.includes('SUPER_ADMIN') || user?.accountType === 'SUPER_ADMIN';
-    const isFranchiseLevel = userRoles.some((r: string) =>
-      ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r),
+    const scope = await resolveUserScope(
+      this.prisma,
+      user,
+      queryBranchId,
+      undefined,
+      user?.effectiveScope?.activeRole || 'BRANCH_MANAGER',
     );
 
-    let branchIdToUse = queryBranchId;
+    let branchIdToUse = scope.effectiveBranchId;
 
-    if (!isSuperAdmin) {
-      if (isFranchiseLevel) {
-        const userFranchiseId = user?.franchiseId || user?.assignedFranchiseId;
-        if (!branchIdToUse) {
-          const firstBranch = await this.prisma.branch.findFirst({
-            where: { franchiseId: userFranchiseId, status: 'ACTIVE' },
-            select: { id: true },
-          });
-          branchIdToUse = firstBranch?.id;
-        }
-      } else {
-        const userBranchId = user?.branchId || user?.assignedBranchId;
-        if (!userBranchId) {
-          throw new ForbiddenException('User is not assigned to any branch');
-        }
-        if (queryBranchId && queryBranchId !== userBranchId) {
-          throw new ForbiddenException('Cannot access dashboard for another branch');
-        }
-        branchIdToUse = userBranchId;
-      }
-    } else {
-      if (!branchIdToUse) {
+    if (!branchIdToUse) {
+      if (scope.effectiveFranchiseId) {
         const firstBranch = await this.prisma.branch.findFirst({
-          where: { status: 'ACTIVE' },
+          where: { franchiseId: scope.effectiveFranchiseId, status: 'ACTIVE' },
           select: { id: true },
         });
-        branchIdToUse = firstBranch?.id;
+        branchIdToUse = firstBranch?.id || null;
+      } else if (scope.assignedBranchId) {
+        branchIdToUse = scope.assignedBranchId;
       }
     }
 
     if (!branchIdToUse) {
-      throw new NotFoundException('No branch found');
+      throw new BadRequestException('Please select an authorized branch to view operational telemetry');
     }
 
     const branch = await this.prisma.branch.findUnique({
@@ -254,9 +257,8 @@ export class DashboardsService {
       throw new NotFoundException(`Branch '${branchIdToUse}' not found`);
     }
 
-    if (!isSuperAdmin && isFranchiseLevel) {
-      const userFranchiseId = user?.franchiseId || user?.assignedFranchiseId;
-      if (branch.franchiseId !== userFranchiseId) {
+    if (!scope.isRealSuperAdmin && scope.isActingFranchiseLevel) {
+      if (branch.franchiseId !== scope.assignedFranchiseId) {
         throw new ForbiddenException('Cannot access dashboard for another franchise');
       }
     }
@@ -351,13 +353,18 @@ export class DashboardsService {
     };
   }
 
-  async getSalesDashboard(user: any) {
-    const userRoles = Array.isArray(user?.roles) ? user.roles : [];
-    const isSuperAdmin = userRoles.includes('SUPER_ADMIN') || user?.accountType === 'SUPER_ADMIN';
-    const isSalesEmployee = userRoles.includes('SALES_EMPLOYEE');
+  async getSalesDashboard(user: any, requestedBranchId?: string) {
+    const scope = await resolveUserScope(
+      this.prisma,
+      user,
+      requestedBranchId,
+      undefined,
+      user?.effectiveScope?.activeRole || 'SALES_EMPLOYEE',
+    );
 
+    const isSalesEmployee = scope.activeRole === 'SALES_EMPLOYEE';
     const employeeId = user?.employeeId || user?.employeeProfile?.id;
-    const branchId = user?.branchId || user?.assignedBranchId;
+    const branchId = scope.effectiveBranchId;
 
     const quotationWhere: any = {};
     const bookingWhere: any = {};
@@ -367,10 +374,14 @@ export class DashboardsService {
       quotationWhere.salespersonEmployeeId = employeeId;
       bookingWhere.salespersonEmployeeId = employeeId;
       leadWhere.assignedEmployeeId = employeeId;
-    } else if (branchId && !isSuperAdmin) {
+    } else if (branchId) {
       quotationWhere.branchId = branchId;
       bookingWhere.branchId = branchId;
       leadWhere.branchId = branchId;
+    } else if (scope.effectiveFranchiseId) {
+      quotationWhere.franchiseId = scope.effectiveFranchiseId;
+      bookingWhere.branch = { franchiseId: scope.effectiveFranchiseId };
+      leadWhere.franchiseId = scope.effectiveFranchiseId;
     }
 
     const [
@@ -399,7 +410,7 @@ export class DashboardsService {
       }),
       this.prisma.vehicle.count({
         where: {
-          ...(branchId ? { branchId } : {}),
+          ...(branchId ? { branchId } : scope.effectiveFranchiseId ? { branch: { franchiseId: scope.effectiveFranchiseId } } : {}),
           status: 'IN_STOCK',
         },
       }),
@@ -437,13 +448,21 @@ export class DashboardsService {
     };
   }
 
-  async getServiceAdvisorDashboard(user: any) {
-    const branchId = user?.branchId || user?.assignedBranchId;
-    const advisorEmployeeId = user?.employeeId || user?.employeeProfile?.id;
-    const userRoles = Array.isArray(user?.roles) ? user.roles : [];
-    const isSuperAdmin = userRoles.includes('SUPER_ADMIN') || user?.accountType === 'SUPER_ADMIN';
+  async getServiceAdvisorDashboard(user: any, requestedBranchId?: string) {
+    const scope = await resolveUserScope(
+      this.prisma,
+      user,
+      requestedBranchId,
+      undefined,
+      user?.effectiveScope?.activeRole || 'SERVICE_ADVISOR',
+    );
 
-    const whereBranch: any = !isSuperAdmin && branchId ? { branchId } : {};
+    const branchId = scope.effectiveBranchId;
+    const whereBranch: any = branchId
+      ? { branchId }
+      : scope.effectiveFranchiseId
+      ? { branch: { franchiseId: scope.effectiveFranchiseId } }
+      : {};
 
     const [
       pendingAppointments,
@@ -512,9 +531,21 @@ export class DashboardsService {
     };
   }
 
-  async getMechanicDashboard(mechanicEmployeeId: string) {
+  async getMechanicDashboard(mechanicEmployeeId: string, user?: any) {
     if (!mechanicEmployeeId) {
       throw new BadRequestException('Mechanic employee ID is required');
+    }
+
+    if (user) {
+      const scope = await resolveUserScope(this.prisma, user, undefined, undefined, 'MECHANIC');
+      const isMechanic = scope.activeRole === 'MECHANIC';
+      const callerEmpId = user?.employeeId || user?.employeeProfile?.id;
+
+      if (isMechanic && !scope.isRealSuperAdmin && !scope.isActingBranchLevel) {
+        if (callerEmpId && callerEmpId !== mechanicEmployeeId) {
+          throw new ForbiddenException('Cannot view dashboard for another mechanic');
+        }
+      }
     }
 
     const jobs = await this.prisma.serviceJob.findMany({
@@ -598,25 +629,14 @@ export class DashboardsService {
           orderBy: { createdAt: 'desc' },
         },
         preferredBranch: {
-          select: { id: true, code: true, name: true, city: true, state: true },
+          include: { franchise: true },
         },
       },
     });
 
-    if (customer && !customer.userId && user) {
-      await this.prisma.customer
-        .update({
-          where: { id: customer.id },
-          data: { userId: user.id },
-        })
-        .catch(() => {});
-    }
-
     if (!customer) {
       return {
-        id: null,
-        name: user?.email?.split('@')[0] || 'Customer',
-        email: user?.email,
+        customer: null,
         vehicles: [],
         bookings: [],
         quotations: [],
@@ -635,36 +655,47 @@ export class DashboardsService {
       };
     }
 
-    const totalSpent = (customer.invoices || [])
-      .filter((i) => i.paymentStatus === 'PAID')
-      .reduce((sum, i) => sum + Number(i.totalAmount || 0), 0);
+    const activeQuotationsCount = customer.quotations.filter((q) =>
+      ['SUBMITTED', 'PENDING_APPROVAL', 'APPROVED'].includes(q.status),
+    ).length;
+
+    const pendingBookingsCount = customer.bookings.filter(
+      (b) => b.status === 'PENDING' || b.status === 'CONFIRMED',
+    ).length;
+
+    const serviceDueCount = customer.serviceJobs.filter(
+      (j) => !['COMPLETED', 'CANCELLED'].includes(j.status),
+    ).length;
+
+    const totalSpent = customer.invoices
+      .filter((inv) => inv.paymentStatus === 'PAID')
+      .reduce((sum, inv) => sum + Number(inv.totalAmount || 0), 0);
 
     return {
-      ...customer,
+      customer: {
+        id: customer.id,
+        name: customer.name,
+        email: customer.email,
+        phone: customer.phone,
+        customerType: customer.customerType,
+        companyName: customer.companyName,
+        preferredBranch: customer.preferredBranch,
+      },
+      vehicles: customer.vehicles,
+      bookings: customer.bookings,
+      quotations: customer.quotations,
+      serviceAppointments: customer.serviceAppointments,
+      serviceJobs: customer.serviceJobs,
+      insurancePolicies: customer.insurancePolicies,
+      invoices: customer.invoices,
       summary: {
-        vehiclesCount: customer.vehicles?.length || 0,
-        activeQuotationsCount:
-          customer.quotations?.filter((q) => !['EXPIRED', 'REJECTED'].includes(q.status)).length ||
-          0,
-        bookingsCount: customer.bookings?.length || 0,
-        pendingBookingsCount:
-          customer.bookings?.filter((b) => ['PENDING', 'CONFIRMED'].includes(b.status)).length ||
-          0,
-        serviceDueCount:
-          customer.serviceJobs?.filter((s) => !['COMPLETED', 'CANCELLED'].includes(s.status))
-            .length || 0,
+        vehiclesCount: customer.vehicles.length,
+        activeQuotationsCount,
+        bookingsCount: customer.bookings.length,
+        pendingBookingsCount,
+        serviceDueCount,
         totalSpent,
       },
     };
-  }
-
-  // Backward compatibility alias
-  async getOrganizationDashboard(franchiseId: string) {
-    return this.getFranchiseDashboard(franchiseId);
-  }
-
-  // Backward compatibility alias
-  async getBranchManagerDashboard(queryBranchId?: string, user?: any) {
-    return this.getBranchDashboard(queryBranchId, user);
   }
 }

@@ -31,6 +31,10 @@ export interface Conversation {
   lastMessageAt?: string | null;
   customer?: {
     id: string;
+    name?: string;
+    companyName?: string;
+    phone?: string;
+    email?: string;
     user?: {
       fullName: string;
       email: string;
@@ -46,12 +50,22 @@ export interface Conversation {
   };
   assignedEmployee?: {
     id: string;
+    firstName?: string;
+    lastName?: string;
+    designation?: string;
     user?: {
       fullName: string;
       email: string;
     };
   };
   messages?: ChatMessage[];
+  lastMessage?: {
+    id: string;
+    message: string;
+    senderType: string;
+    createdAt: string;
+    isRead: boolean;
+  } | null;
   unreadCount?: number;
 }
 
@@ -67,13 +81,14 @@ export const chatService = {
   async getConversations(params?: { branchId?: string; search?: string }): Promise<Conversation[]> {
     try {
       const queryParams = new URLSearchParams();
-      if (params?.branchId) queryParams.append('branchId', params.branchId);
+      if (params?.branchId && params.branchId !== 'ALL') queryParams.append('branchId', params.branchId);
       if (params?.search) queryParams.append('search', params.search);
 
       const qs = queryParams.toString();
       const res = await apiFetch<any>(`/chat/conversations${qs ? `?${qs}` : ''}`);
       const unwrapped = unwrapData<any>(res);
       if (Array.isArray(unwrapped)) return unwrapped;
+      if (unwrapped && Array.isArray(unwrapped.items)) return unwrapped.items;
       if (unwrapped && Array.isArray(unwrapped.data)) return unwrapped.data;
       return [];
     } catch (err) {

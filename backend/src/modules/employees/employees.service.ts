@@ -11,6 +11,7 @@ import { AuditService } from '../audit/audit.service';
 import { BranchesService } from '../branches/branches.service';
 import * as bcrypt from 'bcrypt';
 import { ROLE_RANKS } from '@/common/constants/permissions.constant';
+import { resolveUserScope } from '@/common/utils/scope.util';
 
 @Injectable()
 export class EmployeesService {
@@ -315,46 +316,30 @@ export class EmployeesService {
   }
 
   async findAll(branchId?: string, franchiseId?: string, user?: any) {
-    const roles: string[] = user?.roles || [];
-    const isSuperAdmin = user?.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN');
-    const isFranchiseLevel = roles.some((r) => ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r));
+    const scope = user?.effectiveScope || (user ? await resolveUserScope(this.prisma, user, branchId, franchiseId) : null);
 
     let effectiveBranchId = branchId;
     let effectiveFranchiseId = franchiseId;
 
-    if (user && !isSuperAdmin) {
-      if (isFranchiseLevel) {
-        if (effectiveFranchiseId && effectiveFranchiseId !== user.assignedFranchiseId) {
-          throw new ForbiddenException('Multi-tenant scope violation: Unauthorized franchise access');
-        }
-        effectiveFranchiseId = user.assignedFranchiseId;
-        if (effectiveBranchId) {
-          const b = await this.prisma.branch.findFirst({
-            where: { OR: [{ id: effectiveBranchId }, { code: effectiveBranchId }] },
-          });
-          if (!b || b.franchiseId !== user.assignedFranchiseId) {
-            throw new ForbiddenException('Multi-tenant scope violation: Unauthorized branch access');
-          }
-          effectiveBranchId = b.id;
-        }
+    if (scope && !scope.isActingSuperAdmin) {
+      if (scope.isActingFranchiseLevel) {
+        effectiveFranchiseId = scope.effectiveFranchiseId;
+        effectiveBranchId = scope.effectiveBranchId;
       } else {
-        // Branch Level
-        if (
-          effectiveBranchId &&
-          effectiveBranchId !== user.assignedBranchId &&
-          effectiveBranchId !== user.employeeProfile?.branch?.code
-        ) {
-          throw new ForbiddenException('Multi-tenant scope violation: Unauthorized branch access');
-        }
-        effectiveBranchId = user.assignedBranchId;
+        effectiveBranchId = scope.effectiveBranchId;
+        effectiveFranchiseId = scope.effectiveFranchiseId;
       }
-    } else if (isSuperAdmin && effectiveBranchId && effectiveFranchiseId) {
+    } else if (scope?.isActingSuperAdmin) {
+      effectiveBranchId = scope.effectiveBranchId;
+      effectiveFranchiseId = scope.effectiveFranchiseId;
+    } else if (effectiveBranchId) {
       const b = await this.prisma.branch.findFirst({
         where: { OR: [{ id: effectiveBranchId }, { code: effectiveBranchId }] },
       });
-      if (b && b.franchiseId !== effectiveFranchiseId) {
+      if (effectiveFranchiseId && b && b.franchiseId !== effectiveFranchiseId) {
         throw new BadRequestException('Selected branch does not belong to the selected franchise');
       }
+      effectiveBranchId = b ? b.id : effectiveBranchId;
     }
 
     return this.prisma.employee.findMany({
@@ -403,16 +388,17 @@ export class EmployeesService {
     }
 
     if (user) {
-      const roles: string[] = user.roles || [];
-      const isSuperAdmin = user.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN');
-      if (!isSuperAdmin) {
-        const isFranchiseLevel = roles.some((r) => ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r));
-        if (isFranchiseLevel) {
-          if (employee.branch?.franchiseId !== user.assignedFranchiseId) {
+      const scope = user?.effectiveScope || (await resolveUserScope(this.prisma, user));
+      if (!scope.isActingSuperAdmin) {
+        if (scope.isActingFranchiseLevel) {
+          if (scope.effectiveFranchiseId && employee.branch?.franchiseId !== scope.effectiveFranchiseId) {
             throw new ForbiddenException('Multi-tenant scope violation: Unauthorized franchise access attempt');
           }
+          if (scope.effectiveBranchId && employee.branchId !== scope.effectiveBranchId) {
+            throw new ForbiddenException('Multi-tenant scope violation: Unauthorized branch access attempt');
+          }
         } else {
-          if (employee.branchId !== user.assignedBranchId) {
+          if (scope.effectiveBranchId && employee.branchId !== scope.effectiveBranchId) {
             throw new ForbiddenException('Multi-tenant scope violation: Unauthorized branch access attempt');
           }
         }

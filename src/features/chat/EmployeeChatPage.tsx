@@ -5,6 +5,7 @@ import { chatService, Conversation, ChatMessage } from '@/services/chat.service'
 import { employeeService } from '@/services/employee.service';
 import { branchService } from '@/services/branch.service';
 import { useAuth } from '@/app/providers/AuthContext';
+import { useScope } from '@/app/providers/ScopeContext';
 import { Employee, Branch } from '@/types/domain';
 import {
   MessageSquare,
@@ -30,6 +31,7 @@ import {
 
 export const EmployeeChatPage: React.FC = () => {
   const { user, activeRole, permissions } = useAuth();
+  const { selectedBranchId } = useScope();
   const [searchParams] = useSearchParams();
   const initialConvId = searchParams.get('id');
 
@@ -71,7 +73,8 @@ export const EmployeeChatPage: React.FC = () => {
     async function loadConversations() {
       setLoadingList(true);
       try {
-        const list = await chatService.getConversations();
+        const branchParam = selectedBranchId !== 'ALL' ? selectedBranchId : undefined;
+        const list = await chatService.getConversations({ branchId: branchParam });
         if (!isMounted) return;
         const validList = Array.isArray(list) ? list : [];
         setConversations(validList);
@@ -94,7 +97,7 @@ export const EmployeeChatPage: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [initialConvId]);
+  }, [initialConvId, selectedBranchId]);
 
   // Load messages and fetch branch employees when conversation changes
   useEffect(() => {
@@ -146,7 +149,8 @@ export const EmployeeChatPage: React.FC = () => {
           const updated = await chatService.getConversationById(selectedConversation.id);
           setMessages(updated.messages || []);
         }
-        const latestList = await chatService.getConversations();
+        const branchParam = selectedBranchId !== 'ALL' ? selectedBranchId : undefined;
+        const latestList = await chatService.getConversations({ branchId: branchParam });
         setConversations(latestList);
       } catch {
         // Silent poll error
@@ -156,7 +160,7 @@ export const EmployeeChatPage: React.FC = () => {
     return () => {
       if (pollingTimerRef.current) clearInterval(pollingTimerRef.current);
     };
-  }, [selectedConversation]);
+  }, [selectedConversation, selectedBranchId]);
 
   useEffect(() => {
     scrollToBottom();
@@ -187,7 +191,8 @@ export const EmployeeChatPage: React.FC = () => {
     try {
       const persisted = await chatService.sendMessage(selectedConversation.id, messageText);
       setMessages((prev) => prev.map((m) => (m.id === tempId ? persisted : m)));
-      const latestList = await chatService.getConversations();
+      const branchParam = selectedBranchId !== 'ALL' ? selectedBranchId : undefined;
+      const latestList = await chatService.getConversations({ branchId: branchParam });
       setConversations(latestList);
     } catch (err: any) {
       setSendError(err.message || 'Failed to reply to customer. Please retry.');
@@ -211,7 +216,8 @@ export const EmployeeChatPage: React.FC = () => {
         selectedEmployeeId
       );
       setSelectedConversation(updated);
-      const latestList = await chatService.getConversations();
+      const branchParam = selectedBranchId !== 'ALL' ? selectedBranchId : undefined;
+      const latestList = await chatService.getConversations({ branchId: branchParam });
       setConversations(latestList);
       setShowAssignModal(false);
     } catch (err: any) {
@@ -225,10 +231,10 @@ export const EmployeeChatPage: React.FC = () => {
     if (statusFilter !== 'ALL' && c.status !== statusFilter) return false;
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
-    const custName = c.customer?.user?.fullName?.toLowerCase() || '';
-    const custEmail = c.customer?.user?.email?.toLowerCase() || '';
-    const subject = c.subject?.toLowerCase() || '';
-    const branchName = c.branch?.name?.toLowerCase() || '';
+    const custName = (c.customer?.name || c.customer?.companyName || c.customer?.user?.fullName || '').toLowerCase();
+    const custEmail = (c.customer?.email || c.customer?.user?.email || '').toLowerCase();
+    const subject = (c.subject || '').toLowerCase();
+    const branchName = (c.branch?.name || '').toLowerCase();
     return custName.includes(q) || custEmail.includes(q) || subject.includes(q) || branchName.includes(q);
   });
 
@@ -321,9 +327,9 @@ export const EmployeeChatPage: React.FC = () => {
             ) : (
               filteredConversations.map((conv) => {
                 const isSelected = selectedConversation?.id === conv.id;
-                const lastMsg = conv.messages?.[0];
+                const lastMsg = conv.lastMessage || conv.messages?.[0];
                 const unread = conv.unreadCount || 0;
-                const customerName = conv.customer?.user?.fullName || 'Customer';
+                const customerName = conv.customer?.name || conv.customer?.companyName || conv.customer?.user?.fullName || 'Customer';
 
                 return (
                   <button
@@ -402,76 +408,87 @@ export const EmployeeChatPage: React.FC = () => {
           {selectedConversation ? (
             <>
               {/* Header */}
-              <div className="p-4 border-b border-zinc-200 flex flex-wrap items-center justify-between gap-3 bg-zinc-50/50">
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => setSelectedConversation(null)}
-                    className="md:hidden p-1.5 rounded-lg text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200"
-                  >
-                    <ArrowLeft className="w-5 h-5" />
-                  </button>
+              {(() => {
+                const activeCustName = selectedConversation.customer?.name || selectedConversation.customer?.companyName || selectedConversation.customer?.user?.fullName || 'Customer';
+                const activeCustEmail = selectedConversation.customer?.email || selectedConversation.customer?.user?.email;
+                const activeCustPhone = selectedConversation.customer?.phone || selectedConversation.customer?.user?.phone;
+                const assignedName = selectedConversation.assignedEmployee
+                  ? (`${selectedConversation.assignedEmployee.firstName || ''} ${selectedConversation.assignedEmployee.lastName || ''}`.trim() || selectedConversation.assignedEmployee.user?.fullName || 'Assigned Advisor')
+                  : null;
 
-                  <div className="w-10 h-10 rounded-xl bg-zinc-900 text-[#F5A800] flex items-center justify-center font-bold text-sm shrink-0 font-mono">
-                    {selectedConversation.customer?.user?.fullName?.charAt(0).toUpperCase() || 'C'}
-                  </div>
+                return (
+                  <div className="p-4 border-b border-zinc-200 flex flex-wrap items-center justify-between gap-3 bg-zinc-50/50">
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => setSelectedConversation(null)}
+                        className="md:hidden p-1.5 rounded-lg text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200"
+                      >
+                        <ArrowLeft className="w-5 h-5" />
+                      </button>
 
-                  <div>
+                      <div className="w-10 h-10 rounded-xl bg-zinc-900 text-[#F5A800] flex items-center justify-center font-bold text-sm shrink-0 font-mono">
+                        {activeCustName.charAt(0).toUpperCase()}
+                      </div>
+
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-bold text-sm text-zinc-900">
+                            {activeCustName}
+                          </h4>
+                          <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-zinc-100 text-zinc-700 uppercase">
+                            {selectedConversation.status}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3 text-[11px] text-zinc-500 mt-0.5">
+                          {activeCustEmail && (
+                            <span className="flex items-center gap-1">
+                              <Mail className="w-3 h-3 text-zinc-400" />
+                              {activeCustEmail}
+                            </span>
+                          )}
+                          {activeCustPhone && (
+                            <span className="flex items-center gap-1">
+                              <Phone className="w-3 h-3 text-zinc-400" />
+                              {activeCustPhone}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Assignment & Management Controls */}
                     <div className="flex items-center gap-2">
-                      <h4 className="font-bold text-sm text-zinc-900">
-                        {selectedConversation.customer?.user?.fullName || 'Customer'}
-                      </h4>
-                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-zinc-100 text-zinc-700 uppercase">
-                        {selectedConversation.status}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3 text-[11px] text-zinc-500 mt-0.5">
-                      {selectedConversation.customer?.user?.email && (
-                        <span className="flex items-center gap-1">
-                          <Mail className="w-3 h-3 text-zinc-400" />
-                          {selectedConversation.customer.user.email}
+                      {assignedName ? (
+                        <div className="text-right text-xs">
+                          <span className="text-[10px] text-zinc-400 block font-mono">
+                            ASSIGNED ADVISOR
+                          </span>
+                          <span className="font-bold text-zinc-800">
+                            {assignedName}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 px-2 py-1 rounded font-medium">
+                          Unassigned
                         </span>
                       )}
-                      {selectedConversation.customer?.user?.phone && (
-                        <span className="flex items-center gap-1">
-                          <Phone className="w-3 h-3 text-zinc-400" />
-                          {selectedConversation.customer.user.phone}
-                        </span>
+
+                      {isManager && (
+                        <button
+                          onClick={() => {
+                            setSelectedEmployeeId(selectedConversation.assignedEmployeeId || '');
+                            setShowAssignModal(true);
+                          }}
+                          className="px-3 py-1.5 bg-[#111111] hover:bg-black text-[#F5A800] rounded-lg text-xs font-bold transition-all shadow-xs flex items-center gap-1.5"
+                        >
+                          <UserCheck className="w-3.5 h-3.5" />
+                          {selectedConversation.assignedEmployeeId ? 'Reassign' : 'Assign'}
+                        </button>
                       )}
                     </div>
                   </div>
-                </div>
-
-                {/* Assignment & Management Controls */}
-                <div className="flex items-center gap-2">
-                  {selectedConversation.assignedEmployee ? (
-                    <div className="text-right text-xs">
-                      <span className="text-[10px] text-zinc-400 block font-mono">
-                        ASSIGNED ADVISOR
-                      </span>
-                      <span className="font-bold text-zinc-800">
-                        {selectedConversation.assignedEmployee.user?.fullName}
-                      </span>
-                    </div>
-                  ) : (
-                    <span className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 px-2 py-1 rounded font-medium">
-                      Unassigned
-                    </span>
-                  )}
-
-                  {isManager && (
-                    <button
-                      onClick={() => {
-                        setSelectedEmployeeId(selectedConversation.assignedEmployeeId || '');
-                        setShowAssignModal(true);
-                      }}
-                      className="px-3 py-1.5 bg-[#111111] hover:bg-black text-[#F5A800] rounded-lg text-xs font-bold transition-all shadow-xs flex items-center gap-1.5"
-                    >
-                      <UserCheck className="w-3.5 h-3.5" />
-                      {selectedConversation.assignedEmployeeId ? 'Reassign' : 'Assign'}
-                    </button>
-                  )}
-                </div>
-              </div>
+                );
+              })()}
 
               {/* Message Thread */}
               <div className="flex-1 p-4 md:p-6 overflow-y-auto space-y-4 bg-zinc-50/30">
@@ -505,6 +522,7 @@ export const EmployeeChatPage: React.FC = () => {
                 ) : (
                   messages.map((msg) => {
                     const isEmployee = msg.senderType === 'EMPLOYEE';
+                    const activeCustName = selectedConversation.customer?.name || selectedConversation.customer?.companyName || selectedConversation.customer?.user?.fullName || 'Customer';
 
                     return (
                       <div
@@ -515,7 +533,7 @@ export const EmployeeChatPage: React.FC = () => {
                           <span className="text-[10px] font-semibold text-zinc-500">
                             {isEmployee
                               ? msg.sender?.fullName || 'Dealership Employee'
-                              : selectedConversation.customer?.user?.fullName || 'Customer'}
+                              : activeCustName}
                           </span>
                           {isEmployee ? (
                             <span className="text-[9px] px-1.5 py-0.2 rounded bg-zinc-900 text-[#F5A800] font-mono font-medium">

@@ -8,6 +8,7 @@ import { PrismaService } from '@/database/prisma.service';
 import { CreateDeliveryDto } from './dto/create-delivery.dto';
 import { AuditService } from '../audit/audit.service';
 import { DeliveryStatus } from '@prisma/client';
+import { resolveUserScope } from '@/common/utils/scope.util';
 
 @Injectable()
 export class DeliveriesService {
@@ -160,26 +161,40 @@ export class DeliveriesService {
     return result;
   }
 
-  async findAll(status?: DeliveryStatus, limit = 50, offset = 0, user?: any) {
+  async findAll(
+    status?: DeliveryStatus,
+    limit = 50,
+    offset = 0,
+    user?: any,
+    branchId?: string,
+    franchiseId?: string,
+  ) {
     const where: any = {};
     if (status) where.status = status;
 
-    const roles: string[] = user?.roles || [];
-    const isSuperAdmin = user?.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN');
-    const isCustomer = user?.accountType === 'CUSTOMER' || (roles.includes('CUSTOMER') && !user?.employeeProfile);
+    const scope = user?.effectiveScope || (user ? await resolveUserScope(this.prisma, user, branchId, franchiseId) : null);
 
-    if (user && isCustomer) {
+    if (user && scope?.isCustomer) {
       const customerId = user.customerId || user.customerProfile?.id;
       if (!customerId) return { items: [], total: 0, limit, offset };
       where.customerId = customerId;
-    } else if (user && !isSuperAdmin) {
-      const userBranchId = user.branchId || user.assignedBranchId || user.employeeProfile?.branchId;
-      const userFranchiseId = user.franchiseId || user.assignedFranchiseId || user.employeeProfile?.branch?.franchiseId;
-      const isFranchiseLevel = roles.some((r) => ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r));
-      if (isFranchiseLevel) {
-        where.vehicle = { branch: { franchiseId: userFranchiseId } };
+    } else if (scope && !scope.isActingSuperAdmin) {
+      if (scope.isActingFranchiseLevel) {
+        where.vehicle = { branch: { franchiseId: scope.effectiveFranchiseId } };
+        if (scope.effectiveBranchId) {
+          where.vehicle = { branchId: scope.effectiveBranchId };
+        }
       } else {
-        where.vehicle = { branchId: userBranchId };
+        where.vehicle = { branchId: scope.effectiveBranchId };
+      }
+    } else if (scope?.isActingSuperAdmin) {
+      if (scope.effectiveFranchiseId) {
+        where.vehicle = { branch: { franchiseId: scope.effectiveFranchiseId } };
+        if (scope.effectiveBranchId) {
+          where.vehicle = { branchId: scope.effectiveBranchId };
+        }
+      } else if (scope.effectiveBranchId) {
+        where.vehicle = { branchId: scope.effectiveBranchId };
       }
     }
 
@@ -218,27 +233,23 @@ export class DeliveriesService {
     }
 
     if (user) {
-      const roles: string[] = user.roles || [];
-      const isSuperAdmin = user.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN');
-      if (!isSuperAdmin) {
-        const isCustomer = user.accountType === 'CUSTOMER' || (roles.includes('CUSTOMER') && !user.employeeProfile);
-        if (isCustomer) {
-          const customerId = user.customerId || user.customerProfile?.id;
-          if (delivery.customerId !== customerId) {
-            throw new ForbiddenException('Multi-tenant scope violation: Unauthorized delivery access');
+      const scope = user?.effectiveScope || (await resolveUserScope(this.prisma, user));
+      if (scope.isCustomer) {
+        const customerId = user.customerId || user.customerProfile?.id;
+        if (delivery.customerId !== customerId) {
+          throw new ForbiddenException('Multi-tenant scope violation: Unauthorized delivery access');
+        }
+      } else if (!scope.isActingSuperAdmin) {
+        if (scope.isActingFranchiseLevel) {
+          if (delivery.vehicle?.branch?.franchiseId !== scope.effectiveFranchiseId) {
+            throw new ForbiddenException('Multi-tenant scope violation: Unauthorized franchise access');
+          }
+          if (scope.effectiveBranchId && delivery.vehicle?.branchId !== scope.effectiveBranchId) {
+            throw new ForbiddenException('Multi-tenant scope violation: Unauthorized branch access');
           }
         } else {
-          const userBranchId = user.branchId || user.assignedBranchId || user.employeeProfile?.branchId;
-          const userFranchiseId = user.franchiseId || user.assignedFranchiseId || user.employeeProfile?.branch?.franchiseId;
-          const isFranchiseLevel = roles.some((r) => ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r));
-          if (isFranchiseLevel) {
-            if (delivery.vehicle?.branch?.franchiseId !== userFranchiseId) {
-              throw new ForbiddenException('Multi-tenant scope violation: Unauthorized franchise access');
-            }
-          } else {
-            if (delivery.vehicle?.branchId !== userBranchId) {
-              throw new ForbiddenException('Multi-tenant scope violation: Unauthorized branch access');
-            }
+          if (delivery.vehicle?.branchId !== scope.effectiveBranchId) {
+            throw new ForbiddenException('Multi-tenant scope violation: Unauthorized branch access');
           }
         }
       }

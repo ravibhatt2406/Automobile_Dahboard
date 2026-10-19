@@ -17,4 +17,9 @@ export class SendMessageDto {
   @IsOptional()
   @IsString()
   branchId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  franchiseId?: string;
 }

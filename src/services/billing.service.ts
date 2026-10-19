@@ -46,4 +46,39 @@ export const billingService = {
       return null;
     }
   },
+
+  async createInvoice(payload: any): Promise<Invoice> {
+    const res = await apiFetch<any>('/invoices', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return unwrapData<Invoice>(res);
+  },
+
+  async cancelInvoice(id: string, reason: string): Promise<Invoice> {
+    const res = await apiFetch<any>(`/invoices/${id}/cancel`, {
+      method: 'PATCH',
+      body: JSON.stringify({ reason }),
+    });
+    return unwrapData<Invoice>(res);
+  },
+
+  async recordPayment(
+    id: string,
+    payload: { amount: number; paymentMethod?: string; transactionReference?: string },
+  ): Promise<Invoice> {
+    const res = await apiFetch<any>(`/invoices/${id}/payments`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return unwrapData<Invoice>(res);
+  },
+
+  getPrintableInvoiceUrl(id: string): string {
+    const baseUrl =
+      import.meta.env.VITE_API_URL ||
+      import.meta.env.VITE_API_BASE_URL ||
+      'http://localhost:4001/api/v1';
+    return `${baseUrl}/invoices/${id}/pdf/download`;
+  },
 };

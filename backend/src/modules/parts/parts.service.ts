@@ -331,15 +331,16 @@ export class PartsService {
     franchiseId?: string,
   ) {
     const roles: string[] = user?.roles || [];
-    const isSuperAdmin = user?.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN');
-    const isFranchiseLevel = roles.some((r) => ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r));
+    const scope = user?.effectiveScope;
+    const isSuperAdmin = scope ? scope.isActingSuperAdmin : (user?.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN'));
+    const isFranchiseLevel = scope ? scope.isActingFranchiseLevel : roles.some((r) => ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r));
 
     const where: any = {};
     if (category && category !== 'ALL') where.category = category;
 
     if (user && !isSuperAdmin) {
       if (isFranchiseLevel) {
-        const userFranchiseId = user.franchiseId || user.assignedFranchiseId;
+        const userFranchiseId = scope?.effectiveFranchiseId || user.franchiseId || user.assignedFranchiseId;
         if (franchiseId && franchiseId !== 'ALL' && franchiseId !== userFranchiseId) {
           throw new ForbiddenException('Multi-tenant scope violation: Unauthorized franchise access');
         }
@@ -356,7 +357,7 @@ export class PartsService {
         }
       } else {
         // Branch Level
-        const userBranchId = user.branchId || user.assignedBranchId || user.employeeProfile?.branchId;
+        const userBranchId = scope?.effectiveBranchId || user.branchId || user.assignedBranchId || user.employeeProfile?.branchId;
         if (
           branchId &&
           branchId !== 'ALL' &&

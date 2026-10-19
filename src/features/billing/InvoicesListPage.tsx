@@ -9,6 +9,8 @@ import { useNavigate } from 'react-router-dom';
 import { useScope } from '@/app/providers/ScopeContext';
 import { BranchFilterBar } from '@/components/data-display/BranchFilterBar';
 
+import { FileText, Plus } from 'lucide-react';
+
 export const InvoicesListPage: React.FC = () => {
   const navigate = useNavigate();
   const { selectedBranchId, selectedFranchiseId, activeBranchName, activeFranchiseName } = useScope();
@@ -39,30 +41,112 @@ export const InvoicesListPage: React.FC = () => {
   });
 
   const columns: Column<Invoice>[] = [
-    { header: 'Invoice #', accessorKey: 'invoiceNumber', className: 'font-mono text-xs font-semibold' },
-    { header: 'Customer', accessorKey: 'customerName' },
-    { header: 'Billing Type', accessorKey: 'type', className: 'capitalize' },
+    {
+      header: 'Invoice #',
+      accessorKey: 'invoiceNumber',
+      className: 'font-mono text-xs font-semibold text-zinc-900',
+    },
+    {
+      header: 'Customer',
+      cell: (row) => (
+        <div>
+          <span className="font-semibold text-xs text-zinc-900 block">
+            {row.customer?.name || row.customer?.companyName || row.customerName || 'Direct Customer'}
+          </span>
+          {row.customer?.phone && (
+            <span className="text-[10px] text-zinc-400 block">{row.customer.phone}</span>
+          )}
+        </div>
+      ),
+    },
+    {
+      header: 'Branch',
+      cell: (row) => row.branch?.name || activeBranchName,
+      className: 'text-xs text-zinc-600',
+    },
+    {
+      header: 'Billing Type',
+      cell: (row) => {
+        if (row.bookingId) return 'Vehicle Sale';
+        if (
+          row.serviceJobs?.length ||
+          row.items?.some(
+            (i) =>
+              i.description.includes('Service') ||
+              i.description.includes('Labour') ||
+              i.description.includes('Part:'),
+          )
+        ) {
+          return 'Service Job';
+        }
+        return 'Parts & Commercial';
+      },
+      className: 'capitalize text-xs font-medium text-zinc-700',
+    },
     {
       header: 'Total Amount',
-      cell: (row) => `₹${row.totalAmount.toLocaleString()}`,
+      cell: (row) => `₹${Number(row.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+      className: 'font-mono text-xs font-bold text-zinc-900',
     },
     {
       header: 'Balance Due',
-      cell: (row) => `₹${row.balanceDue.toLocaleString()}`,
+      cell: (row) => {
+        const paid = (row.payments || [])
+          .filter((p: any) => p.status === 'SUCCESS')
+          .reduce((sum: number, p: any) => sum + Number(p.amount), 0);
+        const bal = Math.max(
+          0,
+          Number(row.totalAmount || 0) -
+            (row.paymentStatus === 'PAID' ? Number(row.totalAmount || 0) : paid),
+        );
+        return (
+          <span className={`font-mono text-xs font-bold ${bal > 0 ? 'text-red-700' : 'text-emerald-700'}`}>
+            ₹{bal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+          </span>
+        );
+      },
     },
     {
       header: 'Status',
-      cell: (row) => <StatusBadge status={row.status} />,
+      cell: (row) => (
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <StatusBadge status={row.status} />
+          {row.paymentStatus && (
+            <span
+              className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
+                row.paymentStatus === 'PAID'
+                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                  : row.paymentStatus === 'PARTIALLY_PAID'
+                  ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                  : 'bg-zinc-100 text-zinc-700 border border-zinc-200'
+              }`}
+            >
+              {row.paymentStatus}
+            </span>
+          )}
+        </div>
+      ),
     },
     {
       header: 'Action',
       cell: (row) => (
-        <button
-          onClick={() => navigate(`/billing/invoices/${row.id}`)}
-          className="text-xs text-blue-600 hover:text-blue-800 font-medium underline"
-        >
-          View Invoice
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate(`/billing/invoices/${row.id}`)}
+            className="px-2.5 py-1 text-xs bg-zinc-900 hover:bg-black text-[#F5A800] rounded-lg font-bold transition-all shadow-xs"
+          >
+            View
+          </button>
+          <a
+            href={billingService.getPrintableInvoiceUrl(row.id)}
+            target="_blank"
+            rel="noreferrer"
+            className="p-1 text-zinc-500 hover:text-zinc-900 rounded hover:bg-zinc-100 transition-colors"
+            title="Printable Statement"
+          >
+            <FileText className="w-3.5 h-3.5" />
+          </a>
+        </div>
       ),
     },
   ];
@@ -73,6 +157,14 @@ export const InvoicesListPage: React.FC = () => {
         title="Billing & Tax Invoices"
         subtitle={`Vehicle sale, service repair, and spare parts billing for ${activeFranchiseName} • ${activeBranchName}`}
         breadcrumbItems={[{ label: 'Billing' }, { label: 'Invoices' }]}
+        actions={
+          <button
+            onClick={() => navigate('/billing/invoices/new')}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-[#111111] hover:bg-black text-[#F5A800] rounded-xl font-bold text-xs shadow-md transition-all active:scale-95"
+          >
+            <Plus className="w-4 h-4" /> Issue Invoice
+          </button>
+        }
       />
 
       <BranchFilterBar

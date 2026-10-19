@@ -15,15 +15,16 @@ export class ChatService {
 
   private async resolveUserRoleAndScope(user: any) {
     const roles: string[] = Array.isArray(user?.roles) ? user.roles : [];
-    const isSuperAdmin = user?.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN');
-    const isCustomer = user?.accountType === 'CUSTOMER' || (roles.includes('CUSTOMER') && !user?.employeeProfile);
-    const isFranchiseLevel = roles.some((r) => ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r));
-    const isBranchManager = roles.some((r) => ['BRANCH_OWNER', 'BRANCH_MANAGER', 'DEPARTMENT_MANAGER'].includes(r));
+    const scope = user?.effectiveScope;
+    const isSuperAdmin = scope ? scope.isActingSuperAdmin : (user?.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN'));
+    const isCustomer = scope ? scope.isCustomer : (user?.accountType === 'CUSTOMER' || (roles.includes('CUSTOMER') && !user?.employeeProfile));
+    const isFranchiseLevel = scope ? scope.isActingFranchiseLevel : roles.some((r) => ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r));
+    const isBranchManager = scope ? scope.isActingBranchLevel : roles.some((r) => ['BRANCH_OWNER', 'BRANCH_MANAGER', 'DEPARTMENT_MANAGER'].includes(r));
 
     let customerId: string | null = null;
     let employeeId: string | null = null;
-    let branchId: string | null = null;
-    let franchiseId: string | null = null;
+    let branchId: string | null = scope?.effectiveBranchId || null;
+    let franchiseId: string | null = scope?.effectiveFranchiseId || null;
 
     if (isCustomer) {
       const customer = await this.prisma.customer.findFirst({
@@ -36,8 +37,12 @@ export class ChatService {
         include: { branch: true },
       });
       employeeId = employee?.id || user.employeeProfile?.id || null;
-      branchId = employee?.branchId || user.assignedBranchId || user.branchId || null;
-      franchiseId = employee?.branch?.franchiseId || user.assignedFranchiseId || user.franchiseId || null;
+      if (!branchId) {
+        branchId = employee?.branchId || user.assignedBranchId || user.branchId || null;
+      }
+      if (!franchiseId) {
+        franchiseId = employee?.branch?.franchiseId || user.assignedFranchiseId || user.franchiseId || null;
+      }
     }
 
     return {

@@ -13,6 +13,7 @@ export interface UserProfile {
   assignedFranchiseName?: string;
   assignedBranchId?: string;
   assignedBranchName?: string;
+  accountType?: string;
   createdAt?: string;
 }
 

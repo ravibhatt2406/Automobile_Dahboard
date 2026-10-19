@@ -141,9 +141,10 @@ export class InventoryService {
     franchiseId?: string,
   ) {
     const roles: string[] = user?.roles || [];
-    const isSuperAdmin = user?.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN');
-    const isFranchiseLevel = roles.some((r) => ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r));
-    const isCustomer = user?.accountType === 'CUSTOMER' || (roles.includes('CUSTOMER') && !user?.employeeProfile);
+    const scope = user?.effectiveScope;
+    const isSuperAdmin = scope ? scope.isActingSuperAdmin : (user?.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN'));
+    const isFranchiseLevel = scope ? scope.isActingFranchiseLevel : roles.some((r) => ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r));
+    const isCustomer = scope ? scope.isCustomer : (user?.accountType === 'CUSTOMER' || (roles.includes('CUSTOMER') && !user?.employeeProfile));
 
     const where: any = {};
     if (status) where.status = status;
@@ -156,8 +157,8 @@ export class InventoryService {
       }
       where.customerId = customerId;
     } else if (user && !isSuperAdmin) {
-      const userBranchId = user.branchId || user.assignedBranchId || user.employeeProfile?.branchId;
-      const userFranchiseId = user.franchiseId || user.assignedFranchiseId || user.employeeProfile?.branch?.franchiseId;
+      const userBranchId = scope?.effectiveBranchId || user.branchId || user.assignedBranchId || user.employeeProfile?.branchId;
+      const userFranchiseId = scope?.effectiveFranchiseId || user.franchiseId || user.assignedFranchiseId || user.employeeProfile?.branch?.franchiseId;
 
       if (isFranchiseLevel) {
         if (franchiseId && franchiseId !== 'ALL' && franchiseId !== userFranchiseId) {
@@ -244,9 +245,10 @@ export class InventoryService {
 
   async getStockSummary(branchId?: string, user?: any, franchiseId?: string) {
     const roles: string[] = user?.roles || [];
-    const isSuperAdmin = user?.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN');
-    const isFranchiseLevel = roles.some((r) => ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r));
-    const isCustomer = user?.accountType === 'CUSTOMER' || (roles.includes('CUSTOMER') && !user?.employeeProfile);
+    const scope = user?.effectiveScope;
+    const isSuperAdmin = scope ? scope.isActingSuperAdmin : (user?.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN'));
+    const isFranchiseLevel = scope ? scope.isActingFranchiseLevel : roles.some((r) => ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r));
+    const isCustomer = scope ? scope.isCustomer : (user?.accountType === 'CUSTOMER' || (roles.includes('CUSTOMER') && !user?.employeeProfile));
 
     const where: any = {};
 
@@ -269,8 +271,8 @@ export class InventoryService {
       }
       where.customerId = customerId;
     } else if (user && !isSuperAdmin) {
-      const userBranchId = user.branchId || user.assignedBranchId || user.employeeProfile?.branchId;
-      const userFranchiseId = user.franchiseId || user.assignedFranchiseId || user.employeeProfile?.branch?.franchiseId;
+      const userBranchId = scope?.effectiveBranchId || user.branchId || user.assignedBranchId || user.employeeProfile?.branchId;
+      const userFranchiseId = scope?.effectiveFranchiseId || user.franchiseId || user.assignedFranchiseId || user.employeeProfile?.branch?.franchiseId;
 
       if (isFranchiseLevel) {
         if (franchiseId && franchiseId !== 'ALL' && franchiseId !== userFranchiseId) {
@@ -374,18 +376,19 @@ export class InventoryService {
 
     if (user) {
       const roles: string[] = user.roles || [];
-      const isSuperAdmin = user.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN');
+      const scope = user?.effectiveScope;
+      const isSuperAdmin = scope ? scope.isActingSuperAdmin : (user.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN'));
       if (!isSuperAdmin) {
-        const isCustomer = user.accountType === 'CUSTOMER' || (roles.includes('CUSTOMER') && !user.employeeProfile);
+        const isCustomer = scope ? scope.isCustomer : (user.accountType === 'CUSTOMER' || (roles.includes('CUSTOMER') && !user.employeeProfile));
         if (isCustomer) {
           const customerId = user.customerProfile?.id || user.customerId;
           if (!vehicle.customerId || vehicle.customerId !== customerId) {
             throw new ForbiddenException('Multi-tenant scope violation: Unauthorized vehicle access');
           }
         } else {
-          const isFranchiseLevel = roles.some((r) => ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r));
-          const userFranchiseId = user.assignedFranchiseId || user.franchiseId || user.employeeProfile?.branch?.franchiseId;
-          const userBranchId = user.assignedBranchId || user.branchId || user.employeeProfile?.branchId;
+          const isFranchiseLevel = scope ? scope.isActingFranchiseLevel : roles.some((r) => ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r));
+          const userFranchiseId = scope?.effectiveFranchiseId || user.assignedFranchiseId || user.franchiseId || user.employeeProfile?.branch?.franchiseId;
+          const userBranchId = scope?.effectiveBranchId || user.assignedBranchId || user.branchId || user.employeeProfile?.branchId;
 
           if (isFranchiseLevel) {
             if (userFranchiseId && vehicle.branch?.franchiseId !== userFranchiseId) {

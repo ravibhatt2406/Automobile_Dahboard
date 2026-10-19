@@ -66,11 +66,12 @@ export class CustomersService {
     user?: any,
   ) {
     const roles: string[] = user?.roles || [];
-    const isSuperAdmin = user?.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN');
+    const scope = user?.effectiveScope;
+    const isSuperAdmin = scope ? scope.isActingSuperAdmin : (user?.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN'));
     const isFranchiseLevel =
-      !isSuperAdmin && roles.some((r) => ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r));
+      !isSuperAdmin && (scope ? scope.isActingFranchiseLevel : roles.some((r) => ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r)));
     const isBranchLevel = !isSuperAdmin && !isFranchiseLevel;
-    const isCustomer = user?.accountType === 'CUSTOMER' || (roles.includes('CUSTOMER') && !user?.employeeProfile);
+    const isCustomer = scope ? scope.isCustomer : (user?.accountType === 'CUSTOMER' || (roles.includes('CUSTOMER') && !user?.employeeProfile));
 
     if (user && isCustomer) {
       throw new ForbiddenException('Unauthorized: Customers cannot enumerate customer directory');
@@ -104,7 +105,7 @@ export class CustomersService {
     // 4. Multi-Tenant Scope Enforcement
     if (user && !isSuperAdmin) {
       if (isBranchLevel) {
-        const assignedBranchId = user.assignedBranchId || user.branchId;
+        const assignedBranchId = scope?.effectiveBranchId || user.assignedBranchId || user.branchId;
         if (!assignedBranchId) {
           throw new ForbiddenException('Branch user does not have an assigned branch scope');
         }
@@ -123,7 +124,7 @@ export class CustomersService {
           ],
         });
       } else if (isFranchiseLevel) {
-        const assignedFranchiseId = user.assignedFranchiseId || user.franchiseId;
+        const assignedFranchiseId = scope?.effectiveFranchiseId || user.assignedFranchiseId || user.franchiseId;
         if (!assignedFranchiseId) {
           throw new ForbiddenException('Franchise user does not have an assigned franchise scope');
         }
@@ -335,10 +336,11 @@ export class CustomersService {
 
     if (user) {
       const roles: string[] = user.roles || [];
-      const isSuperAdmin = user.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN');
+      const scope = user?.effectiveScope;
+      const isSuperAdmin = scope ? scope.isActingSuperAdmin : (user.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN'));
 
       if (!isSuperAdmin) {
-        const isCustomer = user.accountType === 'CUSTOMER' || (roles.includes('CUSTOMER') && !user.employeeProfile);
+        const isCustomer = scope ? scope.isCustomer : (user.accountType === 'CUSTOMER' || (roles.includes('CUSTOMER') && !user.employeeProfile));
 
         if (isCustomer) {
           const userCustId = user.customerProfile?.id || user.customerId;
@@ -350,10 +352,10 @@ export class CustomersService {
             throw new ForbiddenException('Multi-tenant scope violation: Unauthorized customer access attempt');
           }
         } else {
-          const isFranchiseLevel = roles.some((r) => ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r));
+          const isFranchiseLevel = scope ? scope.isActingFranchiseLevel : roles.some((r) => ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r));
 
           if (isFranchiseLevel) {
-            const franchiseId = user.assignedFranchiseId || user.franchiseId;
+            const franchiseId = scope?.effectiveFranchiseId || user.assignedFranchiseId || user.franchiseId;
             const hasFranchiseLink =
               customer.franchiseLinks?.some((fl) => fl.franchiseId === franchiseId) ||
               customer.leads?.some((l) => l.franchiseId === franchiseId) ||

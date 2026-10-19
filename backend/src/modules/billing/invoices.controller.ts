@@ -6,6 +6,7 @@ import {
   Body,
   Param,
   Query,
+  Header,
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
@@ -76,6 +77,25 @@ export class InvoicesController {
   @ApiOperation({ summary: 'Get PDF invoice data payload' })
   getPdf(@Param('id') id: string, @CurrentUser() user?: any) {
     return this.invoicesService.generatePdfData(id, user);
+  }
+
+  @Get(':id/pdf/download')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'ACCOUNTANT', 'SALES_EMPLOYEE', 'CUSTOMER')
+  @Header('Content-Type', 'text/html; charset=utf-8')
+  @ApiOperation({ summary: 'Printable HTML invoice statement' })
+  async downloadPdf(@Param('id') id: string, @CurrentUser() user?: any) {
+    return this.invoicesService.renderPrintableHtml(id, user);
+  }
+
+  @Post(':id/payments')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'ACCOUNTANT')
+  @ApiOperation({ summary: 'Record verified payment on invoice' })
+  recordPayment(
+    @Param('id') id: string,
+    @Body() dto: { amount: number; paymentMethod?: string; transactionReference?: string },
+    @CurrentUser() user: any,
+  ) {
+    return this.invoicesService.recordPayment(id, dto, user);
   }
 
   @Patch(':id/cancel')

@@ -217,9 +217,12 @@ export class QuotationsService {
     endDate?: string,
   ) {
     const roles: string[] = user?.roles || [];
-    const isSuperAdmin = user?.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN');
-    const isFranchiseLevel = roles.some((r) => ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r));
-    const isCustomer = user?.accountType === 'CUSTOMER' || (roles.includes('CUSTOMER') && !user?.employeeProfile);
+    const scope = user?.effectiveScope;
+    const isSuperAdmin = scope ? scope.isActingSuperAdmin : (user?.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN'));
+    const isFranchiseLevel = scope ? scope.isActingFranchiseLevel : roles.some((r) => ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r));
+    const isCustomer = scope ? scope.isCustomer : (user?.accountType === 'CUSTOMER' || (roles.includes('CUSTOMER') && !user?.employeeProfile));
+    const assignedFranchiseId = scope?.effectiveFranchiseId || user?.assignedFranchiseId || user?.franchiseId;
+    const assignedBranchId = scope?.effectiveBranchId || user?.assignedBranchId || user?.branchId;
 
     const where: any = {};
     if (status) where.status = status;
@@ -229,31 +232,31 @@ export class QuotationsService {
         const userCustId = user.customerProfile?.id || user.customerId;
         where.customerId = userCustId;
       } else if (isFranchiseLevel) {
-        if (franchiseId && franchiseId !== 'ALL' && franchiseId !== user.assignedFranchiseId) {
+        if (franchiseId && franchiseId !== 'ALL' && franchiseId !== assignedFranchiseId) {
           throw new ForbiddenException('Multi-tenant scope violation: Unauthorized franchise access');
         }
         if (branchId && branchId !== 'ALL') {
           const b = await this.prisma.branch.findFirst({
             where: { OR: [{ id: branchId }, { code: branchId }] },
           });
-          if (!b || b.franchiseId !== user.assignedFranchiseId) {
+          if (!b || b.franchiseId !== assignedFranchiseId) {
             throw new ForbiddenException('Multi-tenant scope violation: Unauthorized branch access');
           }
           where.branchId = b.id;
         } else {
-          where.branch = { franchiseId: user.assignedFranchiseId };
+          where.branch = { franchiseId: assignedFranchiseId };
         }
       } else {
         // Branch Level
         if (
           branchId &&
           branchId !== 'ALL' &&
-          branchId !== user.assignedBranchId &&
+          branchId !== assignedBranchId &&
           branchId !== user.employeeProfile?.branch?.code
         ) {
           throw new ForbiddenException('Multi-tenant scope violation: Unauthorized branch access');
         }
-        where.branchId = user.assignedBranchId;
+        where.branchId = assignedBranchId;
       }
     } else {
       // Super Admin
@@ -324,23 +327,27 @@ export class QuotationsService {
 
     if (user) {
       const roles: string[] = user.roles || [];
-      const isSuperAdmin = user.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN');
+      const scope = user?.effectiveScope;
+      const isSuperAdmin = scope ? scope.isActingSuperAdmin : (user.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN'));
       if (!isSuperAdmin) {
-        const isCustomer = user.accountType === 'CUSTOMER' || (roles.includes('CUSTOMER') && !user.employeeProfile);
+        const isCustomer = scope ? scope.isCustomer : (user.accountType === 'CUSTOMER' || (roles.includes('CUSTOMER') && !user.employeeProfile));
         if (isCustomer) {
           const userCustId = user.customerProfile?.id || user.customerId;
           if (quotation.customerId !== userCustId && quotation.customer?.userId !== user.id) {
             throw new ForbiddenException('Multi-tenant scope violation: Unauthorized quotation access attempt');
           }
         } else {
-          const isFranchiseLevel = roles.some((r) => ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r));
+          const isFranchiseLevel = scope ? scope.isActingFranchiseLevel : roles.some((r) => ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r));
+          const assignedFranchiseId = scope?.effectiveFranchiseId || user.assignedFranchiseId || user.franchiseId;
+          const assignedBranchId = scope?.effectiveBranchId || user.assignedBranchId || user.branchId;
+
           if (isFranchiseLevel) {
-            if (quotation.branch?.franchiseId !== user.assignedFranchiseId) {
+            if (quotation.branch?.franchiseId !== assignedFranchiseId) {
               throw new ForbiddenException('Multi-tenant scope violation: Unauthorized franchise access');
             }
           } else {
             // Branch level
-            if (quotation.branchId !== user.assignedBranchId) {
+            if (quotation.branchId !== assignedBranchId) {
               throw new ForbiddenException('Multi-tenant scope violation: Unauthorized branch access');
             }
           }

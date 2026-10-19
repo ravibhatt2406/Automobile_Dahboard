@@ -7,15 +7,16 @@ export class ReportsService {
 
   private async resolveScope(user?: any, branchId?: string, franchiseId?: string) {
     const roles: string[] = user?.roles || [];
-    const isSuperAdmin = user?.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN');
-    const isFranchiseLevel = roles.some((r) => ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r));
+    const scope = user?.effectiveScope;
+    const isSuperAdmin = scope ? scope.isActingSuperAdmin : (user?.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN'));
+    const isFranchiseLevel = scope ? scope.isActingFranchiseLevel : roles.some((r) => ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r));
 
-    let effectiveBranchId = branchId && branchId !== 'ALL' ? branchId : undefined;
-    let effectiveFranchiseId = franchiseId && franchiseId !== 'ALL' ? franchiseId : undefined;
+    let effectiveBranchId = scope?.effectiveBranchId || (branchId && branchId !== 'ALL' ? branchId : undefined);
+    let effectiveFranchiseId = scope?.effectiveFranchiseId || (franchiseId && franchiseId !== 'ALL' ? franchiseId : undefined);
 
     if (user && !isSuperAdmin) {
       if (isFranchiseLevel) {
-        const userFranchiseId = user.assignedFranchiseId || user.franchiseId;
+        const userFranchiseId = scope?.effectiveFranchiseId || user.assignedFranchiseId || user.franchiseId;
         if (effectiveFranchiseId && effectiveFranchiseId !== userFranchiseId) {
           throw new ForbiddenException('Multi-tenant scope violation: Unauthorized franchise access');
         }

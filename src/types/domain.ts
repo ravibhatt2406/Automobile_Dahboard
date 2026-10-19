@@ -63,11 +63,13 @@ export interface EmployeeApproval {
 
 export interface Customer {
   id: string;
+  name?: string;
   companyName: string;
   contactPerson: string;
   email: string;
   phone: string;
   taxId?: string;
+  gstin?: string;
   address: string;
   city: string;
   state: string;
@@ -261,31 +263,98 @@ export interface InsurancePolicy {
 }
 
 export interface InvoiceItem {
-  id: string;
+  id?: string;
   description: string;
   quantity: number;
   unitPrice: number;
-  amount: number;
+  amount?: number;
+  taxableAmount?: number;
+  gstRate?: number;
+  gstAmount?: number;
+  totalAmount?: number;
 }
 
 export interface Invoice {
   id: string;
   invoiceNumber: string;
   customerId: string;
-  customerName: string;
+  customerName?: string;
+  customer?: {
+    id: string;
+    name?: string;
+    companyName?: string;
+    email?: string;
+    phone?: string;
+    address?: string;
+    gstin?: string;
+  };
+  branchId?: string;
+  branch?: {
+    id: string;
+    name: string;
+    code: string;
+    address?: string;
+    phone?: string;
+  };
+  bookingId?: string | null;
+  booking?: {
+    id: string;
+    bookingNumber: string;
+    totalAmount: number;
+  } | null;
+  vehicleId?: string | null;
+  vehicle?: {
+    id: string;
+    vin: string;
+    make: string;
+    model: string;
+    variant?: string;
+  } | null;
+  serviceJobs?: Array<{
+    id: string;
+    jobNumber?: string;
+    jobCardNumber?: string;
+  }>;
+  payments?: Array<{
+    id: string;
+    amount: number;
+    status: string;
+    gateway?: string;
+    gatewayPaymentId?: string;
+    paidAt?: string;
+    createdAt?: string;
+  }>;
+  billingAddress?: string;
+  gstin?: string | null;
   vehicleVin?: string;
-  type: 'vehicle_sale' | 'service' | 'parts';
+  type?: 'vehicle_sale' | 'service' | 'parts' | string;
   items: InvoiceItem[];
   subtotal: number;
   discount: number;
-  cgst: number;
-  sgst: number;
-  igst: number;
+  taxableAmount?: number;
+  cgst?: number;
+  cgstAmount?: number;
+  sgst?: number;
+  sgstAmount?: number;
+  igst?: number;
+  igstAmount?: number;
   totalAmount: number;
-  paidAmount: number;
-  balanceDue: number;
-  dueDate: string;
-  status: 'draft' | 'unpaid' | 'partially_paid' | 'paid' | 'overdue';
+  paidAmount?: number;
+  balanceDue?: number;
+  paymentStatus?: 'UNPAID' | 'PARTIALLY_PAID' | 'PAID' | string;
+  dueDate?: string;
+  status:
+    | 'draft'
+    | 'unpaid'
+    | 'partially_paid'
+    | 'paid'
+    | 'overdue'
+    | 'DRAFT'
+    | 'ISSUED'
+    | 'PARTIALLY_PAID'
+    | 'PAID'
+    | 'CANCELLED';
+  issuedAt?: string;
   createdAt: string;
 }
 

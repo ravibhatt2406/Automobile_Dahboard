@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '@/database/prisma.service';
 import { CreatePdiDto } from './dto/create-pdi.dto';
 import { AuditService } from '../audit/audit.service';
 import { PdiStatus } from '@prisma/client';
+import { resolveUserScope } from '@/common/utils/scope.util';
 
 @Injectable()
 export class PdiService {
@@ -102,36 +103,101 @@ export class PdiService {
     return result;
   }
 
-  async findByVehicle(vehicleId: string) {
+  async findByVehicle(vehicleId: string, user?: any) {
+    const vehicle = await this.prisma.vehicle.findUnique({
+      where: { id: vehicleId },
+      include: { branch: true },
+    });
+    if (!vehicle) {
+      throw new NotFoundException(`Vehicle ID '${vehicleId}' not found`);
+    }
+
+    if (user) {
+      const scope = user?.effectiveScope || (await resolveUserScope(this.prisma, user));
+      if (!scope.isActingSuperAdmin) {
+        if (scope.isActingFranchiseLevel) {
+          if (scope.effectiveFranchiseId && vehicle.branch?.franchiseId !== scope.effectiveFranchiseId) {
+            throw new ForbiddenException('Access denied to vehicle in another franchise');
+          }
+        } else {
+          if (scope.effectiveBranchId && vehicle.branchId !== scope.effectiveBranchId) {
+            throw new ForbiddenException('Access denied to vehicle in another branch');
+          }
+        }
+      }
+    }
+
     return this.prisma.pdiInspection.findMany({
       where: { vehicleId },
       orderBy: { inspectionDate: 'desc' },
-      include: { vehicle: true },
+      include: { vehicle: { include: { branch: true } } },
     });
   }
 
-  async findAll(limit = 50, offset = 0) {
+  async findAll(limit = 50, offset = 0, user?: any, branchId?: string, franchiseId?: string) {
+    const where: any = {};
+    const scope = user?.effectiveScope || (user ? await resolveUserScope(this.prisma, user, branchId, franchiseId) : null);
+
+    if (scope && !scope.isActingSuperAdmin) {
+      if (scope.isActingFranchiseLevel) {
+        where.vehicle = { branch: { franchiseId: scope.effectiveFranchiseId } };
+        if (scope.effectiveBranchId) {
+          where.vehicle = { branchId: scope.effectiveBranchId };
+        }
+      } else {
+        where.vehicle = { branchId: scope.effectiveBranchId };
+      }
+    } else if (scope?.isActingSuperAdmin) {
+      if (scope.effectiveFranchiseId) {
+        where.vehicle = { branch: { franchiseId: scope.effectiveFranchiseId } };
+        if (scope.effectiveBranchId) {
+          where.vehicle = { branchId: scope.effectiveBranchId };
+        }
+      } else if (scope.effectiveBranchId) {
+        where.vehicle = { branchId: scope.effectiveBranchId };
+      }
+    }
+
     const [items, total] = await Promise.all([
       this.prisma.pdiInspection.findMany({
+        where,
         take: limit,
         skip: offset,
         orderBy: { inspectionDate: 'desc' },
-        include: { vehicle: true },
+        include: { vehicle: { include: { branch: true } } },
       }),
-      this.prisma.pdiInspection.count(),
+      this.prisma.pdiInspection.count({ where }),
     ]);
 
     return { items, total, limit, offset };
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, user?: any) {
     const pdi = await this.prisma.pdiInspection.findUnique({
       where: { id },
-      include: { vehicle: true },
+      include: { vehicle: { include: { branch: true } } },
     });
 
     if (!pdi) {
       throw new NotFoundException(`PDI inspection with ID ${id} not found`);
+    }
+
+    if (user) {
+      const scope = user?.effectiveScope || (await resolveUserScope(this.prisma, user));
+      if (!scope.isActingSuperAdmin) {
+        if (scope.isActingFranchiseLevel) {
+          if (scope.effectiveFranchiseId && pdi.vehicle?.branch?.franchiseId !== scope.effectiveFranchiseId) {
+            throw new ForbiddenException('Access denied to PDI inspection in another franchise');
+          }
+          if (scope.effectiveBranchId && pdi.vehicle?.branchId !== scope.effectiveBranchId) {
+            throw new ForbiddenException('Access denied to PDI inspection in another branch');
+          }
+        } else {
+          if (scope.effectiveBranchId && pdi.vehicle?.branchId !== scope.effectiveBranchId) {
+            throw new ForbiddenException('Access denied to PDI inspection in another branch');
+          }
+        }
+      }
     }
 
     return pdi;

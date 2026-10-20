@@ -164,6 +164,9 @@ export const authService = {
       localStorage.removeItem('titan_refresh_token');
       localStorage.removeItem('titan_is_authenticated');
       localStorage.removeItem('titan_user_profile');
+      localStorage.removeItem('titan_active_branch_id');
+      localStorage.removeItem('titan_active_franchise_id');
+      localStorage.removeItem('titan_active_role');
     }
   },
 };

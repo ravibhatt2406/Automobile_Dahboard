@@ -3,10 +3,12 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '@/database/prisma.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { AuditService } from '../audit/audit.service';
+import { resolveUserScope } from '@/common/utils/scope.util';
 
 @Injectable()
 export class CustomersService {
@@ -20,36 +22,162 @@ export class CustomersService {
     const user = typeof userOrId === 'object' ? userOrId : null;
 
     const roles: string[] = user?.roles || [];
-    const isSuperAdmin = user?.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN');
+    const isCustomer = user?.accountType === 'CUSTOMER' || (roles.includes('CUSTOMER') && !user?.employeeProfile);
 
-    if (user && !isSuperAdmin) {
-      throw new ForbiddenException(
-        'Employee accounts cannot directly create customer records. Customers must self-register via the public portal.',
+    if (user && isCustomer) {
+      throw new ForbiddenException('Customers cannot create other customer records.');
+    }
+
+    // 1. Field validation
+    const name = dto.name?.trim();
+    if (!name || name.length < 2) {
+      throw new BadRequestException('Customer name is required and must be at least 2 characters');
+    }
+
+    const rawPhone = dto.phone?.trim();
+    if (!rawPhone) {
+      throw new BadRequestException('Customer phone number is required');
+    }
+    const cleanPhone = rawPhone.replace(/\s+/g, '');
+    if (!/^[+]?[\d-]{7,16}$/.test(cleanPhone)) {
+      throw new BadRequestException('Invalid phone number format. Must be 7-16 digits.');
+    }
+
+    const cleanEmail = dto.email ? dto.email.trim().toLowerCase() : undefined;
+    if (cleanEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      throw new BadRequestException('Invalid email address format');
+    }
+
+    const cleanGstin = dto.gstin?.trim() ? dto.gstin.trim().toUpperCase() : undefined;
+    if (cleanGstin && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(cleanGstin)) {
+      throw new BadRequestException('Invalid GSTIN format (must be 15 alphanumeric characters)');
+    }
+
+    const cleanPan = dto.pan?.trim() ? dto.pan.trim().toUpperCase() : undefined;
+    if (cleanPan && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(cleanPan)) {
+      throw new BadRequestException('Invalid PAN format (must be 10 characters: 5 letters, 4 digits, 1 letter)');
+    }
+
+    const customerType = dto.customerType || 'INDIVIDUAL';
+    const companyName = customerType === 'BUSINESS'
+      ? (dto.companyName?.trim() || name)
+      : (dto.companyName?.trim() || undefined);
+
+    // 2. Duplicate Detection
+    const existingByPhone = await this.prisma.customer.findFirst({
+      where: { phone: cleanPhone },
+    });
+    if (existingByPhone) {
+      throw new ConflictException(
+        `A customer record with phone '${cleanPhone}' already exists (${existingByPhone.name}). Please use the existing profile or update details.`,
       );
     }
 
+    if (cleanEmail) {
+      const existingByEmail = await this.prisma.customer.findFirst({
+        where: { email: { equals: cleanEmail, mode: 'insensitive' } },
+      });
+      if (existingByEmail) {
+        throw new ConflictException(
+          `A customer record with email '${cleanEmail}' already exists (${existingByEmail.name}).`,
+        );
+      }
+    }
+
+    // 3. Branch & Franchise Scoping
+    let assignedBranchId: string | null = null;
+    let branchFranchiseId: string | null = null;
+
+    if (user) {
+      const scope = user?.effectiveScope || (await resolveUserScope(this.prisma, user));
+      const requestedBranchId = dto.branchId || dto.preferredBranchId || undefined;
+
+      if (scope.isActingSuperAdmin) {
+        if (requestedBranchId) {
+          const branch = await this.prisma.branch.findUnique({ where: { id: requestedBranchId } });
+          if (!branch) {
+            throw new NotFoundException(`Specified branch '${requestedBranchId}' does not exist`);
+          }
+          assignedBranchId = branch.id;
+          branchFranchiseId = branch.franchiseId;
+        }
+      } else if (scope.isActingFranchiseLevel) {
+        if (!requestedBranchId) {
+          throw new BadRequestException('Branch assignment is required for customer creation in your franchise');
+        }
+        const branch = await this.prisma.branch.findUnique({ where: { id: requestedBranchId } });
+        if (!branch) {
+          throw new NotFoundException(`Specified branch '${requestedBranchId}' does not exist`);
+        }
+        if (branch.franchiseId !== scope.effectiveFranchiseId) {
+          throw new ForbiddenException('Cannot assign customer to a branch outside your franchise');
+        }
+        assignedBranchId = branch.id;
+        branchFranchiseId = branch.franchiseId;
+      } else {
+        // Branch Level User (Branch Manager, Sales, Service Advisor)
+        const allowedBranchId = scope.effectiveBranchId || user.branchId;
+        if (!allowedBranchId) {
+          throw new ForbiddenException('User is not associated with an authorized dealership branch');
+        }
+        if (requestedBranchId && requestedBranchId !== allowedBranchId) {
+          throw new ForbiddenException(`Cannot assign customer to another branch (${requestedBranchId}). Your authorized branch is ${allowedBranchId}.`);
+        }
+        const branch = await this.prisma.branch.findUnique({ where: { id: allowedBranchId } });
+        if (!branch) {
+          throw new NotFoundException(`Branch '${allowedBranchId}' not found`);
+        }
+        assignedBranchId = branch.id;
+        branchFranchiseId = branch.franchiseId;
+      }
+    } else if (dto.preferredBranchId) {
+      const branch = await this.prisma.branch.findUnique({ where: { id: dto.preferredBranchId } });
+      if (branch) {
+        assignedBranchId = branch.id;
+        branchFranchiseId = branch.franchiseId;
+      }
+    }
+
+    // 4. Create customer record in database
     const customer = await this.prisma.customer.create({
       data: {
-        userId: user?.accountType === 'CUSTOMER' ? user.id : undefined,
-        name: dto.name,
-        phone: dto.phone,
-        email: dto.email,
-        address: dto.address,
-        city: dto.city,
-        state: dto.state,
-        pincode: dto.pincode,
-        gstin: dto.gstin,
-        customerType: dto.customerType || 'INDIVIDUAL',
-        companyName: dto.companyName,
+        name,
+        phone: cleanPhone,
+        email: cleanEmail,
+        address: dto.address?.trim(),
+        city: dto.city?.trim(),
+        state: dto.state?.trim(),
+        pincode: dto.pincode?.trim(),
+        gstin: cleanGstin,
+        pan: cleanPan,
+        customerType,
+        companyName,
+        preferredBranchId: assignedBranchId,
+        status: 'ACTIVE',
+        ...(branchFranchiseId
+          ? {
+              franchiseLinks: {
+                create: { franchiseId: branchFranchiseId },
+              },
+            }
+          : {}),
+      },
+      include: {
+        preferredBranch: true,
       },
     });
 
     await this.auditService.log({
-      actorUserId,
+      actorUserId: actorUserId || 'SYSTEM',
       action: 'CUSTOMER_CREATED',
       entityType: 'Customer',
       entityId: customer.id,
-      metadata: { name: customer.name, phone: customer.phone },
+      metadata: {
+        name: customer.name,
+        phone: customer.phone,
+        customerType: customer.customerType,
+        branchId: assignedBranchId,
+      },
     }).catch(() => {});
 
     return customer;

@@ -28,6 +28,11 @@ export const franchiseService = {
     }
   },
 
+  async getAll(): Promise<Franchise[]> {
+    const res = await this.getFranchises();
+    return res.data || [];
+  },
+
   async getFranchiseById(id: string): Promise<Franchise | null> {
     try {
       const res = await apiFetch<any>(`/franchises/${id}`);

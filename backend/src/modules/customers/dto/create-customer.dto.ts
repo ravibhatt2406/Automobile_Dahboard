@@ -43,6 +43,11 @@ export class CreateCustomerDto {
   @IsOptional()
   gstin?: string;
 
+  @ApiProperty({ example: 'ABCDE1234F', required: false })
+  @IsString()
+  @IsOptional()
+  pan?: string;
+
   @ApiProperty({ enum: CustomerType, example: CustomerType.BUSINESS })
   @IsEnum(CustomerType)
   customerType: CustomerType;
@@ -56,4 +61,9 @@ export class CreateCustomerDto {
   @IsString()
   @IsOptional()
   preferredBranchId?: string | null;
+
+  @ApiProperty({ example: '8f146f47-f6d8-4909-8b85-996f444f701b', required: false })
+  @IsString()
+  @IsOptional()
+  branchId?: string | null;
 }

@@ -15,6 +15,10 @@ import {
   Clock,
   CheckCircle2,
   MessageSquare,
+  DollarSign,
+  ShieldAlert,
+  Megaphone,
+  AlertTriangle,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { dashboardService, BranchDashboardData } from '@/services/dashboard.service';
@@ -76,13 +80,13 @@ export const BranchManagerDashboard: React.FC = () => {
       <div className="border-b border-[#E5E5E5] pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div>
           <span className="text-xs font-semibold text-[#F5A800] uppercase tracking-widest flex items-center gap-1.5 font-mono">
-            <Store className="w-4 h-4 text-[#F5A800]" /> Branch Operations
+            <Store className="w-4 h-4 text-[#F5A800]" /> Branch Operations Management
           </span>
           <h1 className="text-2xl sm:text-3xl font-bold text-[#111111] mt-1">
             {data?.branchName ? `${data.branchName} Manager Hub` : 'Branch Manager Dashboard'}
           </h1>
           <p className="text-xs sm:text-sm text-zinc-500 mt-1">
-            Daily shift operations, sales pipeline control, and workshop bay status.
+            Daily shift operations, sales pipeline control, workshop bay load, compliance, and marketing.
           </p>
         </div>
         {data && (
@@ -93,13 +97,7 @@ export const BranchManagerDashboard: React.FC = () => {
       </div>
 
       {/* Error State */}
-      {error && (
-        <ErrorState
-          title={error.title}
-          message={error.message}
-          onRetry={loadData}
-        />
-      )}
+      {error && <ErrorState title={error.title} message={error.message} onRetry={loadData} />}
 
       {/* Loading Skeletons */}
       {loading && !error && (
@@ -119,6 +117,7 @@ export const BranchManagerDashboard: React.FC = () => {
       {/* Real Live Operational Data */}
       {!loading && !error && data && (
         <>
+          {/* Top Primary KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <KpiCard
               title="Active Pipeline Leads"
@@ -130,22 +129,92 @@ export const BranchManagerDashboard: React.FC = () => {
               title="Confirmed Bookings"
               value={data.confirmedBookings}
               icon={ShoppingBag}
-              subtitle="Pending Deliveries & Allocation"
+              subtitle="In Allocation & Delivery"
             />
             <KpiCard
-              title="Available Fleet Stock"
+              title="Available Stock"
               value={`${data.inStockVehicles} / ${data.totalVehicles}`}
               icon={Truck}
               subtitle="On Dealership Lot"
             />
             <KpiCard
-              title="Service Bay Load"
+              title="Workshop Bay Load"
               value={data.activeServiceJobs}
               icon={Wrench}
-              subtitle="Active Repair Cards"
+              subtitle={
+                (data.overdueJobs || 0) > 0
+                  ? `${data.overdueJobs} Overdue Jobs`
+                  : 'Active Service Cards'
+              }
             />
           </div>
 
+          {/* Operational Breakdown Bar */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Financial Collections */}
+            <div className="p-4 bg-white border border-zinc-200 rounded-xl space-y-1">
+              <div className="flex items-center justify-between text-xs text-zinc-500">
+                <span>Collections Received</span>
+                <DollarSign className="w-4 h-4 text-emerald-600" />
+              </div>
+              <p className="text-xl font-bold font-mono text-zinc-900">
+                ₹{Number(data.totalCollections || 0).toLocaleString('en-IN')}
+              </p>
+              <p className="text-[11px] text-zinc-400 font-mono">
+                Booking Value: ₹{Number(data.totalRevenue || 0).toLocaleString('en-IN')}
+              </p>
+            </div>
+
+            {/* Inventory Status Breakdown */}
+            <div className="p-4 bg-white border border-zinc-200 rounded-xl space-y-1">
+              <div className="flex items-center justify-between text-xs text-zinc-500">
+                <span>Inventory Breakdown</span>
+                <Truck className="w-4 h-4 text-amber-600" />
+              </div>
+              <div className="flex items-center gap-2 pt-1 font-mono text-xs">
+                <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800 font-bold">
+                  {data.inStockVehicles} Stock
+                </span>
+                <span className="px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 font-bold">
+                  {data.reservedVehicles || 0} Rsrv
+                </span>
+                <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-800 font-bold">
+                  {data.allocatedVehicles || 0} Alloc
+                </span>
+              </div>
+              <p className="text-[11px] text-zinc-400 font-mono pt-1">
+                Total Branch Units: {data.totalVehicles}
+              </p>
+            </div>
+
+            {/* Compliance Alerts Requiring Attention */}
+            <div className="p-4 bg-white border border-zinc-200 rounded-xl space-y-1">
+              <div className="flex items-center justify-between text-xs text-zinc-500">
+                <span>Compliance Attention</span>
+                <ShieldAlert className="w-4 h-4 text-rose-600" />
+              </div>
+              <p className="text-xl font-bold font-mono text-rose-700">
+                {data.complianceAlerts || 0}
+              </p>
+              <p className="text-[11px] text-zinc-400 font-mono">Expired or Due in 30 Days</p>
+            </div>
+
+            {/* Campaign Results */}
+            <div className="p-4 bg-white border border-zinc-200 rounded-xl space-y-1">
+              <div className="flex items-center justify-between text-xs text-zinc-500">
+                <span>Marketing & Camps</span>
+                <Megaphone className="w-4 h-4 text-purple-600" />
+              </div>
+              <p className="text-xl font-bold font-mono text-purple-700">
+                {data.activeCampaignsCount || 0} Active
+              </p>
+              <p className="text-[11px] text-zinc-400 font-mono">
+                {data.campaignLeadsCount || 0} Leads Attributed
+              </p>
+            </div>
+          </div>
+
+          {/* Secondary Operational Counters */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="p-4 bg-white border border-[#E5E5E5] rounded-xl flex items-center justify-between">
               <div>
@@ -190,7 +259,9 @@ export const BranchManagerDashboard: React.FC = () => {
               </div>
               <div>
                 <h4 className="font-bold text-sm text-zinc-100">Customer Inquiries & Live Messages Desk</h4>
-                <p className="text-xs text-zinc-400">Respond to customer vehicle inquiries, booking questions, and assign conversations to advisors.</p>
+                <p className="text-xs text-zinc-400">
+                  Respond to customer vehicle inquiries, booking questions, and assign conversations to advisors.
+                </p>
               </div>
             </div>
             <Link
@@ -245,12 +316,20 @@ export const BranchManagerDashboard: React.FC = () => {
               )}
             </div>
 
-            {/* Active Service Repair Orders */}
+            {/* Workshop Bay Status */}
             <div className="cockpit-card p-6 rounded-xl border border-[#E5E5E5] bg-white">
-              <h3 className="text-sm font-bold text-[#111111] mb-4 flex items-center gap-2">
-                <Wrench className="w-4 h-4 text-[#F5A800]" />
-                Workshop Bay Status
-              </h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-bold text-[#111111] flex items-center gap-2">
+                  <Wrench className="w-4 h-4 text-[#F5A800]" />
+                  Workshop Bay Status
+                </h3>
+                {(data.overdueJobs || 0) > 0 && (
+                  <span className="px-2 py-0.5 rounded bg-rose-100 text-rose-800 text-[10px] font-mono font-bold flex items-center gap-1">
+                    <AlertTriangle className="w-3 h-3 text-rose-600" />
+                    {data.overdueJobs} Overdue
+                  </span>
+                )}
+              </div>
               {data.recentServiceJobs.length === 0 ? (
                 <EmptyState
                   title="No active service jobs"

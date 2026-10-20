@@ -1,0 +1,51 @@
+import { ApiProperty } from '@nestjs/swagger';
+import { IsDateString, IsEnum, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { CampaignStatus } from '@prisma/client';
+
+export class UpdateCampaignDto {
+  @ApiProperty({ example: 'Monsoon Commercial Fleet Mega Camp 2026', required: false })
+  @IsString()
+  @IsOptional()
+  name?: string;
+
+  @ApiProperty({ example: 'Customer outreach camp description', required: false })
+  @IsString()
+  @IsOptional()
+  description?: string;
+
+  @ApiProperty({ example: 'Transport Nagar Highway Hub', required: false })
+  @IsString()
+  @IsOptional()
+  location?: string;
+
+  @ApiProperty({ example: '2026-11-01T09:00:00.000Z', required: false })
+  @IsDateString()
+  @IsOptional()
+  startDate?: string;
+
+  @ApiProperty({ example: '2026-11-05T18:00:00.000Z', required: false })
+  @IsDateString()
+  @IsOptional()
+  endDate?: string;
+
+  @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', required: false })
+  @IsString()
+  @IsOptional()
+  coordinatorId?: string;
+
+  @ApiProperty({ example: 175000, required: false })
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  budget?: number;
+
+  @ApiProperty({ enum: CampaignStatus, example: CampaignStatus.ACTIVE, required: false })
+  @IsEnum(CampaignStatus)
+  @IsOptional()
+  status?: CampaignStatus;
+
+  @ApiProperty({ example: 'Camp active, high footfall recorded on Day 1', required: false })
+  @IsString()
+  @IsOptional()
+  notes?: string;
+}

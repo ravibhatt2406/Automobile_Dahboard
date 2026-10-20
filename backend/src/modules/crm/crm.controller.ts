@@ -2,6 +2,7 @@ import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards } from '@ne
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { CrmService } from './crm.service';
 import { CreateLeadDto } from './dto/create-lead.dto';
+import { UpdateLeadDto } from './dto/update-lead.dto';
 import { CreateFollowUpDto } from './dto/create-followup.dto';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
@@ -31,6 +32,7 @@ export class CrmController {
     @Query('branchId') branchId?: string,
     @Query('franchiseId') franchiseId?: string,
     @Query('status') status?: LeadStatus,
+    @Query('campaignId') campaignId?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('limit') limit = 50,
@@ -46,6 +48,7 @@ export class CrmController {
       franchiseId,
       startDate,
       endDate,
+      campaignId,
     );
   }
 
@@ -67,15 +70,27 @@ export class CrmController {
     return this.crmService.assignLead(leadId, employeeId, user);
   }
 
+  @Patch(':id')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE')
+  @ApiOperation({ summary: 'Update lead details, requirements, budget, or assigned employee' })
+  async updateLead(
+    @Param('id') leadId: string,
+    @Body() dto: UpdateLeadDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.crmService.updateLead(leadId, dto, user);
+  }
+
   @Patch(':id/status')
   @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE')
   @ApiOperation({ summary: 'Update lead status in lifecycle (NEW -> CONTACTED -> QUALIFIED -> etc.)' })
   async updateLeadStatus(
     @Param('id') leadId: string,
     @Body('status') status: LeadStatus,
+    @Body('lostReason') lostReason: string,
     @CurrentUser() user: any,
   ) {
-    return this.crmService.updateLeadStatus(leadId, status, user);
+    return this.crmService.updateLeadStatus(leadId, status, user, lostReason);
   }
 
   @Post(':id/follow-ups')

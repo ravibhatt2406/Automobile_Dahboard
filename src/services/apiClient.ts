@@ -94,11 +94,14 @@ export async function apiFetch<T>(
         }
       }
 
-      // If refresh failed or missing, clear auth state
+      // If refresh failed or missing, clear auth and stale scope state
       localStorage.removeItem('titan_auth_token');
       localStorage.removeItem('titan_refresh_token');
       localStorage.removeItem('titan_is_authenticated');
       localStorage.removeItem('titan_user_profile');
+      localStorage.removeItem('titan_active_branch_id');
+      localStorage.removeItem('titan_active_franchise_id');
+      localStorage.removeItem('titan_active_role');
     }
 
     if (!response.ok) {

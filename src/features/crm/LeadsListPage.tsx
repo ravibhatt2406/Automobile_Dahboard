@@ -51,25 +51,63 @@ export const LeadsListPage: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const columns: Column<Lead>[] = [
+  const columns: Column<any>[] = [
     {
       header: 'Lead / Customer',
       cell: (row) => (
         <div>
-          <span className="font-semibold text-zinc-900 block">{row.customerName}</span>
-          <span className="text-xs text-zinc-500">{row.companyName || '--'}</span>
+          <span className="font-bold text-zinc-900 block text-xs">
+            {row.customer?.companyName || row.companyName || row.customer?.name || row.customerName || 'Prospect'}
+          </span>
+          <span className="text-[11px] text-zinc-500 block">
+            Contact: {row.customer?.name || row.customerName || '—'}
+          </span>
         </div>
       ),
     },
-    { header: 'Email', accessorKey: 'email', className: 'font-mono text-xs text-zinc-600' },
-    { header: 'Units Req.', accessorKey: 'estimatedUnits' },
-    { header: 'Assigned Salesperson', accessorKey: 'assignedEmployeeName' },
     {
-      header: 'Priority',
-      cell: (row) => <StatusBadge status={row.priority} />,
+      header: 'Contact Info',
+      cell: (row) => (
+        <div>
+          <span className="font-mono text-xs text-zinc-800 block">{row.customer?.phone || row.phone || '—'}</span>
+          <span className="text-[11px] text-zinc-500 font-sans block">{row.customer?.email || row.email || '—'}</span>
+        </div>
+      ),
     },
     {
-      header: 'Pipeline Stage',
+      header: 'Interested Model',
+      cell: (row) => (
+        <span className="text-xs font-semibold text-zinc-900">
+          {row.interestedModel || 'Commercial Truck'}
+        </span>
+      ),
+    },
+    {
+      header: 'Budget (INR)',
+      cell: (row) => (
+        <span className="font-mono text-xs font-bold text-zinc-800">
+          {row.expectedBudget ? `₹${Number(row.expectedBudget).toLocaleString()}` : '—'}
+        </span>
+      ),
+    },
+    {
+      header: 'Assigned Salesperson',
+      cell: (row) => {
+        const emp = row.assignedEmployee;
+        const name = emp ? `${emp.firstName} ${emp.lastName}` : (row.assignedEmployeeName || 'Unassigned');
+        return (
+          <span className={`text-xs ${emp ? 'font-medium text-zinc-800' : 'italic text-zinc-400'}`}>
+            {name}
+          </span>
+        );
+      },
+    },
+    {
+      header: 'Priority',
+      cell: (row) => <StatusBadge status={row.priority || 'MEDIUM'} />,
+    },
+    {
+      header: 'Stage',
       cell: (row) => <StatusBadge status={row.status} />,
     },
     {
@@ -77,9 +115,9 @@ export const LeadsListPage: React.FC = () => {
       cell: (row) => (
         <button
           onClick={() => navigate(`/crm/leads/${row.id}`)}
-          className="text-xs text-blue-600 hover:text-blue-800 font-medium underline"
+          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-[#111111] hover:bg-black text-[#F5A800] text-xs font-semibold transition-colors shadow-xs"
         >
-          Details
+          Manage
         </button>
       ),
     },
@@ -139,9 +177,9 @@ export const LeadsListPage: React.FC = () => {
           { label: 'New', value: 'NEW' },
           { label: 'Contacted', value: 'CONTACTED' },
           { label: 'Qualified', value: 'QUALIFIED' },
-          { label: 'Proposal Sent', value: 'PROPOSAL_SENT' },
-          { label: 'Negotiating', value: 'NEGOTIATING' },
-          { label: 'Won', value: 'WON' },
+          { label: 'Proposal / Demo', value: 'PROPOSAL' },
+          { label: 'Negotiation', value: 'NEGOTIATION' },
+          { label: 'Won (Converted)', value: 'CONVERTED' },
           { label: 'Lost', value: 'LOST' },
         ]}
         showDateRange={true}
@@ -166,7 +204,7 @@ export const LeadsListPage: React.FC = () => {
           onCreateLead={handleCreate}
         />
       ) : (
-        <DataTable<Lead>
+        <DataTable<any>
           columns={columns}
           data={data?.data || []}
           isLoading={isLoading}
@@ -181,10 +219,8 @@ export const LeadsListPage: React.FC = () => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         initialData={editingLead}
-        onSubmit={(formData) => {
-          console.log('Saved Lead Data:', formData);
-          refetch();
-        }}
+        onSuccess={() => refetch()}
+        activeBranchId={selectedBranchId}
       />
     </div>
   );

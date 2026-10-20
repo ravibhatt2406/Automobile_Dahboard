@@ -7,11 +7,20 @@ export interface SuperAdminDashboardData {
   customerCount: number;
   vehicleCount: number;
   inStockVehicleCount: number;
+  reservedVehicleCount?: number;
   bookingCount: number;
   serviceJobCount: number;
   activeServiceJobCount: number;
   pendingApprovals: number;
   totalRevenue: number;
+  totalCollections?: number;
+  campaignsCount?: number;
+  activeCampaignsCount?: number;
+  inTransitDeliveries?: number;
+  completedDeliveries?: number;
+  complianceAlerts?: number;
+  activeFinanceApps?: number;
+  overdueEmis?: number;
   recentBookings: Array<{
     id: string;
     bookingNumber: string;
@@ -45,9 +54,20 @@ export interface FranchiseDashboardData {
   pendingApprovals: number;
   vehicleCount: number;
   inStockVehicles: number;
+  reservedVehicles?: number;
+  allocatedVehicles?: number;
   bookingsCount: number;
   activeServiceJobsCount: number;
   totalRevenue: number;
+  totalCollections?: number;
+  totalLeads?: number;
+  leadConversionRate?: number;
+  complianceAlerts?: number;
+  campaignsCount?: number;
+  campaignBudget?: number;
+  campaignExpenses?: number;
+  activeFinanceApps?: number;
+  overdueEmis?: number;
   branches: Array<{
     id: string;
     name: string;
@@ -80,16 +100,26 @@ export interface BranchDashboardData {
   city?: string;
   franchise?: { id: string; name: string; code: string };
   inStockVehicles: number;
+  reservedVehicles?: number;
+  allocatedVehicles?: number;
+  deliveredVehicles?: number;
   totalVehicles: number;
   confirmedBookings: number;
   totalBookings: number;
   activeServiceJobs: number;
+  awaitingPartsJobs?: number;
+  overdueJobs?: number;
   completedServiceJobs: number;
   totalEmployees: number;
   pendingApprovals: number;
   activeQuotations: number;
   activeLeads: number;
   totalRevenue: number;
+  totalCollections?: number;
+  complianceAlerts?: number;
+  activeCampaignsCount?: number;
+  campaignLeadsCount?: number;
+  inTransitDeliveries?: number;
   recentBookings: Array<{
     id: string;
     bookingNumber: string;
@@ -116,6 +146,7 @@ export interface SalesDashboardData {
   totalBookingsCount: number;
   availableStockCount: number;
   activeLeadsCount: number;
+  overdueFollowUpsCount?: number;
   recentQuotations: Array<{
     id: string;
     quotationNumber: string;
@@ -186,24 +217,59 @@ export interface MechanicDashboardData {
 }
 
 export interface CustomerDashboardData {
-  id: string | null;
-  name: string;
-  email?: string;
+  id?: string | null;
+  name?: string;
   preferredBranchId?: string | null;
-  preferredBranch?: {
+  preferredBranch?: any;
+  customer: {
     id: string;
-    code: string;
     name: string;
-    city: string;
-    state?: string;
+    email?: string;
+    phone: string;
+    customerType: string;
+    companyName?: string;
+    preferredBranch?: {
+      id: string;
+      code: string;
+      name: string;
+      city: string;
+      state?: string;
+      phone?: string;
+      email?: string;
+      address?: string;
+    } | null;
   } | null;
+  prospectState: 'NEW_PROSPECT' | 'RETURNING_PROSPECT' | 'CONFIRMED_OWNER';
   vehicles: Array<any>;
+  leads: Array<any>;
   bookings: Array<any>;
   quotations: Array<any>;
   serviceAppointments: Array<any>;
   serviceJobs: Array<any>;
   insurancePolicies: Array<any>;
+  complianceDocuments: Array<{
+    id: string;
+    documentType: string;
+    documentNumber: string;
+    expiryDate: string;
+    status: string;
+    vehicleVin?: string;
+    vehicleReg?: string;
+    vehicleModel?: string;
+  }>;
   invoices: Array<any>;
+  payments: Array<{
+    id: string;
+    paymentNumber: string;
+    amount: number;
+    status: string;
+    paymentMode?: string;
+    createdAt: string;
+    referenceType: string;
+    referenceNumber: string;
+    branchName?: string;
+  }>;
+  conversations: Array<any>;
   summary: {
     vehiclesCount: number;
     activeQuotationsCount: number;

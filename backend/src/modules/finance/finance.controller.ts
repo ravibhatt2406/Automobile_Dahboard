@@ -11,6 +11,8 @@ import {
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { FinanceService } from './finance.service';
 import { CreateFinanceApplicationDto } from './dto/create-finance-application.dto';
+import { GenerateEmiScheduleDto } from './dto/generate-emi-schedule.dto';
+import { RecordEmiPaymentDto } from './dto/record-emi-payment.dto';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
 import { TenantScopeGuard } from '@/common/guards/tenant-scope.guard';
@@ -18,21 +20,21 @@ import { Roles } from '@/common/decorators/roles.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { FinanceStatus } from '@prisma/client';
 
-@ApiTags('Finance')
+@ApiTags('Finance & EMI')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard, TenantScopeGuard)
-@Controller('finance/applications')
+@Controller('finance')
 export class FinanceController {
   constructor(private readonly financeService: FinanceService) {}
 
-  @Post()
+  @Post('applications')
   @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE', 'FINANCE_MANAGER')
   @ApiOperation({ summary: 'Submit finance application' })
   create(@Body() dto: CreateFinanceApplicationDto, @CurrentUser('id') actorUserId: string) {
     return this.financeService.create(dto, actorUserId);
   }
 
-  @Get()
+  @Get('applications')
   @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE', 'FINANCE_MANAGER', 'CUSTOMER')
   @ApiOperation({ summary: 'List finance applications' })
   @ApiQuery({ name: 'branchId', required: false })
@@ -50,17 +52,40 @@ export class FinanceController {
     @Query('offset') offset?: number,
     @CurrentUser() user?: any,
   ) {
-    return this.financeService.findAll(customerId, status, limit ? +limit : 50, offset ? +offset : 0, user, branchId, franchiseId);
+    return this.financeService.findAll(
+      customerId,
+      status,
+      limit ? +limit : 50,
+      offset ? +offset : 0,
+      user,
+      branchId,
+      franchiseId,
+    );
   }
 
-  @Get(':id')
+  @Get('emi/overdue')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'FINANCE_MANAGER', 'SALES_EMPLOYEE')
+  @ApiOperation({ summary: 'List overdue EMI installments with overdue amount and days' })
+  @ApiQuery({ name: 'branchId', required: false })
+  @ApiQuery({ name: 'franchiseId', required: false })
+  @ApiQuery({ name: 'limit', required: false })
+  getOverdueEmis(
+    @Query('branchId') branchId?: string,
+    @Query('franchiseId') franchiseId?: string,
+    @Query('limit') limit = 50,
+    @CurrentUser() user?: any,
+  ) {
+    return this.financeService.getOverdueEmis(branchId, franchiseId, +limit, user);
+  }
+
+  @Get('applications/:id')
   @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE', 'FINANCE_MANAGER', 'CUSTOMER')
-  @ApiOperation({ summary: 'Get finance application details' })
+  @ApiOperation({ summary: 'Get finance application details with full EMI schedule and summary' })
   findOne(@Param('id') id: string, @CurrentUser() user?: any) {
     return this.financeService.findOne(id, user);
   }
 
-  @Patch(':id/status')
+  @Patch('applications/:id/status')
   @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'FINANCE_MANAGER')
   @ApiOperation({ summary: 'Update finance application status' })
   updateStatus(
@@ -70,5 +95,27 @@ export class FinanceController {
     @CurrentUser('id') actorUserId: string,
   ) {
     return this.financeService.updateStatus(id, status, remarks, actorUserId);
+  }
+
+  @Post('applications/:id/emi-schedule')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'FINANCE_MANAGER')
+  @ApiOperation({ summary: 'Generate or regenerate monthly EMI repayment schedule' })
+  generateEmiSchedule(
+    @Param('id') id: string,
+    @Body() dto: GenerateEmiScheduleDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.financeService.generateEmiSchedule(id, dto, user);
+  }
+
+  @Post('emi/:scheduleId/payment')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'FINANCE_MANAGER')
+  @ApiOperation({ summary: 'Record verified EMI collection installment (distinct from dealership revenue)' })
+  recordEmiPayment(
+    @Param('scheduleId') scheduleId: string,
+    @Body() dto: RecordEmiPaymentDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.financeService.recordEmiPayment(scheduleId, dto, user);
   }
 }

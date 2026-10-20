@@ -112,15 +112,55 @@ export const salesService = {
     customerId?: string;
     branchId: string;
     franchiseId?: string;
+    prospectName?: string;
+    prospectPhone?: string;
+    prospectEmail?: string;
+    companyName?: string;
+    assignedEmployeeId?: string;
+    source?: string;
     interestedModel?: string;
     expectedBudget?: number;
+    priority?: string;
     notes?: string;
+    nextFollowUpDate?: string;
   }): Promise<Lead> {
     const res = await apiFetch<any>('/leads', {
       method: 'POST',
       body: JSON.stringify(data),
     });
     return unwrapData<Lead>(res);
+  },
+
+  async updateLead(id: string, data: Partial<Lead> & { nextFollowUpDate?: string; lostReason?: string }): Promise<Lead> {
+    const res = await apiFetch<any>(`/leads/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+    return unwrapData<Lead>(res);
+  },
+
+  async updateLeadStatus(id: string, status: string, lostReason?: string): Promise<Lead> {
+    const res = await apiFetch<any>(`/leads/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status, lostReason }),
+    });
+    return unwrapData<Lead>(res);
+  },
+
+  async assignLead(id: string, employeeId: string): Promise<Lead> {
+    const res = await apiFetch<any>(`/leads/${id}/assign`, {
+      method: 'POST',
+      body: JSON.stringify({ employeeId }),
+    });
+    return unwrapData<Lead>(res);
+  },
+
+  async addFollowUp(leadId: string, data: { scheduledAt: string; notes: string }): Promise<any> {
+    const res = await apiFetch<any>(`/leads/${leadId}/follow-ups`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return unwrapData<any>(res);
   },
 
   async createQuotation(data: {

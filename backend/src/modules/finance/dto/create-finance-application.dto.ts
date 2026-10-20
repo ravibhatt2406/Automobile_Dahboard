@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { IsDateString, IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
 export class CreateFinanceApplicationDto {
   @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' })
@@ -12,10 +12,15 @@ export class CreateFinanceApplicationDto {
   @IsNotEmpty()
   bookingId: string;
 
-  @ApiProperty({ example: 'HDFC Bank' })
+  @ApiProperty({ example: 'HDFC Bank Commercial Vehicle Finance' })
   @IsString()
   @IsNotEmpty()
   financeProvider: string;
+
+  @ApiProperty({ example: 'HDFC-CV-2026-99881', required: false })
+  @IsString()
+  @IsOptional()
+  loanReference?: string;
 
   @ApiProperty({ example: 4000000 })
   @IsNumber()
@@ -37,7 +42,17 @@ export class CreateFinanceApplicationDto {
   @IsOptional()
   interestRate?: number;
 
-  @ApiProperty({ example: 'Subject to document verification', required: false })
+  @ApiProperty({ example: 83950, required: false })
+  @IsNumber()
+  @IsOptional()
+  emiAmount?: number;
+
+  @ApiProperty({ example: '2026-12-05T00:00:00.000Z', required: false })
+  @IsDateString()
+  @IsOptional()
+  firstEmiDate?: string;
+
+  @ApiProperty({ example: 'Subject to financier approval and verification', required: false })
   @IsString()
   @IsOptional()
   remarks?: string;

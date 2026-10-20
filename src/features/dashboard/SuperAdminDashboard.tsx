@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { KpiCard } from '@/components/data-display/KpiCard';
-import { Fleet3DPreview } from '@/components/automotive/Fleet3DPreview';
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { ErrorState } from '@/components/feedback/ErrorState';
 import { SkeletonKpiCard, SkeletonTable } from '@/components/feedback/LoadingState';
@@ -16,6 +15,10 @@ import {
   Store,
   Clock,
   CheckCircle2,
+  TrendingUp,
+  ShieldAlert,
+  Megaphone,
+  CreditCard,
 } from 'lucide-react';
 import { dashboardService, SuperAdminDashboardData } from '@/services/dashboard.service';
 import { ApiError } from '@/services/apiClient';
@@ -75,13 +78,13 @@ export const SuperAdminDashboard: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-[#E5E5E5] pb-4">
         <div>
           <span className="text-xs font-semibold text-[#F5A800] uppercase tracking-widest flex items-center gap-1.5 font-mono">
-            <ShieldCheck className="w-4 h-4 text-[#F5A800]" /> Global Network Scope
+            <ShieldCheck className="w-4 h-4 text-[#F5A800]" /> Global Network Platform Telemetry
           </span>
           <h1 className="text-2xl sm:text-3xl font-bold text-[#111111] mt-1">
             Super Admin Fleet Overview
           </h1>
           <p className="text-xs sm:text-sm text-zinc-500 mt-1">
-            Real-time multi-franchise operations, branch telemetry, and network performance control.
+            Real-time platform summaries: franchises, branches, inventory, deliveries, finance, workshop, and campaigns.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -94,13 +97,7 @@ export const SuperAdminDashboard: React.FC = () => {
       </div>
 
       {/* Error State */}
-      {error && (
-        <ErrorState
-          title={error.title}
-          message={error.message}
-          onRetry={loadData}
-        />
-      )}
+      {error && <ErrorState title={error.title} message={error.message} onRetry={loadData} />}
 
       {/* Loading Skeletons */}
       {loading && !error && (
@@ -123,35 +120,92 @@ export const SuperAdminDashboard: React.FC = () => {
           {/* Top KPI Cards Section */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <KpiCard
-              title="Total Network Revenue"
+              title="Platform Bookings"
               value={`₹${(data.totalRevenue || 0).toLocaleString('en-IN')}`}
               icon={DollarSign}
               subtitle="Confirmed Fleet Orders"
             />
             <KpiCard
+              title="Actual Collections"
+              value={`₹${(data.totalCollections || 0).toLocaleString('en-IN')}`}
+              icon={DollarSign}
+              subtitle="Verified Payments"
+            />
+            <KpiCard
               title="Commercial Bookings"
               value={data.bookingCount}
               icon={Truck}
-              subtitle="Total network sales"
+              subtitle={`${data.inTransitDeliveries || 0} In-Transit`}
             />
             <KpiCard
-              title="Active Customers"
-              value={data.customerCount}
-              icon={Users}
-              subtitle="Corporate & fleet clients"
-            />
-            <KpiCard
-              title="Inventory Stock"
+              title="Inventory Lot"
               value={`${data.inStockVehicleCount} / ${data.vehicleCount}`}
               icon={Package}
-              subtitle="In-stock / Total units"
+              subtitle={`In-Stock (${data.reservedVehicleCount || 0} Reserved)`}
             />
             <KpiCard
-              title="Active Service Jobs"
+              title="Workshop Operations"
               value={data.activeServiceJobCount}
               icon={Wrench}
-              subtitle="In workshop bays"
+              subtitle={`${data.serviceJobCount} Total Jobs`}
             />
+          </div>
+
+          {/* Platform Performance & Campaign Telemetry */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Platform Campaigns */}
+            <div className="p-4 bg-white border border-zinc-200 rounded-xl space-y-1">
+              <div className="flex items-center justify-between text-xs text-zinc-500">
+                <span>Marketing Campaigns</span>
+                <Megaphone className="w-4 h-4 text-purple-600" />
+              </div>
+              <p className="text-xl font-bold font-mono text-zinc-900">
+                {data.campaignsCount || 0} Platform Camps
+              </p>
+              <p className="text-[11px] text-purple-700 font-mono">
+                {data.activeCampaignsCount || 0} Active Campaigns Running
+              </p>
+            </div>
+
+            {/* Compliance Expiry Alerts */}
+            <div className="p-4 bg-white border border-zinc-200 rounded-xl space-y-1">
+              <div className="flex items-center justify-between text-xs text-zinc-500">
+                <span>Network Compliance Alerts</span>
+                <ShieldAlert className="w-4 h-4 text-rose-600" />
+              </div>
+              <p className="text-xl font-bold font-mono text-rose-700">
+                {data.complianceAlerts || 0} Alerts
+              </p>
+              <p className="text-[11px] text-zinc-400 font-mono">Expiring & Expired Documents</p>
+            </div>
+
+            {/* Deliveries Status */}
+            <div className="p-4 bg-white border border-zinc-200 rounded-xl space-y-1">
+              <div className="flex items-center justify-between text-xs text-zinc-500">
+                <span>Delivery Fulfillment</span>
+                <Truck className="w-4 h-4 text-emerald-600" />
+              </div>
+              <p className="text-xl font-bold font-mono text-zinc-900">
+                {data.completedDeliveries || 0} Delivered
+              </p>
+              <p className="text-[11px] text-zinc-400 font-mono">
+                {data.inTransitDeliveries || 0} Currently In-Transit
+              </p>
+            </div>
+
+            {/* Third-Party Finance & EMI Overview */}
+            <div className="p-4 bg-white border border-zinc-200 rounded-xl space-y-1">
+              <div className="flex items-center justify-between text-xs text-zinc-500">
+                <span>Financier EMI Monitored</span>
+                <CreditCard className="w-4 h-4 text-amber-600" />
+              </div>
+              <p className="text-xl font-bold font-mono text-zinc-900">
+                {data.activeFinanceApps || 0} Active Loans
+              </p>
+              <p className="text-[11px] text-amber-700 font-mono">
+                {data.overdueEmis || 0} Overdue Installments
+              </p>
+            </div>
           </div>
 
           {/* Secondary Network Scope Counters */}
@@ -248,37 +302,37 @@ export const SuperAdminDashboard: React.FC = () => {
             <div className="cockpit-card p-6 rounded-xl border border-[#E5E5E5] bg-white">
               <h3 className="text-sm font-bold text-[#111111] flex items-center gap-2 mb-4">
                 <Clock className="w-4 h-4 text-[#F5A800]" />
-                Recent Fleet Deliveries & Bookings
+                Recent Network Commercial Bookings
               </h3>
               {data.recentBookings.length === 0 ? (
                 <EmptyState
                   title="No bookings recorded"
-                  description="Network bookings and commercial fleet contracts will appear here."
+                  description="When quotations convert to bookings across any branch, they will appear here in real-time."
                 />
               ) : (
                 <div className="divide-y divide-zinc-100">
-                  {data.recentBookings.map((bk) => (
+                  {data.recentBookings.map((b) => (
                     <div
-                      key={bk.id}
+                      key={b.id}
                       className="py-3 flex items-center justify-between hover:bg-zinc-50/50 px-2 rounded-lg"
                     >
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-mono font-bold text-zinc-900">
-                            {bk.bookingNumber}
+                            {b.bookingNumber}
                           </span>
-                          <StatusBadge status={bk.status} />
+                          <StatusBadge status={b.status} />
                         </div>
                         <p className="text-xs text-zinc-500 mt-0.5">
-                          {bk.customer?.name || 'Corporate Customer'} • {bk.branch?.name || 'Central'}
+                          {b.customer?.name || 'Client'} • {b.branch?.name || 'Branch'} ({b.branch?.code || 'HUB'})
                         </p>
                       </div>
                       <div className="text-right">
                         <span className="text-xs font-mono font-bold text-zinc-900 block">
-                          ₹{Number(bk.totalAmount || 0).toLocaleString('en-IN')}
+                          ₹{Number(b.totalAmount || 0).toLocaleString('en-IN')}
                         </span>
                         <span className="text-[10px] text-zinc-400 font-mono">
-                          {new Date(bk.createdAt).toLocaleDateString()}
+                          {new Date(b.createdAt).toLocaleDateString()}
                         </span>
                       </div>
                     </div>
@@ -286,15 +340,6 @@ export const SuperAdminDashboard: React.FC = () => {
                 </div>
               )}
             </div>
-          </div>
-
-          {/* 3D Fleet Visual Preview */}
-          <div className="cockpit-card p-6 rounded-xl border border-[#E5E5E5] bg-white">
-            <h3 className="text-sm font-bold text-[#111111] flex items-center gap-2 mb-4">
-              <Truck className="w-4 h-4 text-[#F5A800]" />
-              Commercial Truck Visualizer
-            </h3>
-            <Fleet3DPreview />
           </div>
         </>
       )}

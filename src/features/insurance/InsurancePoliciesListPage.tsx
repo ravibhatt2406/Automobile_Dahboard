@@ -7,6 +7,7 @@ import { InsurancePolicy } from '@/types/domain';
 import { LoadingState } from '@/components/feedback/LoadingState';
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { ErrorState } from '@/components/feedback/ErrorState';
+import { ComplianceTabContent } from '@/features/compliance/ComplianceTabContent';
 
 export const InsurancePoliciesListPage: React.FC = () => {
   const { activeRole } = useAuth();
@@ -162,10 +163,7 @@ export const InsurancePoliciesListPage: React.FC = () => {
           </div>
         )
       ) : (
-        <EmptyState
-          title="No Standalone PUC Certificates"
-          description="Vehicle emissions and PUC certificates are managed under individual registered vehicle records."
-        />
+        <ComplianceTabContent />
       )}
 
       {/* Document Viewer Modal */}

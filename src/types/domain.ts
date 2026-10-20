@@ -88,7 +88,21 @@ export interface Customer {
   createdAt: string;
 }
 
-export type LeadStatus = 'new' | 'contacted' | 'qualified' | 'quotation' | 'negotiation' | 'booked' | 'lost';
+export type LeadStatus =
+  | 'new'
+  | 'contacted'
+  | 'qualified'
+  | 'quotation'
+  | 'negotiation'
+  | 'booked'
+  | 'lost'
+  | 'NEW'
+  | 'CONTACTED'
+  | 'QUALIFIED'
+  | 'PROPOSAL'
+  | 'NEGOTIATION'
+  | 'CONVERTED'
+  | 'LOST';
 
 export interface Lead {
   id: string;
@@ -97,14 +111,24 @@ export interface Lead {
   email: string;
   phone: string;
   requirement?: string;
+  interestedModel?: string;
+  expectedBudget?: number | string;
   estimatedUnits: number;
   source: string;
+  branchId?: string;
+  branch?: { id: string; name: string };
+  customerId?: string;
+  customer?: any;
   assignedEmployeeId?: string;
   assignedEmployeeName?: string;
+  assignedEmployee?: any;
   status: LeadStatus;
-  priority: 'low' | 'medium' | 'high' | 'urgent';
+  priority: 'low' | 'medium' | 'high' | 'urgent' | 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
   nextFollowUpDate?: string;
+  lostReason?: string;
   notes?: string;
+  quotations?: any[];
+  followUps?: any[];
   createdAt: string;
 }
 
@@ -403,21 +427,38 @@ export type ServiceWorkflowStage =
 
 export interface ServiceJob {
   id: string;
+  jobNumber?: string;
   jobCardNumber: string;
   vehicleVin: string;
   vehicleModel: string;
+  vehicle?: any;
   customerId: string;
   customerName: string;
+  customer?: any;
   branchId: string;
   branchName: string;
+  branch?: any;
   mechanicId?: string;
   mechanicName?: string;
+  assignedMechanic?: any;
+  serviceAdvisorId?: string;
+  serviceAdvisor?: any;
+  advisorName?: string;
   complaint: string;
   diagnosis?: string;
   stage: ServiceWorkflowStage;
   serviceType: 'routine' | 'repair' | 'overhaul' | 'inspection' | string;
   status: ServiceJobStatus | 'received' | 'in_progress' | 'waiting_parts' | 'completed' | 'delivered';
   estimatedCost: number;
+  actualCost?: number;
+  hasPendingParts?: boolean;
+  pendingPartsCount?: number;
+  jobParts?: any[];
+  diagnoses?: any[];
+  qcInspections?: any[];
+  serviceInvoice?: any;
+  estimatedCompletionTime?: string;
+  actualCompletionTime?: string;
   scheduledDate: string;
   createdAt: string;
 }

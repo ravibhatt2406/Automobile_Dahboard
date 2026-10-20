@@ -36,6 +36,9 @@ import { InvoicesModule } from './modules/billing/invoices.module';
 import { PdiModule } from './modules/pdi/pdi.module';
 import { DeliveriesModule } from './modules/deliveries/deliveries.module';
 import { FilesModule } from './modules/files/files.module';
+import { ComplianceModule } from './modules/compliance/compliance.module';
+import { CampaignsModule } from './modules/campaigns/campaigns.module';
+import { RemindersModule } from './modules/reminders/reminders.module';
 
 // Phase 3 After-Sales & Operations Modules
 import { ServiceAppointmentsModule } from './modules/service-appointments/service-appointments.module';
@@ -49,6 +52,7 @@ import { ReportsModule } from './modules/reports/reports.module';
 import { DashboardsModule } from './modules/dashboards/dashboards.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { CsvDataModule } from './modules/csv-data/csv-data.module';
+import { SearchModule } from './modules/search/search.module';
 
 @Module({
   imports: [
@@ -81,6 +85,9 @@ import { CsvDataModule } from './modules/csv-data/csv-data.module';
     PdiModule,
     DeliveriesModule,
     FilesModule,
+    ComplianceModule,
+    CampaignsModule,
+    RemindersModule,
     // Phase 3
     ServiceAppointmentsModule,
     ServiceJobsModule,
@@ -93,6 +100,7 @@ import { CsvDataModule } from './modules/csv-data/csv-data.module';
     DashboardsModule,
     ChatModule,
     CsvDataModule,
+    SearchModule,
   ],
   providers: [
     {

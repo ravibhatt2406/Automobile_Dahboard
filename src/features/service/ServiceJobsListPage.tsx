@@ -168,48 +168,116 @@ export const ServiceJobsListPage: React.FC = () => {
 
   const columns: Column<ServiceJob>[] = [
     {
-      header: 'Job Card #',
+      header: 'Job Card # & Dates',
       accessorKey: 'jobCardNumber',
       className: 'font-mono text-xs font-bold text-zinc-900',
       cell: (row: any) => (
-        <div>
+        <div className="space-y-0.5">
           <span className="font-mono font-bold text-blue-600 block">{row.jobNumber || row.jobCardNumber}</span>
-          <span className="text-[10px] text-zinc-400 font-sans block">{new Date(row.createdAt).toLocaleDateString()}</span>
+          <span className="text-[10px] text-zinc-400 font-sans block">Logged: {new Date(row.createdAt).toLocaleDateString()}</span>
+          {row.estimatedCompletionTime && (
+            <span className="text-[10px] text-amber-600 font-sans block flex items-center gap-1">
+              Est: {new Date(row.estimatedCompletionTime).toLocaleDateString()}
+            </span>
+          )}
         </div>
       ),
     },
     {
-      header: 'Vehicle VIN & Asset',
+      header: 'Customer & Branch',
+      accessorKey: 'customerName',
+      cell: (row: any) => (
+        <div>
+          <span className="font-semibold text-xs text-zinc-900 block">{row.customerName}</span>
+          <span className="text-[10px] text-zinc-500 font-mono block">Branch: {row.branchName}</span>
+        </div>
+      ),
+    },
+    {
+      header: 'Vehicle & Asset',
       accessorKey: 'vehicleVin',
       cell: (row: any) => (
         <div>
           <span className="font-mono text-xs font-semibold text-zinc-900 block">{row.vehicleVin || row.vehicle?.vin || '—'}</span>
-          <span className="text-[11px] text-zinc-500 block">{row.vehicleModel || (row.vehicle?.variant?.name) || 'Commercial Truck'}</span>
+          <span className="text-[11px] text-zinc-500 block truncate max-w-[140px]">
+            {row.vehicleModel || row.vehicle?.variant?.name || 'Commercial Truck'}
+          </span>
+          {row.vehicle?.registrationNumber && (
+            <span className="text-[10px] text-zinc-400 font-mono block">RC: {row.vehicle.registrationNumber}</span>
+          )}
         </div>
       ),
     },
     {
-      header: 'Customer',
-      accessorKey: 'customerName',
-      cell: (row: any) => (
-        <div>
-          <span className="font-medium text-xs text-zinc-800 block">{row.customerName}</span>
-          <span className="text-[10px] text-zinc-400 font-mono block">Branch: {row.branchName}</span>
-        </div>
-      ),
-    },
-    {
-      header: 'Complaint / Scope',
+      header: 'Complaint / Diagnosis',
       accessorKey: 'complaint',
-      className: 'max-w-xs truncate text-xs text-zinc-600',
+      className: 'max-w-xs',
+      cell: (row: any) => (
+        <div className="text-xs space-y-1">
+          <p className="text-zinc-800 line-clamp-2 leading-relaxed font-medium">{row.complaint}</p>
+          {row.diagnosis && (
+            <p className="text-[11px] text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded line-clamp-1">
+              <span className="font-semibold">Diag:</span> {row.diagnosis}
+            </p>
+          )}
+        </div>
+      ),
     },
     {
-      header: 'Mechanic Assigned',
+      header: 'Workshop Staff',
       accessorKey: 'mechanicName',
       cell: (row: any) => (
-        <span className={`text-xs ${row.mechanicName !== 'Unassigned' ? 'text-zinc-800 font-medium' : 'text-zinc-400 italic'}`}>
-          {row.mechanicName || 'Unassigned'}
-        </span>
+        <div className="text-xs space-y-0.5">
+          <div className="flex items-center gap-1">
+            <span className="text-[10px] text-zinc-400 font-medium">Adv:</span>
+            <span className="text-zinc-700 font-medium">{row.advisorName || '—'}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-[10px] text-zinc-400 font-medium">Tech:</span>
+            <span className={row.mechanicName !== 'Unassigned' ? 'text-zinc-800 font-medium' : 'text-zinc-400 italic'}>
+              {row.mechanicName || 'Unassigned'}
+            </span>
+          </div>
+        </div>
+      ),
+    },
+    {
+      header: 'Parts Requisition',
+      accessorKey: 'status',
+      cell: (row: any) => {
+        if (row.hasPendingParts || row.status === 'WAITING_FOR_PARTS') {
+          return (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-semibold rounded-full">
+              <AlertCircle className="w-3 h-3 text-amber-600" />
+              {row.pendingPartsCount > 0 ? `${row.pendingPartsCount} Pending` : 'Awaiting Parts'}
+            </span>
+          );
+        }
+        if (row.jobParts && row.jobParts.length > 0) {
+          return (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-zinc-50 text-zinc-700 border border-zinc-200 text-[10px] font-medium rounded-full">
+              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+              {row.jobParts.length} Allocated
+            </span>
+          );
+        }
+        return <span className="text-xs text-zinc-400 italic">None</span>;
+      },
+    },
+    {
+      header: 'Estimated Cost',
+      accessorKey: 'estimatedCost',
+      cell: (row: any) => (
+        <div className="text-xs">
+          <span className="font-mono font-semibold text-zinc-900 block">
+            {row.estimatedCost ? `₹${row.estimatedCost.toLocaleString()}` : '—'}
+          </span>
+          {row.actualCost > 0 && (
+            <span className="text-[10px] text-zinc-500 font-mono block">
+              Act: ₹{row.actualCost.toLocaleString()}
+            </span>
+          )}
+        </div>
       ),
     },
     {
@@ -221,9 +289,9 @@ export const ServiceJobsListPage: React.FC = () => {
       cell: (row) => (
         <button
           onClick={() => navigate(`/service/jobs/${row.id}`)}
-          className="px-2.5 py-1 bg-zinc-900 hover:bg-black text-[#F5A800] text-xs font-semibold rounded transition-colors"
+          className="px-2.5 py-1 bg-zinc-900 hover:bg-black text-[#F5A800] text-xs font-semibold rounded transition-colors shadow-xs"
         >
-          View Job
+          Manage
         </button>
       ),
     },
@@ -276,6 +344,44 @@ export const ServiceJobsListPage: React.FC = () => {
           </span>
           <span className="text-2xl font-bold font-mono text-emerald-600 block">{completedCount}</span>
         </div>
+      </div>
+
+      {/* 7 Core Workshop Stages Navigation */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 border-b border-zinc-200">
+        {[
+          { label: 'All Jobs', value: 'ALL' },
+          { label: 'Open', value: 'OPEN,CHECKED_IN', hint: 'Logged' },
+          { label: 'In Progress', value: 'DIAGNOSIS,WAITING_FOR_APPROVAL,IN_PROGRESS', hint: 'Active Bay' },
+          { label: 'Awaiting Parts', value: 'WAITING_FOR_PARTS', hint: 'Parts Hold' },
+          { label: 'Ready for QC', value: 'QUALITY_CHECK', hint: 'Inspection' },
+          { label: 'Ready for Delivery', value: 'READY_FOR_DELIVERY', hint: 'Gate Pass' },
+          { label: 'Delivered', value: 'COMPLETED', hint: 'Handover' },
+          { label: 'Cancelled', value: 'CANCELLED', hint: 'Voided' },
+        ].map((tab) => {
+          const isActive = selectedStatus === tab.value;
+          return (
+            <button
+              key={tab.value}
+              onClick={() => setSelectedStatus(tab.value)}
+              className={`px-3 py-2 text-xs font-semibold rounded-lg whitespace-nowrap transition-all flex items-center gap-2 ${
+                isActive
+                  ? 'bg-zinc-900 text-[#F5A800] shadow-xs'
+                  : 'bg-white hover:bg-zinc-50 text-zinc-600 border border-zinc-200'
+              }`}
+            >
+              <span>{tab.label}</span>
+              {tab.hint && (
+                <span
+                  className={`text-[10px] px-1.5 py-0.5 rounded font-normal ${
+                    isActive ? 'bg-zinc-800 text-zinc-300' : 'bg-zinc-100 text-zinc-500'
+                  }`}
+                >
+                  {tab.hint}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {/* Search & Branch Cascading Filters */}

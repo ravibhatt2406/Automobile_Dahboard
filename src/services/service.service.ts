@@ -17,6 +17,15 @@ export function normalizeServiceJob(j: any): ServiceJob & Record<string, any> {
       ? `${j.assignedMechanic.firstName} ${j.assignedMechanic.lastName || ''}`.trim()
       : j.mechanicName || 'Unassigned';
 
+  const advisorName = j.serviceAdvisor?.user
+    ? `${j.serviceAdvisor.user.firstName || ''} ${j.serviceAdvisor.user.lastName || ''}`.trim()
+    : j.serviceAdvisor?.firstName
+      ? `${j.serviceAdvisor.firstName} ${j.serviceAdvisor.lastName || ''}`.trim()
+      : j.advisorName || 'Unassigned';
+
+  const parts = j.jobParts || [];
+  const pendingPartsCount = parts.filter((p: any) => p.status === 'REQUESTED' || p.status === 'PENDING').length;
+
   return {
     ...j,
     id: j.id,
@@ -37,18 +46,23 @@ export function normalizeServiceJob(j: any): ServiceJob & Record<string, any> {
     assignedMechanic: j.assignedMechanic,
     serviceAdvisorId: j.serviceAdvisorId,
     serviceAdvisor: j.serviceAdvisor,
+    advisorName,
     complaint: j.complaint || 'General Service & Inspection',
     diagnosis: j.diagnoses?.[0]?.findings || j.diagnosis || '',
     stage: j.stage || j.status,
     serviceType: j.serviceType || 'repair',
     status: j.status,
     estimatedCost: Number(j.estimatedCost || 0),
+    actualCost: Number(j.actualCost || 0),
+    estimatedCompletionTime: j.estimatedCompletionTime,
     actualCompletionTime: j.actualCompletionTime,
     scheduledDate: j.scheduledDate || j.createdAt || new Date().toISOString(),
     createdAt: j.createdAt || new Date().toISOString(),
     diagnoses: j.diagnoses || [],
     labourItems: j.labourItems || [],
-    jobParts: j.jobParts || [],
+    jobParts: parts,
+    pendingPartsCount,
+    hasPendingParts: pendingPartsCount > 0 || j.status === 'WAITING_FOR_PARTS',
     qcInspections: j.qcInspections || [],
     serviceInvoice: j.serviceInvoice,
   };

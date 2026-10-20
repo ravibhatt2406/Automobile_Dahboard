@@ -71,9 +71,11 @@ export class AuthService {
     }
 
     // 3. Check for existing unlinked customer profile (e.g. from offline branch sales or bookings)
+    // Never link accounts using unverified name or email match alone; require matching phone and email
     const unlinkedCustomer = await this.prisma.customer.findFirst({
       where: {
-        email: normalizedEmail,
+        email: { equals: normalizedEmail, mode: 'insensitive' },
+        phone: normalizedPhone,
         userId: null,
       },
     });

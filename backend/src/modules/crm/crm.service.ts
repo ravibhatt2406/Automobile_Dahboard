@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '@/database/prisma.service';
 import { CreateLeadDto } from './dto/create-lead.dto';
+import { UpdateLeadDto } from './dto/update-lead.dto';
 import { CreateFollowUpDto } from './dto/create-followup.dto';
 import { AuditService } from '../audit/audit.service';
 import { LeadStatus } from '@prisma/client';
@@ -39,6 +40,36 @@ export class CrmService {
         if (!cust) throw new ForbiddenException('No customer profile associated with user account');
         customerId = cust.id;
       }
+    } else if (!customerId) {
+      // Connect leads to existing customer records without creating unnecessary duplicates
+      const prospectName = dto.prospectName?.trim();
+      const rawPhone = dto.prospectPhone?.trim();
+      if (!prospectName || !rawPhone) {
+        throw new BadRequestException('Either an existing customerId or prospectName and prospectPhone are required');
+      }
+      const cleanPhone = rawPhone.replace(/\s+/g, '');
+
+      let existingCustomer = await this.prisma.customer.findFirst({
+        where: { phone: cleanPhone },
+      });
+
+      if (!existingCustomer) {
+        existingCustomer = await this.prisma.customer.create({
+          data: {
+            name: prospectName,
+            phone: cleanPhone,
+            email: dto.prospectEmail?.trim().toLowerCase() || null,
+            companyName: dto.companyName?.trim() || null,
+            customerType: dto.companyName?.trim() ? 'BUSINESS' : 'INDIVIDUAL',
+            preferredBranchId: branch.id,
+            status: 'ACTIVE',
+            franchiseLinks: {
+              create: { franchiseId: branch.franchiseId },
+            },
+          },
+        });
+      }
+      customerId = existingCustomer.id;
     }
 
     if (!isSuperAdmin && !isCustomer) {
@@ -57,18 +88,34 @@ export class CrmService {
         branchId: branch.id,
         assignedEmployeeId: dto.assignedEmployeeId || null,
         source: dto.source || 'DIRECT_WALKIN',
+        campaignId: dto.campaignId || null,
         interestedModel: dto.interestedModel,
         expectedBudget: dto.expectedBudget,
         priority: dto.priority || 'MEDIUM',
         notes: dto.notes,
+        lostReason: dto.lostReason,
         status: 'NEW',
       },
       include: {
         customer: true,
         branch: true,
         assignedEmployee: true,
+        campaign: true,
       },
     });
+
+    if (dto.nextFollowUpDate) {
+      const followUpEmployeeId = lead.assignedEmployeeId || (user?.employeeProfile?.id || user?.id);
+      await this.prisma.followUp.create({
+        data: {
+          leadId: lead.id,
+          employeeId: followUpEmployeeId,
+          scheduledAt: new Date(dto.nextFollowUpDate),
+          notes: `Follow-up scheduled: ${dto.notes || 'Prospect consultation'}`,
+          status: 'PENDING',
+        },
+      }).catch(() => {});
+    }
 
     await this.auditService.log({
       actorUserId: actorUserId || 'SYSTEM',
@@ -90,6 +137,7 @@ export class CrmService {
     franchiseId?: string,
     startDate?: string,
     endDate?: string,
+    campaignId?: string,
   ) {
     const where: any = {};
     const scope = user?.effectiveScope || (user ? await resolveUserScope(this.prisma, user, branchId, franchiseId) : null);
@@ -115,6 +163,7 @@ export class CrmService {
     }
 
     if (status) where.status = status;
+    if (campaignId) where.campaignId = campaignId;
 
     if (startDate && endDate) {
       where.createdAt = { gte: new Date(startDate), lte: new Date(endDate) };
@@ -134,6 +183,7 @@ export class CrmService {
           customer: true,
           branch: true,
           assignedEmployee: true,
+          campaign: true,
           followUps: { orderBy: { scheduledAt: 'asc' } },
         },
       }),
@@ -150,6 +200,7 @@ export class CrmService {
         customer: true,
         branch: { include: { franchise: true } },
         assignedEmployee: true,
+        campaign: true,
         followUps: { orderBy: { scheduledAt: 'desc' } },
         quotations: true,
       },
@@ -215,12 +266,31 @@ export class CrmService {
     return updated;
   }
 
-  async updateLeadStatus(leadId: string, status: LeadStatus, user: any) {
-    await this.findOneLead(leadId, user);
+  async updateLeadStatus(leadId: string, status: LeadStatus, user: any, lostReason?: string) {
+    const lead = await this.findOneLead(leadId, user);
+
+    // Business rule: Do not count a lead as a sale/won until a genuine qualifying business transaction exists
+    if (status === 'CONVERTED') {
+      const quotationsCount = await this.prisma.quotation.count({
+        where: { leadId },
+      });
+      const bookingsCount = await this.prisma.booking.count({
+        where: { customerId: lead.customerId },
+      });
+
+      if (quotationsCount === 0 && bookingsCount === 0) {
+        throw new BadRequestException(
+          'Cannot mark lead as CONVERTED (Won) without an active quotation or booking in the system.',
+        );
+      }
+    }
 
     const updated = await this.prisma.lead.update({
       where: { id: leadId },
-      data: { status },
+      data: {
+        status,
+        ...(status === 'LOST' && lostReason ? { lostReason } : {}),
+      },
     });
 
     await this.auditService.log({
@@ -228,7 +298,72 @@ export class CrmService {
       action: 'LEAD_STATUS_UPDATED',
       entityType: 'Lead',
       entityId: leadId,
-      metadata: { newStatus: status },
+      metadata: { newStatus: status, lostReason },
+    }).catch(() => {});
+
+    return updated;
+  }
+
+  async updateLead(leadId: string, dto: UpdateLeadDto, user: any) {
+    const lead = await this.findOneLead(leadId, user);
+
+    // If status is transitioning to CONVERTED, enforce qualifying business transaction
+    if (dto.status === 'CONVERTED' && lead.status !== 'CONVERTED') {
+      const quotationsCount = await this.prisma.quotation.count({
+        where: { leadId },
+      });
+      const bookingsCount = await this.prisma.booking.count({
+        where: { customerId: lead.customerId },
+      });
+
+      if (quotationsCount === 0 && bookingsCount === 0) {
+        throw new BadRequestException(
+          'Cannot mark lead as CONVERTED (Won) without an active quotation or booking in the system.',
+        );
+      }
+    }
+
+    const updated = await this.prisma.lead.update({
+      where: { id: leadId },
+      data: {
+        assignedEmployeeId: dto.assignedEmployeeId !== undefined ? dto.assignedEmployeeId : undefined,
+        status: dto.status || undefined,
+        priority: dto.priority || undefined,
+        source: dto.source || undefined,
+        campaignId: dto.campaignId !== undefined ? dto.campaignId : undefined,
+        interestedModel: dto.interestedModel !== undefined ? dto.interestedModel : undefined,
+        expectedBudget: dto.expectedBudget !== undefined ? dto.expectedBudget : undefined,
+        notes: dto.notes !== undefined ? dto.notes : undefined,
+        lostReason: dto.lostReason !== undefined ? dto.lostReason : undefined,
+      },
+      include: {
+        customer: true,
+        branch: true,
+        assignedEmployee: true,
+        campaign: true,
+        followUps: { orderBy: { scheduledAt: 'desc' } },
+        quotations: true,
+      },
+    });
+
+    if (dto.nextFollowUpDate) {
+      await this.prisma.followUp.create({
+        data: {
+          leadId,
+          employeeId: updated.assignedEmployeeId || (user?.employeeProfile?.id || user?.id),
+          scheduledAt: new Date(dto.nextFollowUpDate),
+          notes: `Follow-up updated: ${dto.notes || 'Prospect discussion'}`,
+          status: 'PENDING',
+        },
+      }).catch(() => {});
+    }
+
+    await this.auditService.log({
+      actorUserId: user?.id || 'SYSTEM',
+      action: 'LEAD_UPDATED',
+      entityType: 'Lead',
+      entityId: leadId,
+      metadata: { changes: dto },
     }).catch(() => {});
 
     return updated;

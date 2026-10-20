@@ -173,6 +173,17 @@ const NotificationsPage = lazy(() =>
 const SettingsPage = lazy(() => import('@/features/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })));
 const NotFound = lazy(() => import('@/components/feedback/NotFound').then((m) => ({ default: m.NotFound })));
 
+// Camps & Marketing & Reminders
+const CampaignsListPage = lazy(() =>
+  import('@/features/marketing/CampaignsListPage').then((m) => ({ default: m.CampaignsListPage }))
+);
+const CampaignDetailPage = lazy(() =>
+  import('@/features/marketing/CampaignDetailPage').then((m) => ({ default: m.CampaignDetailPage }))
+);
+const RemindersDashboardPage = lazy(() =>
+  import('@/features/reminders/RemindersDashboardPage').then((m) => ({ default: m.RemindersDashboardPage }))
+);
+
 // Customer and Dealership Branch Chat
 const CustomerChatPage = lazy(() =>
   import('@/features/chat/CustomerChatPage').then((m) => ({ default: m.CustomerChatPage }))
@@ -328,6 +339,13 @@ export const AppRouter: React.FC = () => {
 
             <Route path="/payments" element={<PaymentsListPage />} />
             <Route path="/insurance" element={<InsurancePoliciesListPage />} />
+
+            {/* Camps & Marketing */}
+            <Route path="/marketing/campaigns" element={<CampaignsListPage />} />
+            <Route path="/marketing/campaigns/:id" element={<CampaignDetailPage />} />
+
+            {/* WhatsApp Reminders */}
+            <Route path="/reminders" element={<RemindersDashboardPage />} />
 
             {/* Delivery */}
             <Route path="/delivery" element={<DeliveriesListPage />} />

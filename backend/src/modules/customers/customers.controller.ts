@@ -16,8 +16,16 @@ export class CustomersController {
   constructor(private readonly customersService: CustomersService) {}
 
   @Post()
-  @Roles('SUPER_ADMIN')
-  @ApiOperation({ summary: 'Create new customer record (SUPER_ADMIN only; public users self-register via /auth/register)' })
+  @Roles(
+    'SUPER_ADMIN',
+    'FRANCHISE_OWNER',
+    'FRANCHISE_MANAGER',
+    'BRANCH_OWNER',
+    'BRANCH_MANAGER',
+    'SALES_EMPLOYEE',
+    'SERVICE_ADVISOR',
+  )
+  @ApiOperation({ summary: 'Create new customer record (Organisation staff & Super Admin)' })
   async create(@Body() dto: CreateCustomerDto, @CurrentUser() user: any) {
     return this.customersService.create(dto, user);
   }

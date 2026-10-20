@@ -7,6 +7,7 @@ import { vehicleService } from '@/services/vehicle.service';
 import { StatusBadge } from '@/components/data-display/StatusBadge';
 import { useAuth } from '@/app/providers/AuthContext';
 import { VehicleStatus } from '@/types/domain';
+import { ComplianceTabContent } from '@/features/compliance/ComplianceTabContent';
 
 const ALLOWED_STATUS_TRANSITIONS: Record<string, VehicleStatus[]> = {
   IN_STOCK: ['RESERVED', 'ALLOCATED', 'SERVICE', 'BLOCKED'] as VehicleStatus[],
@@ -329,48 +330,7 @@ export const VehicleDetailPage: React.FC = () => {
 
       {/* TAB 2: Compliance */}
       {activeTab === 'compliance' && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          <div className="cockpit-card p-6 rounded-xl border border-[#E5E5E5] bg-white space-y-3">
-            <h4 className="font-bold text-zinc-900 text-sm flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-emerald-600" /> Insurance Policy Status
-            </h4>
-            {veh.insurancePolicy ? (
-              <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-200 text-xs font-mono space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-zinc-400">Policy Number:</span>
-                  <span className="font-bold text-zinc-900">{veh.insurancePolicy.policyNumber}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-zinc-400">Provider:</span>
-                  <span className="font-semibold text-zinc-800">{veh.insurancePolicy.insurer}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-zinc-400">Expiry Date:</span>
-                  <span className="font-bold text-zinc-900">{new Date(veh.insurancePolicy.expiryDate).toLocaleDateString()}</span>
-                </div>
-              </div>
-            ) : (
-              <div className="p-4 bg-zinc-50 rounded-xl border border-zinc-200 text-xs text-zinc-500">
-                No active insurance policy directly registered for this VIN.
-              </div>
-            )}
-            <Link to="/insurance" className="text-xs text-[#111111] font-semibold underline block pt-1">
-              View All Fleet Policies →
-            </Link>
-          </div>
-
-          <div className="cockpit-card p-6 rounded-xl border border-[#E5E5E5] bg-white space-y-3">
-            <h4 className="font-bold text-zinc-900 text-sm flex items-center gap-2">
-              <FileCheck className="w-4 h-4 text-emerald-600" /> Emission & Compliance Status
-            </h4>
-            <div className="p-4 bg-zinc-50 rounded-xl border border-zinc-200 text-xs text-zinc-500">
-              Commercial vehicle compliance status is maintained according to regional transport guidelines.
-            </div>
-            <Link to="/insurance" className="text-xs text-[#111111] font-semibold underline block pt-1">
-              View Fleet Compliance →
-            </Link>
-          </div>
-        </div>
+        <ComplianceTabContent vehicleId={veh.id} />
       )}
 
       {/* TAB 3: Service */}

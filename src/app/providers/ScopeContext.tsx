@@ -112,9 +112,10 @@ export const ScopeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, []);
 
-  // Fetch franchises for authorized roles
+  // Fetch franchises only for authorized roles (Super Admin, Franchise Owner/Manager)
   useEffect(() => {
-    if (activeRole === 'CUSTOMER') return;
+    const canViewFranchises = isRealSuperAdmin || ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(activeRole);
+    if (!canViewFranchises) return;
 
     let isMounted = true;
     const fetchFranchises = async () => {
@@ -122,6 +123,15 @@ export const ScopeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         const res = await franchiseService.getFranchises();
         if (isMounted && res.data) {
           setFranchises(res.data);
+
+          // If current selected franchise is stale/not in valid list, reset to ALL
+          if (!isFranchiseLocked && !isBranchLocked && selectedFranchiseId !== 'ALL') {
+            const franchiseExists = res.data.some((f) => f.id === selectedFranchiseId || f.code === selectedFranchiseId);
+            if (!franchiseExists) {
+              setSelectedFranchiseState('ALL');
+              localStorage.removeItem('titan_active_franchise_id');
+            }
+          }
         }
       } catch (err) {
         console.error('Failed to load franchises:', err);
@@ -132,7 +142,7 @@ export const ScopeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return () => {
       isMounted = false;
     };
-  }, [activeRole]);
+  }, [activeRole, isRealSuperAdmin, isFranchiseLocked, isBranchLocked, selectedFranchiseId]);
 
   // Fetch branches cascading from selected franchise
   useEffect(() => {

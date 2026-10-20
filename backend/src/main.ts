@@ -12,7 +12,24 @@ async function bootstrap() {
 
   // Enable CORS
   app.enableCors({
-    origin: corsOrigin === '*' ? true : corsOrigin,
+    origin: (requestOrigin, callback) => {
+      if (!requestOrigin) return callback(null, true);
+
+      const rawOrigins = process.env.CORS_ORIGIN || '*';
+      const allowedOrigins = rawOrigins.split(',').map((o) => o.trim()).filter(Boolean);
+
+      const isLocalhost = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(requestOrigin);
+
+      if (
+        allowedOrigins.includes('*') ||
+        allowedOrigins.includes(requestOrigin) ||
+        isLocalhost
+      ) {
+        return callback(null, true);
+      }
+
+      callback(new Error(`Origin ${requestOrigin} not allowed by CORS`));
+    },
     credentials: true,
   });
 

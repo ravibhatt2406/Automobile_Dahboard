@@ -520,7 +520,13 @@ export class ServiceJobsService {
       if (customerId) where.customerId = customerId;
     }
 
-    if (status) where.status = status;
+    if (status) {
+      if (typeof status === 'string' && status.includes(',')) {
+        where.status = { in: status.split(',').map((s) => s.trim()) };
+      } else {
+        where.status = status;
+      }
+    }
 
     if (startDate && endDate) {
       where.createdAt = { gte: new Date(startDate), lte: new Date(endDate) };
@@ -555,6 +561,8 @@ export class ServiceJobsService {
           serviceAdvisor: { include: { user: { select: { id: true, email: true, phone: true } } } },
           assignedMechanic: { include: { user: { select: { id: true, email: true, phone: true } } } },
           branch: true,
+          diagnoses: true,
+          jobParts: { include: { part: true } },
           qcInspections: true,
           serviceInvoice: true,
         },

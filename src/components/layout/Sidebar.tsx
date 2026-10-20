@@ -25,6 +25,7 @@ import {
   Shield,
   CheckSquare,
   MessageSquare,
+  Tent,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -85,6 +86,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { label: 'Sales & Quotations', path: '/sales', icon: ShoppingBag },
         { label: 'Available Inventory', path: '/inventory/vehicles', icon: Truck },
         { label: 'Customer Bookings', path: '/sales/bookings', icon: PackageCheck },
+        { label: 'Camps & Outreach', path: '/marketing/campaigns', icon: Tent },
+        { label: 'WhatsApp Reminders', path: '/reminders', icon: MessageSquare },
         { label: 'Customer Messages', path: '/chat', icon: MessageSquare },
         { label: 'Notifications', path: '/notifications', icon: Bell },
         { label: 'Settings', path: '/settings', icon: Settings },
@@ -141,6 +144,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
         path: '/sales',
         icon: ShoppingBag,
         show: permissions.canViewSales,
+      },
+      {
+        label: 'Camps & Marketing',
+        path: '/marketing/campaigns',
+        icon: Tent,
+        show: permissions.canViewSales || permissions.canViewAllCustomers,
+      },
+      {
+        label: 'WhatsApp Reminders',
+        path: '/reminders',
+        icon: MessageSquare,
+        show: permissions.canViewSales || permissions.canViewServiceJobs || isBranchManager,
       },
       {
         label: 'Vehicle Inventory',

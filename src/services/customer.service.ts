@@ -78,4 +78,25 @@ export const customerService = {
     });
     return unwrapData<Customer>(res);
   },
+
+  async createCustomer(data: {
+    name: string;
+    phone: string;
+    email?: string;
+    customerType: 'INDIVIDUAL' | 'BUSINESS';
+    companyName?: string;
+    preferredBranchId?: string | null;
+    address?: string;
+    city?: string;
+    state?: string;
+    pincode?: string;
+    gstin?: string;
+    pan?: string;
+  }): Promise<Customer> {
+    const res = await apiFetch<any>('/customers', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return unwrapData<Customer>(res);
+  },
 };

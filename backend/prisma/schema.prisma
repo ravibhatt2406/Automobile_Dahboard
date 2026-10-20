@@ -202,6 +202,7 @@ enum NotificationChannel {
   EMAIL
   SMS
   PUSH
+  WHATSAPP
 }
 
 model User {
@@ -241,6 +242,7 @@ model Franchise {
   leads             Lead[]
   quotations        Quotation[]
   invoices          Invoice[]
+  campaigns         Campaign[]
 
   @@map("franchises")
 }
@@ -269,6 +271,8 @@ model Branch {
   partStocks         PartStock[]
   conversations      Conversation[]
   preferredCustomers Customer[]            @relation("CustomerPreferredBranch")
+  campaigns          Campaign[]
+  customerReminders  CustomerReminder[]
 
   @@map("branches")
 }
@@ -299,6 +303,8 @@ model Employee {
   mechanicJobs        ServiceJob[]           @relation("MechanicJobs")
   diagnoses           ServiceDiagnosis[]
   assignedConversations Conversation[]       @relation("AssignedConversations")
+  coordinatedCampaigns Campaign[]            @relation("CampaignCoordinator")
+  campaignMemberships CampaignMember[]
 
   @@map("employees")
 }
@@ -407,6 +413,7 @@ model Customer {
   state        String?
   pincode      String?
   gstin        String?
+  pan          String?
   customerType CustomerType   @default(INDIVIDUAL) @map("customer_type")
   companyName  String?        @map("company_name")
   status       CustomerStatus @default(ACTIVE)
@@ -428,6 +435,7 @@ model Customer {
   conversations      Conversation[]
   preferredBranchId  String?               @map("preferred_branch_id")
   preferredBranch    Branch?               @relation("CustomerPreferredBranch", fields: [preferredBranchId], references: [id], onDelete: SetNull)
+  reminders          CustomerReminder[]
 
   @@map("customers")
 }
@@ -457,6 +465,7 @@ model Lead {
   status               LeadStatus   @default(NEW)
   priority             LeadPriority @default(MEDIUM)
   notes                String?
+  lostReason           String?      @map("lost_reason")
   createdAt            DateTime     @default(now()) @map("created_at")
   updatedAt            DateTime     @updatedAt @map("updated_at")
 
@@ -464,6 +473,8 @@ model Lead {
   franchise        Franchise  @relation(fields: [franchiseId], references: [id], onDelete: Cascade)
   branch           Branch     @relation(fields: [branchId], references: [id], onDelete: Cascade)
   assignedEmployee Employee?  @relation("AssignedLeadEmployee", fields: [assignedEmployeeId], references: [id])
+  campaignId       String?    @map("campaign_id")
+  campaign         Campaign?  @relation(fields: [campaignId], references: [id])
   followUps        FollowUp[]
   quotations       Quotation[]
 
@@ -572,6 +583,8 @@ model Vehicle {
   invoices       Invoice[]
   serviceAppointments ServiceAppointment[]
   serviceJobs        ServiceJob[]
+  complianceDocuments VehicleComplianceDocument[]
+  reminders          CustomerReminder[]
 
   @@map("vehicles")
 }
@@ -694,6 +707,10 @@ model FinanceApplication {
   downPayment       Decimal       @map("down_payment")
   tenureMonths      Int           @map("tenure_months")
   interestRate      Decimal?      @map("interest_rate")
+  loanReference     String?       @map("loan_reference")
+  emiAmount         Decimal?      @map("emi_amount")
+  firstEmiDate      DateTime?     @map("first_emi_date")
+  disbursedAt       DateTime?     @map("disbursed_at")
   status            FinanceStatus @default(DRAFT)
   remarks           String?
   createdAt         DateTime      @default(now()) @map("created_at")
@@ -701,6 +718,7 @@ model FinanceApplication {
 
   customer Customer @relation(fields: [customerId], references: [id])
   booking  Booking  @relation(fields: [bookingId], references: [id])
+  emiSchedules FinanceEmiSchedule[]
 
   @@map("finance_applications")
 }
@@ -1126,5 +1144,212 @@ model ChatMessage {
   @@index([isRead])
   @@index([createdAt])
   @@map("chat_messages")
+}
+
+enum ComplianceDocType {
+  INSURANCE
+  PUC
+  FITNESS_CERTIFICATE
+  ROAD_PERMIT
+  REGISTRATION_RC
+  ROAD_TAX
+  OTHER
+}
+
+enum ComplianceDocStatus {
+  VALID
+  EXPIRING_SOON
+  EXPIRED
+  PENDING_VERIFICATION
+  REJECTED
+}
+
+model VehicleComplianceDocument {
+  id               String              @id @default(uuid())
+  vehicleId        String              @map("vehicle_id")
+  documentType     ComplianceDocType   @map("document_type")
+  documentNumber   String              @map("document_number")
+  issuingAuthority String?             @map("issuing_authority")
+  issueDate        DateTime?           @map("issue_date")
+  expiryDate       DateTime?           @map("expiry_date")
+  status           ComplianceDocStatus @default(VALID)
+  reminderSent     Boolean             @default(false) @map("reminder_sent")
+  attachmentUrl    String?             @map("attachment_url")
+  fileAttachmentId String?             @map("file_attachment_id")
+  notes            String?
+  metadata         Json?
+  createdAt        DateTime            @default(now()) @map("created_at")
+  updatedAt        DateTime            @updatedAt @map("updated_at")
+
+  vehicle          Vehicle             @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+  @@index([documentType])
+  @@index([expiryDate])
+  @@map("vehicle_compliance_documents")
+}
+
+// ==========================================
+// Phase 2: Camps & Marketing
+// ==========================================
+
+enum CampaignStatus {
+  UPCOMING
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+model Campaign {
+  id            String            @id @default(uuid())
+  name          String
+  description   String?
+  location      String?
+  startDate     DateTime          @map("start_date")
+  endDate       DateTime          @map("end_date")
+  coordinatorId String?           @map("coordinator_id")
+  franchiseId   String            @map("franchise_id")
+  branchId      String            @map("branch_id")
+  budget        Decimal           @default(0)
+  status        CampaignStatus    @default(UPCOMING)
+  notes         String?
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt @map("updated_at")
+
+  coordinator   Employee?         @relation("CampaignCoordinator", fields: [coordinatorId], references: [id])
+  franchise     Franchise         @relation(fields: [franchiseId], references: [id], onDelete: Cascade)
+  branch        Branch            @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  teamMembers   CampaignMember[]
+  expenses      CampaignExpense[]
+  leads         Lead[]
+
+  @@index([branchId])
+  @@index([status])
+  @@map("campaigns")
+}
+
+model CampaignMember {
+  id         String    @id @default(uuid())
+  campaignId String    @map("campaign_id")
+  employeeId String    @map("employee_id")
+  roleInCamp String?   @map("role_in_camp")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  campaign   Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  employee   Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, employeeId])
+  @@map("campaign_members")
+}
+
+model CampaignExpense {
+  id           String    @id @default(uuid())
+  campaignId   String    @map("campaign_id")
+  title        String
+  category     String    @default("LOGISTICS")
+  amount       Decimal
+  expenseDate  DateTime  @default(now()) @map("expense_date")
+  recordedById String?   @map("recorded_by_id")
+  receiptUrl   String?   @map("receipt_url")
+  notes        String?
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  campaign     Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId])
+  @@map("campaign_expenses")
+}
+
+// ==========================================
+// Phase 2: Finance & EMI Repayment Schedules
+// ==========================================
+
+enum EmiScheduleStatus {
+  UPCOMING
+  DUE
+  PAID
+  PARTIALLY_PAID
+  OVERDUE
+}
+
+model FinanceEmiSchedule {
+  id                   String            @id @default(uuid())
+  financeApplicationId String            @map("finance_application_id")
+  installmentNumber    Int               @map("installment_number")
+  dueDate              DateTime          @map("due_date")
+  emiAmount            Decimal           @map("emi_amount")
+  principalComponent   Decimal           @default(0) @map("principal_component")
+  interestComponent    Decimal           @default(0) @map("interest_component")
+  paidAmount           Decimal           @default(0) @map("paid_amount")
+  status               EmiScheduleStatus @default(UPCOMING)
+  paidAt               DateTime?         @map("paid_at")
+  paymentReference     String?           @map("payment_reference")
+  paymentMode          String?           @map("payment_mode")
+  receiptUrl           String?           @map("receipt_url")
+  recordedByEmployeeId String?           @map("recorded_by_employee_id")
+  notes                String?
+  createdAt            DateTime          @default(now()) @map("created_at")
+  updatedAt            DateTime          @updatedAt @map("updated_at")
+
+  financeApplication   FinanceApplication @relation(fields: [financeApplicationId], references: [id], onDelete: Cascade)
+
+  @@index([financeApplicationId])
+  @@index([dueDate])
+  @@index([status])
+  @@map("finance_emi_schedules")
+}
+
+// ==========================================
+// Phase 2: Customer Reminders & WhatsApp
+// ==========================================
+
+enum ReminderCategory {
+  SERVICE_DUE
+  INSURANCE_EXPIRY
+  COMPLIANCE_EXPIRY
+  EMI_DUE
+  GENERAL
+}
+
+enum ReminderStatus {
+  PREPARED
+  USER_INITIATED
+  SENT
+  FAILED
+  CANCELLED
+}
+
+model CustomerReminder {
+  id                String              @id @default(uuid())
+  customerId        String              @map("customer_id")
+  vehicleId         String?             @map("vehicle_id")
+  branchId          String              @map("branch_id")
+  category          ReminderCategory
+  recipientName     String              @map("recipient_name")
+  recipientPhone    String              @map("recipient_phone")
+  referenceType     String              @default("NONE") @map("reference_type")
+  referenceId       String?             @map("reference_id")
+  dueDate           DateTime?           @map("due_date")
+  messageTemplate   String?             @map("message_template")
+  draftMessage      String              @map("draft_message")
+  channel           NotificationChannel @default(WHATSAPP)
+  status            ReminderStatus      @default(PREPARED)
+  initiatedAt       DateTime?           @map("initiated_at")
+  sentAt            DateTime?           @map("sent_at")
+  externalMessageId String?             @map("external_message_id")
+  preparedByUserId  String?             @map("prepared_by_user_id")
+  notes             String?
+  createdAt         DateTime            @default(now()) @map("created_at")
+  updatedAt         DateTime            @updatedAt @map("updated_at")
+
+  customer          Customer            @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  vehicle           Vehicle?            @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  branch            Branch              @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@index([branchId])
+  @@index([category])
+  @@index([status])
+  @@map("customer_reminders")
 }
 

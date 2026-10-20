@@ -18,6 +18,13 @@ export class DashboardsService {
     const bookingWhere: any = {};
     const serviceJobWhere: any = {};
     const approvalWhere: any = { status: 'PENDING' };
+    const paymentWhere: any = { status: 'SUCCESS' };
+    const campaignWhere: any = {};
+    const deliveryWhere: any = {};
+    const complianceWhere: any = {};
+
+    const now = new Date();
+    const in30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
     if (scope?.effectiveBranchId) {
       branchWhere.id = scope.effectiveBranchId;
@@ -26,6 +33,10 @@ export class DashboardsService {
       bookingWhere.branchId = scope.effectiveBranchId;
       serviceJobWhere.branchId = scope.effectiveBranchId;
       approvalWhere.employee = { branchId: scope.effectiveBranchId };
+      paymentWhere.booking = { branchId: scope.effectiveBranchId };
+      campaignWhere.branchId = scope.effectiveBranchId;
+      deliveryWhere.booking = { branchId: scope.effectiveBranchId };
+      complianceWhere.vehicle = { branchId: scope.effectiveBranchId };
     } else if (scope?.effectiveFranchiseId) {
       franchiseWhere.id = scope.effectiveFranchiseId;
       branchWhere.franchiseId = scope.effectiveFranchiseId;
@@ -34,6 +45,10 @@ export class DashboardsService {
       bookingWhere.branch = { franchiseId: scope.effectiveFranchiseId };
       serviceJobWhere.branch = { franchiseId: scope.effectiveFranchiseId };
       approvalWhere.employee = { branch: { franchiseId: scope.effectiveFranchiseId } };
+      paymentWhere.booking = { branch: { franchiseId: scope.effectiveFranchiseId } };
+      campaignWhere.branch = { franchiseId: scope.effectiveFranchiseId };
+      deliveryWhere.booking = { branch: { franchiseId: scope.effectiveFranchiseId } };
+      complianceWhere.vehicle = { branch: { franchiseId: scope.effectiveFranchiseId } };
     }
 
     const [
@@ -43,11 +58,20 @@ export class DashboardsService {
       customerCount,
       vehicleCount,
       inStockVehicleCount,
+      reservedVehicleCount,
       bookingCount,
       serviceJobCount,
       activeServiceJobCount,
       pendingApprovals,
       revenueAgg,
+      paymentsAgg,
+      campaignsCount,
+      activeCampaignsCount,
+      inTransitDeliveries,
+      completedDeliveries,
+      complianceAlerts,
+      activeFinanceApps,
+      overdueEmis,
       recentBookings,
       topBranches,
     ] = await Promise.all([
@@ -57,6 +81,7 @@ export class DashboardsService {
       this.prisma.customer.count({ where: { status: 'ACTIVE' } }),
       this.prisma.vehicle.count({ where: vehicleWhere }),
       this.prisma.vehicle.count({ where: { ...vehicleWhere, status: 'IN_STOCK' } }),
+      this.prisma.vehicle.count({ where: { ...vehicleWhere, status: 'RESERVED' } }),
       this.prisma.booking.count({ where: bookingWhere }),
       this.prisma.serviceJob.count({ where: serviceJobWhere }),
       this.prisma.serviceJob.count({
@@ -66,6 +91,30 @@ export class DashboardsService {
       this.prisma.booking.aggregate({
         where: { ...bookingWhere, status: { in: ['CONFIRMED', 'CONVERTED_TO_DELIVERY'] } },
         _sum: { totalAmount: true },
+      }),
+      this.prisma.payment.aggregate({
+        where: paymentWhere,
+        _sum: { amount: true },
+      }),
+      this.prisma.campaign.count({ where: campaignWhere }),
+      this.prisma.campaign.count({ where: { ...campaignWhere, status: 'ACTIVE' } }),
+      this.prisma.delivery.count({
+        where: { ...deliveryWhere, status: { in: ['PENDING', 'READY'] } },
+      }),
+      this.prisma.delivery.count({
+        where: { ...deliveryWhere, status: 'COMPLETED' },
+      }),
+      this.prisma.vehicleComplianceDocument.count({
+        where: {
+          ...complianceWhere,
+          OR: [{ status: 'EXPIRED' }, { expiryDate: { lte: in30Days } }],
+        },
+      }),
+      this.prisma.financeApplication.count({
+        where: { status: { in: ['APPROVED', 'DISBURSED'] } },
+      }),
+      this.prisma.financeEmiSchedule.count({
+        where: { status: 'OVERDUE' },
       }),
       this.prisma.booking.findMany({
         where: bookingWhere,
@@ -101,11 +150,20 @@ export class DashboardsService {
       customerCount,
       vehicleCount,
       inStockVehicleCount,
+      reservedVehicleCount,
       bookingCount,
       serviceJobCount,
       activeServiceJobCount,
       pendingApprovals,
       totalRevenue: Number(revenueAgg._sum.totalAmount || 0),
+      totalCollections: Number(paymentsAgg._sum.amount || 0),
+      campaignsCount,
+      activeCampaignsCount,
+      inTransitDeliveries,
+      completedDeliveries,
+      complianceAlerts,
+      activeFinanceApps,
+      overdueEmis,
       recentBookings,
       topBranches,
     };
@@ -149,15 +207,29 @@ export class DashboardsService {
       throw new NotFoundException(`Franchise '${franchiseIdToUse}' not found`);
     }
 
+    const now = new Date();
+    const in30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
     const [
       branchCount,
       employeeCount,
       pendingApprovals,
       vehicleCount,
       inStockVehicles,
+      reservedVehicles,
+      allocatedVehicles,
       bookingsCount,
       activeServiceJobsCount,
       revenueAgg,
+      paymentsAgg,
+      totalLeads,
+      wonLeads,
+      complianceAlerts,
+      campaignsCount,
+      campaignBudgetAgg,
+      campaignExpensesAgg,
+      activeFinanceApps,
+      overdueEmis,
       recentBookings,
     ] = await Promise.all([
       this.prisma.branch.count({ where: { franchiseId: franchise.id, status: 'ACTIVE' } }),
@@ -170,6 +242,12 @@ export class DashboardsService {
       this.prisma.vehicle.count({ where: { branch: { franchiseId: franchise.id } } }),
       this.prisma.vehicle.count({
         where: { branch: { franchiseId: franchise.id }, status: 'IN_STOCK' },
+      }),
+      this.prisma.vehicle.count({
+        where: { branch: { franchiseId: franchise.id }, status: 'RESERVED' },
+      }),
+      this.prisma.vehicle.count({
+        where: { branch: { franchiseId: franchise.id }, status: 'ALLOCATED' },
       }),
       this.prisma.booking.count({
         where: {
@@ -190,6 +268,42 @@ export class DashboardsService {
         },
         _sum: { totalAmount: true },
       }),
+      this.prisma.payment.aggregate({
+        where: {
+          status: 'SUCCESS',
+          booking: { branch: { franchiseId: franchise.id } },
+        },
+        _sum: { amount: true },
+      }),
+      this.prisma.lead.count({ where: { franchiseId: franchise.id } }),
+      this.prisma.lead.count({ where: { franchiseId: franchise.id, status: 'CONVERTED' } }),
+      this.prisma.vehicleComplianceDocument.count({
+        where: {
+          vehicle: { branch: { franchiseId: franchise.id } },
+          OR: [{ status: 'EXPIRED' }, { expiryDate: { lte: in30Days } }],
+        },
+      }),
+      this.prisma.campaign.count({ where: { franchiseId: franchise.id } }),
+      this.prisma.campaign.aggregate({
+        where: { franchiseId: franchise.id },
+        _sum: { budget: true },
+      }),
+      this.prisma.campaignExpense.aggregate({
+        where: { campaign: { franchiseId: franchise.id } },
+        _sum: { amount: true },
+      }),
+      this.prisma.financeApplication.count({
+        where: {
+          booking: { branch: { franchiseId: franchise.id } },
+          status: { in: ['APPROVED', 'DISBURSED'] },
+        },
+      }),
+      this.prisma.financeEmiSchedule.count({
+        where: {
+          financeApplication: { booking: { branch: { franchiseId: franchise.id } } },
+          status: 'OVERDUE',
+        },
+      }),
       this.prisma.booking.findMany({
         where: { branch: { franchiseId: franchise.id } },
         take: 5,
@@ -202,6 +316,9 @@ export class DashboardsService {
       }),
     ]);
 
+    const leadConversionRate =
+      totalLeads > 0 ? Math.round((wonLeads / totalLeads) * 100 * 100) / 100 : 0;
+
     return {
       franchiseId: franchise.id,
       franchiseName: franchise.name,
@@ -211,9 +328,20 @@ export class DashboardsService {
       pendingApprovals,
       vehicleCount,
       inStockVehicles,
+      reservedVehicles,
+      allocatedVehicles,
       bookingsCount,
       activeServiceJobsCount,
       totalRevenue: Number(revenueAgg._sum.totalAmount || 0),
+      totalCollections: Number(paymentsAgg._sum.amount || 0),
+      totalLeads,
+      leadConversionRate,
+      complianceAlerts,
+      campaignsCount,
+      campaignBudget: Number(campaignBudgetAgg?._sum?.budget || 0),
+      campaignExpenses: Number(campaignExpensesAgg?._sum?.amount || 0),
+      activeFinanceApps,
+      overdueEmis,
       branches: franchise.branches,
       recentBookings,
     };
@@ -263,22 +391,38 @@ export class DashboardsService {
       }
     }
 
+    const now = new Date();
+    const in30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
     const [
       inStockVehicles,
+      reservedVehicles,
+      allocatedVehicles,
+      deliveredVehicles,
       totalVehicles,
       confirmedBookings,
       totalBookings,
       activeServiceJobs,
+      awaitingPartsJobs,
+      overdueJobs,
       completedServiceJobs,
       totalEmployees,
       pendingApprovals,
       activeQuotations,
       activeLeads,
       revenueAgg,
+      paymentsAgg,
+      complianceAlerts,
+      activeCampaignsCount,
+      campaignLeadsCount,
+      inTransitDeliveries,
       recentBookings,
       recentServiceJobs,
     ] = await Promise.all([
       this.prisma.vehicle.count({ where: { branchId: branch.id, status: 'IN_STOCK' } }),
+      this.prisma.vehicle.count({ where: { branchId: branch.id, status: 'RESERVED' } }),
+      this.prisma.vehicle.count({ where: { branchId: branch.id, status: 'ALLOCATED' } }),
+      this.prisma.vehicle.count({ where: { branchId: branch.id, status: 'DELIVERED' } }),
       this.prisma.vehicle.count({ where: { branchId: branch.id } }),
       this.prisma.booking.count({
         where: { branchId: branch.id, status: { in: ['CONFIRMED', 'CONVERTED_TO_DELIVERY'] } },
@@ -286,6 +430,16 @@ export class DashboardsService {
       this.prisma.booking.count({ where: { branchId: branch.id } }),
       this.prisma.serviceJob.count({
         where: { branchId: branch.id, status: { notIn: ['COMPLETED', 'CANCELLED'] } },
+      }),
+      this.prisma.serviceJob.count({
+        where: { branchId: branch.id, status: 'WAITING_FOR_PARTS' },
+      }),
+      this.prisma.serviceJob.count({
+        where: {
+          branchId: branch.id,
+          status: { notIn: ['COMPLETED', 'CANCELLED'] },
+          estimatedCompletionTime: { lt: now },
+        },
       }),
       this.prisma.serviceJob.count({
         where: { branchId: branch.id, status: 'COMPLETED' },
@@ -310,6 +464,28 @@ export class DashboardsService {
           status: { in: ['CONFIRMED', 'CONVERTED_TO_DELIVERY'] },
         },
         _sum: { totalAmount: true },
+      }),
+      this.prisma.payment.aggregate({
+        where: {
+          status: 'SUCCESS',
+          booking: { branchId: branch.id },
+        },
+        _sum: { amount: true },
+      }),
+      this.prisma.vehicleComplianceDocument.count({
+        where: {
+          vehicle: { branchId: branch.id },
+          OR: [{ status: 'EXPIRED' }, { expiryDate: { lte: in30Days } }],
+        },
+      }),
+      this.prisma.campaign.count({
+        where: { branchId: branch.id, status: 'ACTIVE' },
+      }),
+      this.prisma.lead.count({
+        where: { branchId: branch.id, campaignId: { not: null } },
+      }),
+      this.prisma.delivery.count({
+        where: { booking: { branchId: branch.id }, status: { in: ['PENDING', 'READY'] } },
       }),
       this.prisma.booking.findMany({
         where: { branchId: branch.id },
@@ -338,16 +514,26 @@ export class DashboardsService {
       city: branch.city,
       franchise: branch.franchise,
       inStockVehicles,
+      reservedVehicles,
+      allocatedVehicles,
+      deliveredVehicles,
       totalVehicles,
       confirmedBookings,
       totalBookings,
       activeServiceJobs,
+      awaitingPartsJobs,
+      overdueJobs,
       completedServiceJobs,
       totalEmployees,
       pendingApprovals,
       activeQuotations,
       activeLeads,
       totalRevenue: Number(revenueAgg._sum.totalAmount || 0),
+      totalCollections: Number(paymentsAgg._sum.amount || 0),
+      complianceAlerts,
+      activeCampaignsCount,
+      campaignLeadsCount,
+      inTransitDeliveries,
       recentBookings,
       recentServiceJobs,
     };
@@ -390,6 +576,7 @@ export class DashboardsService {
       totalBookings,
       availableStock,
       activeLeads,
+      overdueFollowUps,
       recentQuotations,
       recentBookings,
     ] = await Promise.all([
@@ -410,12 +597,23 @@ export class DashboardsService {
       }),
       this.prisma.vehicle.count({
         where: {
-          ...(branchId ? { branchId } : scope.effectiveFranchiseId ? { branch: { franchiseId: scope.effectiveFranchiseId } } : {}),
+          ...(branchId
+            ? { branchId }
+            : scope.effectiveFranchiseId
+            ? { branch: { franchiseId: scope.effectiveFranchiseId } }
+            : {}),
           status: 'IN_STOCK',
         },
       }),
       this.prisma.lead.count({
         where: leadWhere,
+      }),
+      this.prisma.followUp.count({
+        where: {
+          status: 'PENDING',
+          scheduledAt: { lt: new Date() },
+          lead: leadWhere,
+        },
       }),
       this.prisma.quotation.findMany({
         where: quotationWhere,
@@ -443,6 +641,7 @@ export class DashboardsService {
       totalBookingsCount: totalBookings,
       availableStockCount: availableStock,
       activeLeadsCount: activeLeads,
+      overdueFollowUpsCount: overdueFollowUps,
       recentQuotations,
       recentBookings,
     };
@@ -562,9 +761,7 @@ export class DashboardsService {
     const activeJobs = jobs.filter((j) =>
       ['IN_PROGRESS', 'DIAGNOSIS', 'WAITING_FOR_PARTS'].includes(j.status),
     );
-    const pendingJobs = jobs.filter((j) =>
-      ['OPEN', 'CHECKED_IN'].includes(j.status),
-    );
+    const pendingJobs = jobs.filter((j) => ['OPEN', 'CHECKED_IN'].includes(j.status));
     const completedJobs = jobs.filter((j) => j.status === 'COMPLETED');
 
     const partsRequestedCount = jobs.reduce((acc, job) => acc + (job.jobParts?.length || 0), 0);
@@ -583,7 +780,7 @@ export class DashboardsService {
 
   async getCustomerDashboard(userId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    let customer = await this.prisma.customer.findFirst({
+    const customer = await this.prisma.customer.findFirst({
       where: {
         OR: [
           { userId },
@@ -596,7 +793,12 @@ export class DashboardsService {
           include: {
             variant: { include: { model: { include: { manufacturer: true } } } },
             branch: true,
+            complianceDocuments: true,
           },
+          orderBy: { createdAt: 'desc' },
+        },
+        leads: {
+          include: { branch: true },
           orderBy: { createdAt: 'desc' },
         },
         bookings: {
@@ -605,6 +807,7 @@ export class DashboardsService {
             payments: true,
             invoices: true,
             branch: true,
+            deliveries: true,
           },
           orderBy: { createdAt: 'desc' },
         },
@@ -625,8 +828,13 @@ export class DashboardsService {
           orderBy: { createdAt: 'desc' },
         },
         invoices: {
-          include: { branch: true },
+          include: { branch: true, payments: true },
           orderBy: { createdAt: 'desc' },
+        },
+        conversations: {
+          include: { branch: true },
+          orderBy: { updatedAt: 'desc' },
+          take: 5,
         },
         preferredBranch: {
           include: { franchise: true },
@@ -637,13 +845,18 @@ export class DashboardsService {
     if (!customer) {
       return {
         customer: null,
+        prospectState: 'NEW_PROSPECT',
         vehicles: [],
+        leads: [],
         bookings: [],
         quotations: [],
         serviceAppointments: [],
         serviceJobs: [],
         insurancePolicies: [],
+        complianceDocuments: [],
         invoices: [],
+        payments: [],
+        conversations: [],
         summary: {
           vehiclesCount: 0,
           activeQuotationsCount: 0,
@@ -653,6 +866,30 @@ export class DashboardsService {
           totalSpent: 0,
         },
       };
+    }
+
+    // Determine 3 distinct prospect states strictly from real database records:
+    // 1. CONFIRMED_OWNER: Has at least 1 registered vehicle OR has a booking converted to delivery / delivered
+    // 2. RETURNING_PROSPECT: Has previous enquiries (leads), quotations, or pending bookings, but no owned vehicle
+    // 3. NEW_PROSPECT: No prior activity
+    const hasDeliveredBooking = customer.bookings.some(
+      (b) =>
+        b.status === 'CONVERTED_TO_DELIVERY' ||
+        b.deliveries?.some((d) => d.status === 'COMPLETED'),
+    );
+    const hasOwnedVehicle = customer.vehicles.length > 0;
+
+    let prospectState: 'NEW_PROSPECT' | 'RETURNING_PROSPECT' | 'CONFIRMED_OWNER' = 'NEW_PROSPECT';
+    if (hasOwnedVehicle || hasDeliveredBooking) {
+      prospectState = 'CONFIRMED_OWNER';
+    } else if (
+      customer.leads.length > 0 ||
+      customer.quotations.length > 0 ||
+      customer.bookings.length > 0
+    ) {
+      prospectState = 'RETURNING_PROSPECT';
+    } else {
+      prospectState = 'NEW_PROSPECT';
     }
 
     const activeQuotationsCount = customer.quotations.filter((q) =>
@@ -671,7 +908,54 @@ export class DashboardsService {
       .filter((inv) => inv.paymentStatus === 'PAID')
       .reduce((sum, inv) => sum + Number(inv.totalAmount || 0), 0);
 
+    // Extract compliance documents strictly across the customer's owned vehicles
+    const complianceDocuments = customer.vehicles.flatMap((v) =>
+      (v.complianceDocuments || []).map((doc) => ({
+        ...doc,
+        vehicleVin: v.vin,
+        vehicleReg: v.registrationNumber,
+        vehicleModel: v.variant?.name,
+      })),
+    );
+
+    // Flatten payments received for their bookings & invoices
+    const bookingPayments = customer.bookings.flatMap((b) =>
+      (b.payments || []).map((p) => ({
+        id: p.id,
+        paymentNumber: p.gatewayPaymentId || p.id.slice(0, 8),
+        amount: Number(p.amount),
+        status: p.status,
+        paymentMode: p.paymentMethod || p.gateway,
+        createdAt: p.createdAt,
+        referenceType: 'BOOKING',
+        referenceNumber: b.bookingNumber,
+        branchName: b.branch?.name,
+      })),
+    );
+
+    const invoicePayments = customer.invoices.flatMap((inv) =>
+      (inv.payments || []).map((p) => ({
+        id: p.id,
+        paymentNumber: p.gatewayPaymentId || p.id.slice(0, 8),
+        amount: Number(p.amount),
+        status: p.status,
+        paymentMode: p.paymentMethod || p.gateway,
+        createdAt: p.createdAt,
+        referenceType: 'INVOICE',
+        referenceNumber: inv.invoiceNumber,
+        branchName: inv.branch?.name,
+      })),
+    );
+
+    const payments = [...bookingPayments, ...invoicePayments].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+
     return {
+      id: customer.id,
+      name: customer.name,
+      preferredBranchId: customer.preferredBranchId,
+      preferredBranch: customer.preferredBranch,
       customer: {
         id: customer.id,
         name: customer.name,
@@ -681,13 +965,18 @@ export class DashboardsService {
         companyName: customer.companyName,
         preferredBranch: customer.preferredBranch,
       },
+      prospectState,
       vehicles: customer.vehicles,
+      leads: customer.leads,
       bookings: customer.bookings,
       quotations: customer.quotations,
       serviceAppointments: customer.serviceAppointments,
       serviceJobs: customer.serviceJobs,
       insurancePolicies: customer.insurancePolicies,
+      complianceDocuments,
       invoices: customer.invoices,
+      payments,
+      conversations: customer.conversations,
       summary: {
         vehiclesCount: customer.vehicles.length,
         activeQuotationsCount,

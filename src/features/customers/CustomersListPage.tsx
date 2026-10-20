@@ -23,11 +23,14 @@ import {
   ChevronLeft,
   ChevronRight,
   ShieldCheck,
+  UserPlus,
 } from 'lucide-react';
 import { StatusBadge } from '@/components/data-display/StatusBadge';
 import { useNavigate } from 'react-router-dom';
 import { csvDataService } from '@/services/csv-data.service';
 import { CsvImportModal } from '@/components/forms/CsvImportModal';
+import { CustomerCreateModal } from '@/components/forms/CustomerCreateModal';
+import { branchService } from '@/services/branch.service';
 import { useAuth } from '@/app/providers/AuthContext';
 import { useScope } from '@/app/providers/ScopeContext';
 import { BranchFilterBar } from '@/components/data-display/BranchFilterBar';
@@ -43,6 +46,7 @@ export const CustomersListPage: React.FC = () => {
   } = useScope();
 
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
 
   // Search & Filtering State
@@ -53,6 +57,13 @@ export const CustomersListPage: React.FC = () => {
   const [pageSize, setPageSize] = useState(15);
 
   const isSuperAdmin = activeRole === 'SUPER_ADMIN';
+  const canCreateCustomer = activeRole !== 'CUSTOMER';
+
+  const { data: branchesData } = useQuery({
+    queryKey: ['branches'],
+    queryFn: () => branchService.getBranches(),
+  });
+  const branches = branchesData?.data || [];
 
   // Compute tenant scope banner text
   const scopeDescription = isSuperAdmin
@@ -294,6 +305,16 @@ export const CustomersListPage: React.FC = () => {
               <Upload className="w-3.5 h-3.5 text-amber-400" />
               Import CSV
             </button>
+            {canCreateCustomer && (
+              <button
+                id="btn-add-customer"
+                onClick={() => setIsCreateModalOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#111111] hover:bg-black text-[#F5A800] text-xs font-bold rounded-lg border border-zinc-900 transition-colors shadow-xs"
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+                Add Customer
+              </button>
+            )}
           </div>
         }
       />
@@ -406,6 +427,16 @@ export const CustomersListPage: React.FC = () => {
         entity="customers"
         title="Import Customers (CSV)"
         onImportComplete={() => refetch()}
+      />
+
+      {/* Register Customer Modal */}
+      <CustomerCreateModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSuccess={() => refetch()}
+        branches={branches}
+        activeBranchId={selectedBranchId}
+        isSuperAdmin={isSuperAdmin}
       />
     </div>
   );

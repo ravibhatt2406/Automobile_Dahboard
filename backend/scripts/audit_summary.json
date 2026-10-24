@@ -1,0 +1,5692 @@
+{
+  "timestamp": "2026-10-20T16:47:33.616Z",
+  "tableCounts": {
+    "announcement_reads": 20,
+    "announcements": 14,
+    "audit_logs": 666,
+    "bookings": 5,
+    "branches": 28,
+    "campaign_expenses": 17,
+    "campaign_members": 17,
+    "campaigns": 18,
+    "chat_messages": 0,
+    "conversations": 0,
+    "customer_franchises": 39,
+    "customer_reminders": 15,
+    "customers": 69,
+    "deliveries": 2,
+    "employee_approval_requests": 34,
+    "employee_role_assignments": 83,
+    "employees": 89,
+    "file_attachments": 0,
+    "finance_applications": 3,
+    "finance_emi_schedules": 96,
+    "follow_ups": 23,
+    "franchises": 20,
+    "insurance_policies": 2,
+    "invoice_items": 4,
+    "invoices": 7,
+    "lead_activities": 105,
+    "leads": 45,
+    "manufacturers": 5,
+    "notifications": 1573,
+    "part_stock_movements": 2,
+    "part_stocks": 5,
+    "parts": 5,
+    "payments": 2,
+    "pdi_inspections": 2,
+    "permissions": 25,
+    "quotation_items": 0,
+    "quotations": 5,
+    "role_permissions": 77,
+    "roles": 11,
+    "service_appointments": 2,
+    "service_approvals": 2,
+    "service_diagnoses": 2,
+    "service_job_parts": 2,
+    "service_jobs": 5,
+    "service_labour": 2,
+    "service_qcs": 2,
+    "truck_models": 10,
+    "truck_variants": 10,
+    "users": 130,
+    "vehicle_allocations": 2,
+    "vehicle_compliance_documents": 35,
+    "vehicles": 16
+  },
+  "franchises": [
+    {
+      "id": "ba8b8d9e-772b-451c-ab17-ccb0c02ac5cc",
+      "code": "P1-FRAN-SOUTH-1792512950238",
+      "name": "Titan South Logistics 1792512950238",
+      "legalName": "Titan South Pvt Ltd",
+      "taxId": "29TITAN0238",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T16:15:50.356Z",
+      "updatedAt": "2026-10-20T16:15:50.356Z",
+      "branches": [
+        {
+          "id": "c040709f-e409-4917-9769-ff54506eb9d5",
+          "code": "BR-C2-1792512950238",
+          "name": "Bengaluru Tech Hub 1792512950238",
+          "city": "Bengaluru",
+          "state": "Karnataka",
+          "status": "ACTIVE"
+        }
+      ],
+      "_count": {
+        "branches": 1,
+        "leads": 3,
+        "quotations": 0,
+        "announcements": 0,
+        "campaigns": 1,
+        "invoices": 0
+      }
+    },
+    {
+      "id": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+      "code": "FR-TEST-1791127356920",
+      "name": "Test Franchise A",
+      "legalName": null,
+      "taxId": null,
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:22:36.923Z",
+      "updatedAt": "2026-10-04T15:22:36.923Z",
+      "branches": [
+        {
+          "id": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+          "code": "BR-A-1791127356925",
+          "name": "Test Branch A (Jaipur)",
+          "city": null,
+          "state": null,
+          "status": "ACTIVE"
+        },
+        {
+          "id": "7e8800ac-0399-4c81-8c7f-15a7009c1549",
+          "code": "BR-B-1791127356930",
+          "name": "Test Branch B (Delhi)",
+          "city": null,
+          "state": null,
+          "status": "ACTIVE"
+        }
+      ],
+      "_count": {
+        "branches": 2,
+        "leads": 37,
+        "quotations": 0,
+        "announcements": 0,
+        "campaigns": 16,
+        "invoices": 0
+      }
+    },
+    {
+      "id": "671bc0eb-1b3f-4592-89b6-3ffbf17232f0",
+      "code": "FR-AL-01",
+      "name": "Ashok Leyland Commercial Vehicles",
+      "legalName": "Ashok Leyland Dealership Network Ltd",
+      "taxId": "GSTIN08ALIND2026",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:05:39.919Z",
+      "updatedAt": "2026-10-04T15:05:39.919Z",
+      "branches": [
+        {
+          "id": "8f146f47-f6d8-4909-8b85-996f444f701b",
+          "code": "BR-JAI-01",
+          "name": "Jaipur",
+          "city": "Jaipur",
+          "state": "Rajasthan",
+          "status": "ACTIVE"
+        }
+      ],
+      "_count": {
+        "branches": 1,
+        "leads": 0,
+        "quotations": 0,
+        "announcements": 0,
+        "campaigns": 1,
+        "invoices": 0
+      }
+    },
+    {
+      "id": "a2180e97-ed24-4fc6-8019-ba410c4ac607",
+      "code": "FR-P2-1791127356829",
+      "name": "Phase 2 Test Franchise",
+      "legalName": "Phase 2 Franchise Private Limited",
+      "taxId": "27AAAAA0000A1Z5",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:22:36.831Z",
+      "updatedAt": "2026-10-04T15:22:36.831Z",
+      "branches": [
+        {
+          "id": "f7c975f3-eeb9-413f-80a4-d59b094dea21",
+          "code": "BR-P2-1791127356833",
+          "name": "Phase 2 Main Branch",
+          "city": "Mumbai",
+          "state": "Maharashtra",
+          "status": "ACTIVE"
+        }
+      ],
+      "_count": {
+        "branches": 1,
+        "leads": 1,
+        "quotations": 1,
+        "announcements": 0,
+        "campaigns": 0,
+        "invoices": 1
+      }
+    },
+    {
+      "id": "b483da09-2f6c-4637-9c3f-e49e954f23e0",
+      "code": "FR-TEST-1791126995063",
+      "name": "Test Franchise A",
+      "legalName": null,
+      "taxId": null,
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:16:35.065Z",
+      "updatedAt": "2026-10-04T15:16:35.065Z",
+      "branches": [
+        {
+          "id": "837e1d1a-2421-499e-a6cd-b9b187cc29d7",
+          "code": "BR-A-1791126995067",
+          "name": "Test Branch A (Jaipur)",
+          "city": null,
+          "state": null,
+          "status": "ACTIVE"
+        },
+        {
+          "id": "87bd2959-8642-4a1a-b20f-b58b8b1f46bc",
+          "code": "BR-B-1791126995072",
+          "name": "Test Branch B (Delhi)",
+          "city": null,
+          "state": null,
+          "status": "ACTIVE"
+        }
+      ],
+      "_count": {
+        "branches": 2,
+        "leads": 0,
+        "quotations": 0,
+        "announcements": 0,
+        "campaigns": 0,
+        "invoices": 0
+      }
+    },
+    {
+      "id": "81327ff7-b244-4951-b7a7-b287ec7d954a",
+      "code": "P1-FRAN-NORTH-1792512950238",
+      "name": "Titan North Trucks Hub 1792512950238",
+      "legalName": "Titan North Pvt Ltd",
+      "taxId": "07TITAN0238",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T16:15:50.351Z",
+      "updatedAt": "2026-10-20T16:15:50.351Z",
+      "branches": [
+        {
+          "id": "aa8d118f-ebeb-446e-93ac-766e7d9eccc2",
+          "code": "BR-A1-1792512950238",
+          "name": "Delhi North Hub 1792512950238",
+          "city": "Delhi",
+          "state": "Delhi",
+          "status": "ACTIVE"
+        },
+        {
+          "id": "afbdfbbf-a027-49ea-b148-0aecf2f4a754",
+          "code": "BR-B1-1792512950238",
+          "name": "Jaipur Express Hub 1792512950238",
+          "city": "Jaipur",
+          "state": "Rajasthan",
+          "status": "ACTIVE"
+        }
+      ],
+      "_count": {
+        "branches": 2,
+        "leads": 1,
+        "quotations": 1,
+        "announcements": 0,
+        "campaigns": 0,
+        "invoices": 1
+      }
+    },
+    {
+      "id": "ad68b1b1-0a06-4a30-a941-6dcb3c36cf66",
+      "code": "P1-FRAN-SOUTH-1792513476264",
+      "name": "Titan South Logistics 1792513476264",
+      "legalName": "Titan South Pvt Ltd",
+      "taxId": "29TITAN6264",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T16:24:36.393Z",
+      "updatedAt": "2026-10-20T16:24:36.393Z",
+      "branches": [
+        {
+          "id": "6d2a69fc-7e8c-4628-9123-68a59c4bea43",
+          "code": "BR-C2-1792513476264",
+          "name": "Bengaluru Tech Hub 1792513476264",
+          "city": "Bengaluru",
+          "state": "Karnataka",
+          "status": "ACTIVE"
+        }
+      ],
+      "_count": {
+        "branches": 1,
+        "leads": 0,
+        "quotations": 0,
+        "announcements": 0,
+        "campaigns": 0,
+        "invoices": 0
+      }
+    },
+    {
+      "id": "909d736e-fda6-49c3-b708-407166f15099",
+      "code": "P1-FRAN-NORTH-1792513476264",
+      "name": "Titan North Trucks Hub 1792513476264",
+      "legalName": "Titan North Pvt Ltd",
+      "taxId": "07TITAN6264",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T16:24:36.386Z",
+      "updatedAt": "2026-10-20T16:24:36.386Z",
+      "branches": [
+        {
+          "id": "14f23552-bd92-41b7-8a07-8be0f7ee0a52",
+          "code": "BR-A1-1792513476264",
+          "name": "Delhi North Hub 1792513476264",
+          "city": "Delhi",
+          "state": "Delhi",
+          "status": "ACTIVE"
+        },
+        {
+          "id": "f7f21e04-219e-4969-a687-db7ca21c2616",
+          "code": "BR-B1-1792513476264",
+          "name": "Jaipur Express Hub 1792513476264",
+          "city": "Jaipur",
+          "state": "Rajasthan",
+          "status": "ACTIVE"
+        }
+      ],
+      "_count": {
+        "branches": 2,
+        "leads": 1,
+        "quotations": 1,
+        "announcements": 0,
+        "campaigns": 0,
+        "invoices": 1
+      }
+    },
+    {
+      "id": "b6590d81-3968-48f8-b912-b2e90b34d97d",
+      "code": "FR-P2-1791127087515",
+      "name": "Phase 2 Test Franchise",
+      "legalName": "Phase 2 Franchise Private Limited",
+      "taxId": "27AAAAA0000A1Z5",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:18:07.518Z",
+      "updatedAt": "2026-10-04T15:18:07.518Z",
+      "branches": [
+        {
+          "id": "b1a8037b-3899-49bc-b67e-550ba0cd16be",
+          "code": "BR-P2-1791127087521",
+          "name": "Phase 2 Main Branch",
+          "city": "Mumbai",
+          "state": "Maharashtra",
+          "status": "ACTIVE"
+        }
+      ],
+      "_count": {
+        "branches": 1,
+        "leads": 0,
+        "quotations": 0,
+        "announcements": 0,
+        "campaigns": 0,
+        "invoices": 0
+      }
+    },
+    {
+      "id": "fc14a13e-4ab5-4455-8174-7906a81e3e6c",
+      "code": "P1-FRAN-SOUTH-1792512788288",
+      "name": "Titan South Logistics 1792512788288",
+      "legalName": "Titan South Pvt Ltd",
+      "taxId": "29TITAN8288",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T16:13:08.362Z",
+      "updatedAt": "2026-10-20T16:13:08.362Z",
+      "branches": [
+        {
+          "id": "1c77f0ba-3eac-40f1-b5f0-181b3e53955d",
+          "code": "BR-C2-1792512788288",
+          "name": "Bengaluru Tech Hub 1792512788288",
+          "city": "Bengaluru",
+          "state": "Karnataka",
+          "status": "ACTIVE"
+        }
+      ],
+      "_count": {
+        "branches": 1,
+        "leads": 0,
+        "quotations": 0,
+        "announcements": 0,
+        "campaigns": 0,
+        "invoices": 0
+      }
+    },
+    {
+      "id": "d6e3f5e3-6a79-4566-8dfe-7795f4523bca",
+      "code": "FR-P3-1791126995055",
+      "name": "Phase 3 Service Franchise",
+      "legalName": "Phase 3 Service Operations Pvt Ltd",
+      "taxId": null,
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:16:35.057Z",
+      "updatedAt": "2026-10-04T15:16:35.057Z",
+      "branches": [
+        {
+          "id": "b66de2f2-f83d-4f0d-b46e-3c8cc9cb92f8",
+          "code": "BR-P3-1791126995060",
+          "name": "Phase 3 Service Center",
+          "city": "Bengaluru",
+          "state": "Karnataka",
+          "status": "ACTIVE"
+        }
+      ],
+      "_count": {
+        "branches": 1,
+        "leads": 0,
+        "quotations": 0,
+        "announcements": 0,
+        "campaigns": 0,
+        "invoices": 0
+      }
+    },
+    {
+      "id": "3c8c371e-4d38-4f47-bc81-e7ed12ebb7a8",
+      "code": "FR-P2-1791126995055",
+      "name": "Phase 2 Test Franchise",
+      "legalName": "Phase 2 Franchise Private Limited",
+      "taxId": "27AAAAA0000A1Z5",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:16:35.057Z",
+      "updatedAt": "2026-10-04T15:16:35.057Z",
+      "branches": [
+        {
+          "id": "3cf6ebc4-e0e9-4ce4-98fd-c2a8c5b6d157",
+          "code": "BR-P2-1791126995060",
+          "name": "Phase 2 Main Branch",
+          "city": "Mumbai",
+          "state": "Maharashtra",
+          "status": "ACTIVE"
+        }
+      ],
+      "_count": {
+        "branches": 1,
+        "leads": 0,
+        "quotations": 0,
+        "announcements": 0,
+        "campaigns": 0,
+        "invoices": 0
+      }
+    },
+    {
+      "id": "66afc37b-86da-4300-9f10-63a52eafa221",
+      "code": "FR-APPR-A-1791126995075",
+      "name": "Approval Test Franchise A",
+      "legalName": null,
+      "taxId": null,
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:16:35.077Z",
+      "updatedAt": "2026-10-04T15:16:35.077Z",
+      "branches": [
+        {
+          "id": "0feb7fc4-6fff-4adb-9e0f-3930b6cf3efa",
+          "code": "BR-APPR-A-1791126995079",
+          "name": "Branch A",
+          "city": null,
+          "state": null,
+          "status": "ACTIVE"
+        },
+        {
+          "id": "41ef10e4-1c93-4ce5-973c-1adeea3052c0",
+          "code": "BR-APPR-B-1791126995083",
+          "name": "Branch B",
+          "city": null,
+          "state": null,
+          "status": "ACTIVE"
+        }
+      ],
+      "_count": {
+        "branches": 2,
+        "leads": 0,
+        "quotations": 0,
+        "announcements": 0,
+        "campaigns": 0,
+        "invoices": 0
+      }
+    },
+    {
+      "id": "f5ffebf2-9bc5-4302-ad36-9fa5adf65ff9",
+      "code": "FR-P3-1791127233967",
+      "name": "Phase 3 Service Franchise",
+      "legalName": "Phase 3 Service Operations Pvt Ltd",
+      "taxId": null,
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:20:33.969Z",
+      "updatedAt": "2026-10-04T15:20:33.969Z",
+      "branches": [
+        {
+          "id": "4c43e366-9628-46f1-9a4c-28c7c07b9d30",
+          "code": "BR-P3-1791127233972",
+          "name": "Phase 3 Service Center",
+          "city": "Bengaluru",
+          "state": "Karnataka",
+          "status": "ACTIVE"
+        }
+      ],
+      "_count": {
+        "branches": 1,
+        "leads": 0,
+        "quotations": 0,
+        "announcements": 0,
+        "campaigns": 0,
+        "invoices": 1
+      }
+    },
+    {
+      "id": "8ebf9966-45e0-465a-a2ee-a96c349774b2",
+      "code": "FR-TEST-1791127345086",
+      "name": "Test Franchise A",
+      "legalName": null,
+      "taxId": null,
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:22:25.089Z",
+      "updatedAt": "2026-10-04T15:22:25.089Z",
+      "branches": [
+        {
+          "id": "c550ac52-9b89-4832-94c5-a5f77ded8c19",
+          "code": "BR-A-1791127345090",
+          "name": "Test Branch A (Jaipur)",
+          "city": null,
+          "state": null,
+          "status": "ACTIVE"
+        },
+        {
+          "id": "1beeaeac-b1e6-4f49-8a33-0ef15edc1b51",
+          "code": "BR-B-1791127345095",
+          "name": "Test Branch B (Delhi)",
+          "city": null,
+          "state": null,
+          "status": "ACTIVE"
+        }
+      ],
+      "_count": {
+        "branches": 2,
+        "leads": 0,
+        "quotations": 0,
+        "announcements": 0,
+        "campaigns": 0,
+        "invoices": 0
+      }
+    },
+    {
+      "id": "08ee4007-61d8-4073-9149-8c53ade24c41",
+      "code": "FR-P3-1791127356841",
+      "name": "Phase 3 Service Franchise",
+      "legalName": "Phase 3 Service Operations Pvt Ltd",
+      "taxId": null,
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:22:36.843Z",
+      "updatedAt": "2026-10-04T15:22:36.843Z",
+      "branches": [
+        {
+          "id": "e6817869-dd41-45ec-bcfc-7594994df684",
+          "code": "BR-P3-1791127356846",
+          "name": "Phase 3 Service Center",
+          "city": "Bengaluru",
+          "state": "Karnataka",
+          "status": "ACTIVE"
+        }
+      ],
+      "_count": {
+        "branches": 1,
+        "leads": 0,
+        "quotations": 0,
+        "announcements": 0,
+        "campaigns": 0,
+        "invoices": 1
+      }
+    },
+    {
+      "id": "38be3505-cd96-4007-bbe4-2ea86fdc1497",
+      "code": "FR-P3-1791127145621",
+      "name": "Phase 3 Service Franchise",
+      "legalName": "Phase 3 Service Operations Pvt Ltd",
+      "taxId": null,
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:19:05.628Z",
+      "updatedAt": "2026-10-04T15:19:05.628Z",
+      "branches": [
+        {
+          "id": "a65ae802-714a-43e9-b8ca-a7bb0aad4487",
+          "code": "BR-P3-1791127145627",
+          "name": "Phase 3 Service Center",
+          "city": "Bengaluru",
+          "state": "Karnataka",
+          "status": "ACTIVE"
+        }
+      ],
+      "_count": {
+        "branches": 1,
+        "leads": 0,
+        "quotations": 0,
+        "announcements": 0,
+        "campaigns": 0,
+        "invoices": 0
+      }
+    },
+    {
+      "id": "96aa23dc-d6b9-47d0-a6cb-79f358213ea3",
+      "code": "P1-FRAN-NORTH-1792512788288",
+      "name": "Titan North Trucks Hub 1792512788288",
+      "legalName": "Titan North Pvt Ltd",
+      "taxId": "07TITAN8288",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T16:13:08.353Z",
+      "updatedAt": "2026-10-20T16:13:08.353Z",
+      "branches": [
+        {
+          "id": "49bc76c7-6b71-4dac-8e82-28be880bfebd",
+          "code": "BR-A1-1792512788288",
+          "name": "Delhi North Hub 1792512788288",
+          "city": "Delhi",
+          "state": "Delhi",
+          "status": "ACTIVE"
+        },
+        {
+          "id": "c5e04e56-3344-427a-a24a-5cbba2a9a167",
+          "code": "BR-B1-1792512788288",
+          "name": "Jaipur Express Hub 1792512788288",
+          "city": "Jaipur",
+          "state": "Rajasthan",
+          "status": "ACTIVE"
+        }
+      ],
+      "_count": {
+        "branches": 2,
+        "leads": 1,
+        "quotations": 1,
+        "announcements": 0,
+        "campaigns": 0,
+        "invoices": 1
+      }
+    },
+    {
+      "id": "a15548b5-b667-4331-bea9-dae1acd60bf5",
+      "code": "FR-P2-1791127133050",
+      "name": "Phase 2 Test Franchise",
+      "legalName": "Phase 2 Franchise Private Limited",
+      "taxId": "27AAAAA0000A1Z5",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:18:53.053Z",
+      "updatedAt": "2026-10-04T15:18:53.053Z",
+      "branches": [
+        {
+          "id": "8b54c2ab-fa8a-4051-a8ee-40bb27a17bdd",
+          "code": "BR-P2-1791127133096",
+          "name": "Phase 2 Main Branch",
+          "city": "Mumbai",
+          "state": "Maharashtra",
+          "status": "ACTIVE"
+        }
+      ],
+      "_count": {
+        "branches": 1,
+        "leads": 1,
+        "quotations": 1,
+        "announcements": 0,
+        "campaigns": 0,
+        "invoices": 1
+      }
+    },
+    {
+      "id": "078a6ebf-4c43-4c2b-a0cb-18e998fa6b77",
+      "code": "FR-APPR-A-1791127356863",
+      "name": "Approval Test Franchise A",
+      "legalName": null,
+      "taxId": null,
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:22:36.863Z",
+      "updatedAt": "2026-10-04T15:22:36.863Z",
+      "branches": [
+        {
+          "id": "6c2216ed-d040-4ccd-8d29-b83538e3a0e5",
+          "code": "BR-APPR-A-1791127356867",
+          "name": "Branch A",
+          "city": null,
+          "state": null,
+          "status": "ACTIVE"
+        },
+        {
+          "id": "b46b7b90-d0f4-4c00-abbb-50a613b657ee",
+          "code": "BR-APPR-B-1791127356875",
+          "name": "Branch B",
+          "city": null,
+          "state": null,
+          "status": "ACTIVE"
+        }
+      ],
+      "_count": {
+        "branches": 2,
+        "leads": 0,
+        "quotations": 0,
+        "announcements": 0,
+        "campaigns": 0,
+        "invoices": 0
+      }
+    }
+  ],
+  "branches": [
+    {
+      "id": "7e8800ac-0399-4c81-8c7f-15a7009c1549",
+      "franchiseId": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+      "code": "BR-B-1791127356930",
+      "name": "Test Branch B (Delhi)",
+      "address": null,
+      "city": null,
+      "state": null,
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:22:36.933Z",
+      "updatedAt": "2026-10-04T15:22:36.933Z",
+      "franchise": {
+        "id": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+        "name": "Test Franchise A",
+        "code": "FR-TEST-1791127356920"
+      },
+      "_count": {
+        "employees": 0,
+        "vehicles": 0,
+        "bookings": 0,
+        "serviceJobs": 0,
+        "leads": 37,
+        "quotations": 0,
+        "invoices": 0,
+        "campaigns": 16,
+        "partStocks": 0
+      }
+    },
+    {
+      "id": "8f146f47-f6d8-4909-8b85-996f444f701b",
+      "franchiseId": "671bc0eb-1b3f-4592-89b6-3ffbf17232f0",
+      "code": "BR-JAI-01",
+      "name": "Jaipur",
+      "address": "Plot 42, Sitapura Industrial Area, Tonk Road",
+      "city": "Jaipur",
+      "state": "Rajasthan",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:05:39.925Z",
+      "updatedAt": "2026-10-04T15:05:39.925Z",
+      "franchise": {
+        "id": "671bc0eb-1b3f-4592-89b6-3ffbf17232f0",
+        "name": "Ashok Leyland Commercial Vehicles",
+        "code": "FR-AL-01"
+      },
+      "_count": {
+        "employees": 4,
+        "vehicles": 3,
+        "bookings": 0,
+        "serviceJobs": 0,
+        "leads": 0,
+        "quotations": 0,
+        "invoices": 0,
+        "campaigns": 1,
+        "partStocks": 3
+      }
+    },
+    {
+      "id": "c040709f-e409-4917-9769-ff54506eb9d5",
+      "franchiseId": "ba8b8d9e-772b-451c-ab17-ccb0c02ac5cc",
+      "code": "BR-C2-1792512950238",
+      "name": "Bengaluru Tech Hub 1792512950238",
+      "address": null,
+      "city": "Bengaluru",
+      "state": "Karnataka",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T16:15:50.365Z",
+      "updatedAt": "2026-10-20T16:15:50.365Z",
+      "franchise": {
+        "id": "ba8b8d9e-772b-451c-ab17-ccb0c02ac5cc",
+        "name": "Titan South Logistics 1792512950238",
+        "code": "P1-FRAN-SOUTH-1792512950238"
+      },
+      "_count": {
+        "employees": 2,
+        "vehicles": 1,
+        "bookings": 0,
+        "serviceJobs": 0,
+        "leads": 3,
+        "quotations": 0,
+        "invoices": 0,
+        "campaigns": 1,
+        "partStocks": 0
+      }
+    },
+    {
+      "id": "87bd2959-8642-4a1a-b20f-b58b8b1f46bc",
+      "franchiseId": "b483da09-2f6c-4637-9c3f-e49e954f23e0",
+      "code": "BR-B-1791126995072",
+      "name": "Test Branch B (Delhi)",
+      "address": null,
+      "city": null,
+      "state": null,
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:16:35.074Z",
+      "updatedAt": "2026-10-04T15:16:35.074Z",
+      "franchise": {
+        "id": "b483da09-2f6c-4637-9c3f-e49e954f23e0",
+        "name": "Test Franchise A",
+        "code": "FR-TEST-1791126995063"
+      },
+      "_count": {
+        "employees": 0,
+        "vehicles": 0,
+        "bookings": 0,
+        "serviceJobs": 0,
+        "leads": 0,
+        "quotations": 0,
+        "invoices": 0,
+        "campaigns": 0,
+        "partStocks": 0
+      }
+    },
+    {
+      "id": "1beeaeac-b1e6-4f49-8a33-0ef15edc1b51",
+      "franchiseId": "8ebf9966-45e0-465a-a2ee-a96c349774b2",
+      "code": "BR-B-1791127345095",
+      "name": "Test Branch B (Delhi)",
+      "address": null,
+      "city": null,
+      "state": null,
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:22:25.097Z",
+      "updatedAt": "2026-10-04T15:22:25.097Z",
+      "franchise": {
+        "id": "8ebf9966-45e0-465a-a2ee-a96c349774b2",
+        "name": "Test Franchise A",
+        "code": "FR-TEST-1791127345086"
+      },
+      "_count": {
+        "employees": 0,
+        "vehicles": 0,
+        "bookings": 0,
+        "serviceJobs": 0,
+        "leads": 0,
+        "quotations": 0,
+        "invoices": 0,
+        "campaigns": 0,
+        "partStocks": 0
+      }
+    },
+    {
+      "id": "837e1d1a-2421-499e-a6cd-b9b187cc29d7",
+      "franchiseId": "b483da09-2f6c-4637-9c3f-e49e954f23e0",
+      "code": "BR-A-1791126995067",
+      "name": "Test Branch A (Jaipur)",
+      "address": null,
+      "city": null,
+      "state": null,
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:16:35.069Z",
+      "updatedAt": "2026-10-04T15:16:35.069Z",
+      "franchise": {
+        "id": "b483da09-2f6c-4637-9c3f-e49e954f23e0",
+        "name": "Test Franchise A",
+        "code": "FR-TEST-1791126995063"
+      },
+      "_count": {
+        "employees": 6,
+        "vehicles": 0,
+        "bookings": 0,
+        "serviceJobs": 0,
+        "leads": 0,
+        "quotations": 0,
+        "invoices": 0,
+        "campaigns": 0,
+        "partStocks": 0
+      }
+    },
+    {
+      "id": "f7c975f3-eeb9-413f-80a4-d59b094dea21",
+      "franchiseId": "a2180e97-ed24-4fc6-8019-ba410c4ac607",
+      "code": "BR-P2-1791127356833",
+      "name": "Phase 2 Main Branch",
+      "address": null,
+      "city": "Mumbai",
+      "state": "Maharashtra",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:22:36.835Z",
+      "updatedAt": "2026-10-04T15:22:36.835Z",
+      "franchise": {
+        "id": "a2180e97-ed24-4fc6-8019-ba410c4ac607",
+        "name": "Phase 2 Test Franchise",
+        "code": "FR-P2-1791127356829"
+      },
+      "_count": {
+        "employees": 1,
+        "vehicles": 1,
+        "bookings": 1,
+        "serviceJobs": 0,
+        "leads": 1,
+        "quotations": 1,
+        "invoices": 1,
+        "campaigns": 0,
+        "partStocks": 0
+      }
+    },
+    {
+      "id": "49bc76c7-6b71-4dac-8e82-28be880bfebd",
+      "franchiseId": "96aa23dc-d6b9-47d0-a6cb-79f358213ea3",
+      "code": "BR-A1-1792512788288",
+      "name": "Delhi North Hub 1792512788288",
+      "address": null,
+      "city": "Delhi",
+      "state": "Delhi",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T16:13:08.363Z",
+      "updatedAt": "2026-10-20T16:13:08.363Z",
+      "franchise": {
+        "id": "96aa23dc-d6b9-47d0-a6cb-79f358213ea3",
+        "name": "Titan North Trucks Hub 1792512788288",
+        "code": "P1-FRAN-NORTH-1792512788288"
+      },
+      "_count": {
+        "employees": 3,
+        "vehicles": 1,
+        "bookings": 1,
+        "serviceJobs": 1,
+        "leads": 1,
+        "quotations": 1,
+        "invoices": 1,
+        "campaigns": 0,
+        "partStocks": 0
+      }
+    },
+    {
+      "id": "4c43e366-9628-46f1-9a4c-28c7c07b9d30",
+      "franchiseId": "f5ffebf2-9bc5-4302-ad36-9fa5adf65ff9",
+      "code": "BR-P3-1791127233972",
+      "name": "Phase 3 Service Center",
+      "address": null,
+      "city": "Bengaluru",
+      "state": "Karnataka",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:20:33.974Z",
+      "updatedAt": "2026-10-04T15:20:33.974Z",
+      "franchise": {
+        "id": "f5ffebf2-9bc5-4302-ad36-9fa5adf65ff9",
+        "name": "Phase 3 Service Franchise",
+        "code": "FR-P3-1791127233967"
+      },
+      "_count": {
+        "employees": 2,
+        "vehicles": 1,
+        "bookings": 0,
+        "serviceJobs": 1,
+        "leads": 0,
+        "quotations": 0,
+        "invoices": 1,
+        "campaigns": 0,
+        "partStocks": 1
+      }
+    },
+    {
+      "id": "6d2a69fc-7e8c-4628-9123-68a59c4bea43",
+      "franchiseId": "ad68b1b1-0a06-4a30-a941-6dcb3c36cf66",
+      "code": "BR-C2-1792513476264",
+      "name": "Bengaluru Tech Hub 1792513476264",
+      "address": null,
+      "city": "Bengaluru",
+      "state": "Karnataka",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T16:24:36.405Z",
+      "updatedAt": "2026-10-20T16:24:36.405Z",
+      "franchise": {
+        "id": "ad68b1b1-0a06-4a30-a941-6dcb3c36cf66",
+        "name": "Titan South Logistics 1792513476264",
+        "code": "P1-FRAN-SOUTH-1792513476264"
+      },
+      "_count": {
+        "employees": 2,
+        "vehicles": 1,
+        "bookings": 0,
+        "serviceJobs": 0,
+        "leads": 0,
+        "quotations": 0,
+        "invoices": 0,
+        "campaigns": 0,
+        "partStocks": 0
+      }
+    },
+    {
+      "id": "6c2216ed-d040-4ccd-8d29-b83538e3a0e5",
+      "franchiseId": "078a6ebf-4c43-4c2b-a0cb-18e998fa6b77",
+      "code": "BR-APPR-A-1791127356867",
+      "name": "Branch A",
+      "address": null,
+      "city": null,
+      "state": null,
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:22:36.868Z",
+      "updatedAt": "2026-10-04T15:22:36.868Z",
+      "franchise": {
+        "id": "078a6ebf-4c43-4c2b-a0cb-18e998fa6b77",
+        "name": "Approval Test Franchise A",
+        "code": "FR-APPR-A-1791127356863"
+      },
+      "_count": {
+        "employees": 3,
+        "vehicles": 0,
+        "bookings": 0,
+        "serviceJobs": 0,
+        "leads": 0,
+        "quotations": 0,
+        "invoices": 0,
+        "campaigns": 0,
+        "partStocks": 0
+      }
+    },
+    {
+      "id": "c5e04e56-3344-427a-a24a-5cbba2a9a167",
+      "franchiseId": "96aa23dc-d6b9-47d0-a6cb-79f358213ea3",
+      "code": "BR-B1-1792512788288",
+      "name": "Jaipur Express Hub 1792512788288",
+      "address": null,
+      "city": "Jaipur",
+      "state": "Rajasthan",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T16:13:08.367Z",
+      "updatedAt": "2026-10-20T16:13:08.367Z",
+      "franchise": {
+        "id": "96aa23dc-d6b9-47d0-a6cb-79f358213ea3",
+        "name": "Titan North Trucks Hub 1792512788288",
+        "code": "P1-FRAN-NORTH-1792512788288"
+      },
+      "_count": {
+        "employees": 1,
+        "vehicles": 1,
+        "bookings": 0,
+        "serviceJobs": 0,
+        "leads": 0,
+        "quotations": 0,
+        "invoices": 0,
+        "campaigns": 0,
+        "partStocks": 0
+      }
+    },
+    {
+      "id": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+      "franchiseId": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+      "code": "BR-A-1791127356925",
+      "name": "Test Branch A (Jaipur)",
+      "address": null,
+      "city": null,
+      "state": null,
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:22:36.927Z",
+      "updatedAt": "2026-10-04T15:22:36.927Z",
+      "franchise": {
+        "id": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+        "name": "Test Franchise A",
+        "code": "FR-TEST-1791127356920"
+      },
+      "_count": {
+        "employees": 30,
+        "vehicles": 0,
+        "bookings": 0,
+        "serviceJobs": 0,
+        "leads": 0,
+        "quotations": 0,
+        "invoices": 0,
+        "campaigns": 0,
+        "partStocks": 0
+      }
+    },
+    {
+      "id": "e6817869-dd41-45ec-bcfc-7594994df684",
+      "franchiseId": "08ee4007-61d8-4073-9149-8c53ade24c41",
+      "code": "BR-P3-1791127356846",
+      "name": "Phase 3 Service Center",
+      "address": null,
+      "city": "Bengaluru",
+      "state": "Karnataka",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:22:36.847Z",
+      "updatedAt": "2026-10-04T15:22:36.847Z",
+      "franchise": {
+        "id": "08ee4007-61d8-4073-9149-8c53ade24c41",
+        "name": "Phase 3 Service Franchise",
+        "code": "FR-P3-1791127356841"
+      },
+      "_count": {
+        "employees": 2,
+        "vehicles": 1,
+        "bookings": 0,
+        "serviceJobs": 1,
+        "leads": 0,
+        "quotations": 0,
+        "invoices": 1,
+        "campaigns": 0,
+        "partStocks": 1
+      }
+    },
+    {
+      "id": "b66de2f2-f83d-4f0d-b46e-3c8cc9cb92f8",
+      "franchiseId": "d6e3f5e3-6a79-4566-8dfe-7795f4523bca",
+      "code": "BR-P3-1791126995060",
+      "name": "Phase 3 Service Center",
+      "address": null,
+      "city": "Bengaluru",
+      "state": "Karnataka",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:16:35.062Z",
+      "updatedAt": "2026-10-04T15:16:35.062Z",
+      "franchise": {
+        "id": "d6e3f5e3-6a79-4566-8dfe-7795f4523bca",
+        "name": "Phase 3 Service Franchise",
+        "code": "FR-P3-1791126995055"
+      },
+      "_count": {
+        "employees": 2,
+        "vehicles": 0,
+        "bookings": 0,
+        "serviceJobs": 0,
+        "leads": 0,
+        "quotations": 0,
+        "invoices": 0,
+        "campaigns": 0,
+        "partStocks": 0
+      }
+    },
+    {
+      "id": "a65ae802-714a-43e9-b8ca-a7bb0aad4487",
+      "franchiseId": "38be3505-cd96-4007-bbe4-2ea86fdc1497",
+      "code": "BR-P3-1791127145627",
+      "name": "Phase 3 Service Center",
+      "address": null,
+      "city": "Bengaluru",
+      "state": "Karnataka",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:19:05.633Z",
+      "updatedAt": "2026-10-04T15:19:05.633Z",
+      "franchise": {
+        "id": "38be3505-cd96-4007-bbe4-2ea86fdc1497",
+        "name": "Phase 3 Service Franchise",
+        "code": "FR-P3-1791127145621"
+      },
+      "_count": {
+        "employees": 3,
+        "vehicles": 0,
+        "bookings": 0,
+        "serviceJobs": 0,
+        "leads": 0,
+        "quotations": 0,
+        "invoices": 0,
+        "campaigns": 0,
+        "partStocks": 0
+      }
+    },
+    {
+      "id": "f7f21e04-219e-4969-a687-db7ca21c2616",
+      "franchiseId": "909d736e-fda6-49c3-b708-407166f15099",
+      "code": "BR-B1-1792513476264",
+      "name": "Jaipur Express Hub 1792513476264",
+      "address": null,
+      "city": "Jaipur",
+      "state": "Rajasthan",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T16:24:36.402Z",
+      "updatedAt": "2026-10-20T16:24:36.402Z",
+      "franchise": {
+        "id": "909d736e-fda6-49c3-b708-407166f15099",
+        "name": "Titan North Trucks Hub 1792513476264",
+        "code": "P1-FRAN-NORTH-1792513476264"
+      },
+      "_count": {
+        "employees": 1,
+        "vehicles": 1,
+        "bookings": 0,
+        "serviceJobs": 0,
+        "leads": 0,
+        "quotations": 0,
+        "invoices": 0,
+        "campaigns": 0,
+        "partStocks": 0
+      }
+    },
+    {
+      "id": "8b54c2ab-fa8a-4051-a8ee-40bb27a17bdd",
+      "franchiseId": "a15548b5-b667-4331-bea9-dae1acd60bf5",
+      "code": "BR-P2-1791127133096",
+      "name": "Phase 2 Main Branch",
+      "address": null,
+      "city": "Mumbai",
+      "state": "Maharashtra",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:18:53.100Z",
+      "updatedAt": "2026-10-04T15:18:53.100Z",
+      "franchise": {
+        "id": "a15548b5-b667-4331-bea9-dae1acd60bf5",
+        "name": "Phase 2 Test Franchise",
+        "code": "FR-P2-1791127133050"
+      },
+      "_count": {
+        "employees": 1,
+        "vehicles": 1,
+        "bookings": 1,
+        "serviceJobs": 0,
+        "leads": 1,
+        "quotations": 1,
+        "invoices": 1,
+        "campaigns": 0,
+        "partStocks": 0
+      }
+    },
+    {
+      "id": "3cf6ebc4-e0e9-4ce4-98fd-c2a8c5b6d157",
+      "franchiseId": "3c8c371e-4d38-4f47-bc81-e7ed12ebb7a8",
+      "code": "BR-P2-1791126995060",
+      "name": "Phase 2 Main Branch",
+      "address": null,
+      "city": "Mumbai",
+      "state": "Maharashtra",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:16:35.062Z",
+      "updatedAt": "2026-10-04T15:16:35.062Z",
+      "franchise": {
+        "id": "3c8c371e-4d38-4f47-bc81-e7ed12ebb7a8",
+        "name": "Phase 2 Test Franchise",
+        "code": "FR-P2-1791126995055"
+      },
+      "_count": {
+        "employees": 1,
+        "vehicles": 0,
+        "bookings": 0,
+        "serviceJobs": 0,
+        "leads": 0,
+        "quotations": 0,
+        "invoices": 0,
+        "campaigns": 0,
+        "partStocks": 0
+      }
+    },
+    {
+      "id": "afbdfbbf-a027-49ea-b148-0aecf2f4a754",
+      "franchiseId": "81327ff7-b244-4951-b7a7-b287ec7d954a",
+      "code": "BR-B1-1792512950238",
+      "name": "Jaipur Express Hub 1792512950238",
+      "address": null,
+      "city": "Jaipur",
+      "state": "Rajasthan",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T16:15:50.363Z",
+      "updatedAt": "2026-10-20T16:15:50.363Z",
+      "franchise": {
+        "id": "81327ff7-b244-4951-b7a7-b287ec7d954a",
+        "name": "Titan North Trucks Hub 1792512950238",
+        "code": "P1-FRAN-NORTH-1792512950238"
+      },
+      "_count": {
+        "employees": 5,
+        "vehicles": 1,
+        "bookings": 0,
+        "serviceJobs": 0,
+        "leads": 0,
+        "quotations": 0,
+        "invoices": 0,
+        "campaigns": 0,
+        "partStocks": 0
+      }
+    },
+    {
+      "id": "c550ac52-9b89-4832-94c5-a5f77ded8c19",
+      "franchiseId": "8ebf9966-45e0-465a-a2ee-a96c349774b2",
+      "code": "BR-A-1791127345090",
+      "name": "Test Branch A (Jaipur)",
+      "address": null,
+      "city": null,
+      "state": null,
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:22:25.093Z",
+      "updatedAt": "2026-10-04T15:22:25.093Z",
+      "franchise": {
+        "id": "8ebf9966-45e0-465a-a2ee-a96c349774b2",
+        "name": "Test Franchise A",
+        "code": "FR-TEST-1791127345086"
+      },
+      "_count": {
+        "employees": 6,
+        "vehicles": 0,
+        "bookings": 0,
+        "serviceJobs": 0,
+        "leads": 0,
+        "quotations": 0,
+        "invoices": 0,
+        "campaigns": 0,
+        "partStocks": 0
+      }
+    },
+    {
+      "id": "b1a8037b-3899-49bc-b67e-550ba0cd16be",
+      "franchiseId": "b6590d81-3968-48f8-b912-b2e90b34d97d",
+      "code": "BR-P2-1791127087521",
+      "name": "Phase 2 Main Branch",
+      "address": null,
+      "city": "Mumbai",
+      "state": "Maharashtra",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:18:07.523Z",
+      "updatedAt": "2026-10-04T15:18:07.523Z",
+      "franchise": {
+        "id": "b6590d81-3968-48f8-b912-b2e90b34d97d",
+        "name": "Phase 2 Test Franchise",
+        "code": "FR-P2-1791127087515"
+      },
+      "_count": {
+        "employees": 1,
+        "vehicles": 0,
+        "bookings": 0,
+        "serviceJobs": 0,
+        "leads": 0,
+        "quotations": 0,
+        "invoices": 0,
+        "campaigns": 0,
+        "partStocks": 0
+      }
+    },
+    {
+      "id": "b46b7b90-d0f4-4c00-abbb-50a613b657ee",
+      "franchiseId": "078a6ebf-4c43-4c2b-a0cb-18e998fa6b77",
+      "code": "BR-APPR-B-1791127356875",
+      "name": "Branch B",
+      "address": null,
+      "city": null,
+      "state": null,
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:22:36.876Z",
+      "updatedAt": "2026-10-04T15:22:36.876Z",
+      "franchise": {
+        "id": "078a6ebf-4c43-4c2b-a0cb-18e998fa6b77",
+        "name": "Approval Test Franchise A",
+        "code": "FR-APPR-A-1791127356863"
+      },
+      "_count": {
+        "employees": 1,
+        "vehicles": 0,
+        "bookings": 0,
+        "serviceJobs": 0,
+        "leads": 0,
+        "quotations": 0,
+        "invoices": 0,
+        "campaigns": 0,
+        "partStocks": 0
+      }
+    },
+    {
+      "id": "1c77f0ba-3eac-40f1-b5f0-181b3e53955d",
+      "franchiseId": "fc14a13e-4ab5-4455-8174-7906a81e3e6c",
+      "code": "BR-C2-1792512788288",
+      "name": "Bengaluru Tech Hub 1792512788288",
+      "address": null,
+      "city": "Bengaluru",
+      "state": "Karnataka",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T16:13:08.368Z",
+      "updatedAt": "2026-10-20T16:13:08.368Z",
+      "franchise": {
+        "id": "fc14a13e-4ab5-4455-8174-7906a81e3e6c",
+        "name": "Titan South Logistics 1792512788288",
+        "code": "P1-FRAN-SOUTH-1792512788288"
+      },
+      "_count": {
+        "employees": 2,
+        "vehicles": 1,
+        "bookings": 0,
+        "serviceJobs": 0,
+        "leads": 0,
+        "quotations": 0,
+        "invoices": 0,
+        "campaigns": 0,
+        "partStocks": 0
+      }
+    },
+    {
+      "id": "14f23552-bd92-41b7-8a07-8be0f7ee0a52",
+      "franchiseId": "909d736e-fda6-49c3-b708-407166f15099",
+      "code": "BR-A1-1792513476264",
+      "name": "Delhi North Hub 1792513476264",
+      "address": null,
+      "city": "Delhi",
+      "state": "Delhi",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T16:24:36.397Z",
+      "updatedAt": "2026-10-20T16:24:36.397Z",
+      "franchise": {
+        "id": "909d736e-fda6-49c3-b708-407166f15099",
+        "name": "Titan North Trucks Hub 1792513476264",
+        "code": "P1-FRAN-NORTH-1792513476264"
+      },
+      "_count": {
+        "employees": 3,
+        "vehicles": 1,
+        "bookings": 1,
+        "serviceJobs": 1,
+        "leads": 1,
+        "quotations": 1,
+        "invoices": 1,
+        "campaigns": 0,
+        "partStocks": 0
+      }
+    },
+    {
+      "id": "0feb7fc4-6fff-4adb-9e0f-3930b6cf3efa",
+      "franchiseId": "66afc37b-86da-4300-9f10-63a52eafa221",
+      "code": "BR-APPR-A-1791126995079",
+      "name": "Branch A",
+      "address": null,
+      "city": null,
+      "state": null,
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:16:35.081Z",
+      "updatedAt": "2026-10-04T15:16:35.081Z",
+      "franchise": {
+        "id": "66afc37b-86da-4300-9f10-63a52eafa221",
+        "name": "Approval Test Franchise A",
+        "code": "FR-APPR-A-1791126995075"
+      },
+      "_count": {
+        "employees": 3,
+        "vehicles": 0,
+        "bookings": 0,
+        "serviceJobs": 0,
+        "leads": 0,
+        "quotations": 0,
+        "invoices": 0,
+        "campaigns": 0,
+        "partStocks": 0
+      }
+    },
+    {
+      "id": "aa8d118f-ebeb-446e-93ac-766e7d9eccc2",
+      "franchiseId": "81327ff7-b244-4951-b7a7-b287ec7d954a",
+      "code": "BR-A1-1792512950238",
+      "name": "Delhi North Hub 1792512950238",
+      "address": null,
+      "city": "Delhi",
+      "state": "Delhi",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T16:15:50.359Z",
+      "updatedAt": "2026-10-20T16:15:50.359Z",
+      "franchise": {
+        "id": "81327ff7-b244-4951-b7a7-b287ec7d954a",
+        "name": "Titan North Trucks Hub 1792512950238",
+        "code": "P1-FRAN-NORTH-1792512950238"
+      },
+      "_count": {
+        "employees": 3,
+        "vehicles": 1,
+        "bookings": 1,
+        "serviceJobs": 1,
+        "leads": 1,
+        "quotations": 1,
+        "invoices": 1,
+        "campaigns": 0,
+        "partStocks": 0
+      }
+    },
+    {
+      "id": "41ef10e4-1c93-4ce5-973c-1adeea3052c0",
+      "franchiseId": "66afc37b-86da-4300-9f10-63a52eafa221",
+      "code": "BR-APPR-B-1791126995083",
+      "name": "Branch B",
+      "address": null,
+      "city": null,
+      "state": null,
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:16:35.085Z",
+      "updatedAt": "2026-10-04T15:16:35.085Z",
+      "franchise": {
+        "id": "66afc37b-86da-4300-9f10-63a52eafa221",
+        "name": "Approval Test Franchise A",
+        "code": "FR-APPR-A-1791126995075"
+      },
+      "_count": {
+        "employees": 1,
+        "vehicles": 0,
+        "bookings": 0,
+        "serviceJobs": 0,
+        "leads": 0,
+        "quotations": 0,
+        "invoices": 0,
+        "campaigns": 0,
+        "partStocks": 0
+      }
+    }
+  ],
+  "users": [
+    {
+      "id": "9fc202ea-8a60-414b-8a6c-ad3262ee9baa",
+      "email": "manager.ann.b2.1792489753700@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "PENDING",
+      "createdAt": "2026-10-20T09:49:13.770Z",
+      "employeeProfile": {
+        "id": "20f7dabc-4b8b-42af-9162-563df613286c",
+        "employeeCode": "BO-753700",
+        "firstName": "Branch2",
+        "lastName": "Operations",
+        "designation": null,
+        "branchId": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+        "branch": {
+          "id": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+          "name": "Test Branch A (Jaipur)",
+          "franchiseId": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+          "franchise": {
+            "id": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+            "name": "Test Franchise A"
+          }
+        },
+        "roleAssignments": []
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "7a0c4d74-81cf-4f69-8717-492eb01aab78",
+      "email": "manager.branch2.1792490466514@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T10:01:06.581Z",
+      "employeeProfile": {
+        "id": "bc1b15bf-4d98-43ad-acc2-d51ae2a97a1a",
+        "employeeCode": "SE-466514",
+        "firstName": "Branch2",
+        "lastName": "Sales",
+        "designation": null,
+        "branchId": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+        "branch": {
+          "id": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+          "name": "Test Branch A (Jaipur)",
+          "franchiseId": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+          "franchise": {
+            "id": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+            "name": "Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "4e1ba7c4-a17e-49f1-a589-05ffc68db0d4",
+            "employeeId": "bc1b15bf-4d98-43ad-acc2-d51ae2a97a1a",
+            "roleId": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+            "assignedAt": "2026-10-20T10:01:06.631Z",
+            "assignedBy": "6e615919-94c1-4d29-bc5b-c87849479355",
+            "role": {
+              "id": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+              "name": "SALES_EMPLOYEE",
+              "rank": 7
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "676d62e4-416e-4ebe-b4d0-0d60c9d7f547",
+      "email": "public_1792493020511@fleetuser.in",
+      "phone": "9718955873",
+      "accountType": "CUSTOMER",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T10:43:40.571Z",
+      "employeeProfile": null,
+      "customerProfile": {
+        "id": "81c00ddb-e48d-41c1-a0ec-8d27c31e4934",
+        "name": "Arun FleetOps",
+        "email": "public_1792493020511@fleetuser.in",
+        "phone": "9718955873",
+        "preferredBranchId": null
+      }
+    },
+    {
+      "id": "29b2c8ed-b080-4290-a0cc-4c5ce13a3d3f",
+      "email": "manager.ann.b2.1792493036458@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T10:43:56.528Z",
+      "employeeProfile": {
+        "id": "3313dfe6-ebf2-4657-ba1d-fe63115cfa09",
+        "employeeCode": "BO-036458",
+        "firstName": "Branch2",
+        "lastName": "Operations",
+        "designation": null,
+        "branchId": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+        "branch": {
+          "id": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+          "name": "Test Branch A (Jaipur)",
+          "franchiseId": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+          "franchise": {
+            "id": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+            "name": "Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "6c85c392-1647-470d-8892-28a0b83d8546",
+            "employeeId": "3313dfe6-ebf2-4657-ba1d-fe63115cfa09",
+            "roleId": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+            "assignedAt": "2026-10-20T10:43:56.577Z",
+            "assignedBy": "6e615919-94c1-4d29-bc5b-c87849479355",
+            "role": {
+              "id": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+              "name": "SALES_EMPLOYEE",
+              "rank": 7
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "14bf4660-d508-4d0c-8e81-cdaefdf1d6bb",
+      "email": "customer.phase3.1792493249900@titanfleet.in",
+      "phone": "+919879052069",
+      "accountType": "CUSTOMER",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T10:47:29.963Z",
+      "employeeProfile": null,
+      "customerProfile": {
+        "id": "9df3f95c-ffef-49d6-b457-58ff8588e171",
+        "name": "Phase3 Logistics Fleet",
+        "email": "customer.phase3.1792493249900@titanfleet.in",
+        "phone": "+919879052069",
+        "preferredBranchId": null
+      }
+    },
+    {
+      "id": "00d21da0-7998-45bb-b7ca-437d3a091752",
+      "email": "customer.sec.1792493350534@titanfleet.in",
+      "phone": "+919875262690",
+      "accountType": "CUSTOMER",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T10:49:10.595Z",
+      "employeeProfile": null,
+      "customerProfile": {
+        "id": "d224e2c3-5abd-4e80-a78c-5b3332474a5b",
+        "name": "Secured Fleet Logistics",
+        "email": "customer.sec.1792493350534@titanfleet.in",
+        "phone": "+919875262690",
+        "preferredBranchId": null
+      }
+    },
+    {
+      "id": "a5a31115-00a1-4578-96b5-9e74cc11ebbb",
+      "email": "test.sales.1792493402878@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T10:50:02.949Z",
+      "employeeProfile": {
+        "id": "3e0adc40-ae26-42b7-8b4a-c2ba0fcc63a5",
+        "employeeCode": "SE-402878",
+        "firstName": "Test",
+        "lastName": "Sales",
+        "designation": null,
+        "branchId": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+        "branch": {
+          "id": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+          "name": "Test Branch A (Jaipur)",
+          "franchiseId": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+          "franchise": {
+            "id": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+            "name": "Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "a3562a84-e2b0-4782-a085-d3b32dd8c58e",
+            "employeeId": "3e0adc40-ae26-42b7-8b4a-c2ba0fcc63a5",
+            "roleId": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+            "assignedAt": "2026-10-20T10:50:09.349Z",
+            "assignedBy": "6e615919-94c1-4d29-bc5b-c87849479355",
+            "role": {
+              "id": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+              "name": "SALES_EMPLOYEE",
+              "rank": 7
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "3cd1f172-7ec5-48e9-ba5b-ec65a91fb838",
+      "email": "manager.branch2.1792493457215@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T10:50:57.288Z",
+      "employeeProfile": {
+        "id": "21e3012d-6df7-4672-8e5d-ad9f99d307d1",
+        "employeeCode": "EM-457215",
+        "firstName": "Branch2",
+        "lastName": "Manager",
+        "designation": null,
+        "branchId": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+        "branch": {
+          "id": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+          "name": "Test Branch A (Jaipur)",
+          "franchiseId": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+          "franchise": {
+            "id": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+            "name": "Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "0a430247-a417-4748-9830-0f21d11b1af0",
+            "employeeId": "21e3012d-6df7-4672-8e5d-ad9f99d307d1",
+            "roleId": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+            "assignedAt": "2026-10-20T10:50:57.328Z",
+            "assignedBy": "6e615919-94c1-4d29-bc5b-c87849479355",
+            "role": {
+              "id": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+              "name": "SALES_EMPLOYEE",
+              "rank": 7
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "3018b15d-2b26-437b-b54d-2e6aa2d421bf",
+      "email": "customer.sec.1792493457394@titanfleet.in",
+      "phone": "+919871305487",
+      "accountType": "CUSTOMER",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T10:50:57.457Z",
+      "employeeProfile": null,
+      "customerProfile": {
+        "id": "40a7817c-ae77-4022-8b91-6a02f8c4c6e7",
+        "name": "Secured Fleet Logistics",
+        "email": "customer.sec.1792493457394@titanfleet.in",
+        "phone": "+919871305487",
+        "preferredBranchId": null
+      }
+    },
+    {
+      "id": "2b692ff4-f6b7-4940-99ab-b55a5ef61c69",
+      "email": "public_1792493468391@fleetuser.in",
+      "phone": "9712573933",
+      "accountType": "CUSTOMER",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T10:51:08.448Z",
+      "employeeProfile": null,
+      "customerProfile": {
+        "id": "2b5b58f1-4781-4c06-a555-297fb2d417f8",
+        "name": "Arun FleetOps",
+        "email": "public_1792493468391@fleetuser.in",
+        "phone": "9712573933",
+        "preferredBranchId": null
+      }
+    },
+    {
+      "id": "89380630-4617-4239-962f-488bc83c7e83",
+      "email": "manager.ann.b2.1792493470606@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T10:51:10.675Z",
+      "employeeProfile": {
+        "id": "20cc6c4f-8b6d-4289-9c57-ed410064f82d",
+        "employeeCode": "BO-470606",
+        "firstName": "Branch2",
+        "lastName": "Operations",
+        "designation": null,
+        "branchId": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+        "branch": {
+          "id": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+          "name": "Test Branch A (Jaipur)",
+          "franchiseId": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+          "franchise": {
+            "id": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+            "name": "Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "85cad5e0-0c7e-4550-867a-aa781182170d",
+            "employeeId": "20cc6c4f-8b6d-4289-9c57-ed410064f82d",
+            "roleId": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+            "assignedAt": "2026-10-20T10:51:10.718Z",
+            "assignedBy": "6e615919-94c1-4d29-bc5b-c87849479355",
+            "role": {
+              "id": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+              "name": "SALES_EMPLOYEE",
+              "rank": 7
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "5faa9852-e005-4c9e-8637-46adb876c915",
+      "email": "manager.branch2.1792493470996@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T10:51:11.064Z",
+      "employeeProfile": {
+        "id": "c3eef865-5e82-4064-a21b-38f775fcc3e1",
+        "employeeCode": "EM-470996",
+        "firstName": "Branch2",
+        "lastName": "Manager",
+        "designation": null,
+        "branchId": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+        "branch": {
+          "id": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+          "name": "Test Branch A (Jaipur)",
+          "franchiseId": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+          "franchise": {
+            "id": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+            "name": "Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "28f1cce3-e9e3-4a3e-8cba-d9901575adac",
+            "employeeId": "c3eef865-5e82-4064-a21b-38f775fcc3e1",
+            "roleId": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+            "assignedAt": "2026-10-20T10:51:11.110Z",
+            "assignedBy": "6e615919-94c1-4d29-bc5b-c87849479355",
+            "role": {
+              "id": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+              "name": "SALES_EMPLOYEE",
+              "rank": 7
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "c0fb589f-dcbc-4a5e-85cb-0b13129d692e",
+      "email": "customer.sec.1792493471184@titanfleet.in",
+      "phone": "+919878906832",
+      "accountType": "CUSTOMER",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T10:51:11.245Z",
+      "employeeProfile": null,
+      "customerProfile": {
+        "id": "0e837df8-659e-4c3c-b1c3-f468b1f111b7",
+        "name": "Secured Fleet Logistics",
+        "email": "customer.sec.1792493471184@titanfleet.in",
+        "phone": "+919878906832",
+        "preferredBranchId": null
+      }
+    },
+    {
+      "id": "7e23224a-b606-4996-b44f-393180f86263",
+      "email": "manager.branch2.1792512693993@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T16:11:34.080Z",
+      "employeeProfile": {
+        "id": "3505f7b0-62c1-4653-9eb3-315cbc90e4f5",
+        "employeeCode": "EM-693993",
+        "firstName": "Branch2",
+        "lastName": "Manager",
+        "designation": null,
+        "branchId": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+        "branch": {
+          "id": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+          "name": "Test Branch A (Jaipur)",
+          "franchiseId": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+          "franchise": {
+            "id": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+            "name": "Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "2856c5c9-457b-4673-be82-f8c29bd3044b",
+            "employeeId": "3505f7b0-62c1-4653-9eb3-315cbc90e4f5",
+            "roleId": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+            "assignedAt": "2026-10-20T16:11:34.162Z",
+            "assignedBy": "6e615919-94c1-4d29-bc5b-c87849479355",
+            "role": {
+              "id": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+              "name": "SALES_EMPLOYEE",
+              "rank": 7
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "5125beba-a78a-4e96-9130-5db247a145eb",
+      "email": "customer.sec.1792512694249@titanfleet.in",
+      "phone": "+919877504875",
+      "accountType": "CUSTOMER",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T16:11:34.320Z",
+      "employeeProfile": null,
+      "customerProfile": {
+        "id": "02a7d3ed-b42f-4b8e-9ffb-89a3a43be727",
+        "name": "Secured Fleet Logistics",
+        "email": "customer.sec.1792512694249@titanfleet.in",
+        "phone": "+919877504875",
+        "preferredBranchId": null
+      }
+    },
+    {
+      "id": "1e345464-869f-4050-9809-965e952bd759",
+      "email": "sa.p1.1792512950238@titanauto.com",
+      "phone": null,
+      "accountType": "SUPER_ADMIN",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T16:15:50.386Z",
+      "employeeProfile": {
+        "id": "5c850cf2-39d3-487d-be2c-6cde4ab22031",
+        "employeeCode": "EMP-SA-P1-1792512950238",
+        "firstName": "Super",
+        "lastName": "Admin",
+        "designation": "Managing Director",
+        "branchId": "aa8d118f-ebeb-446e-93ac-766e7d9eccc2",
+        "branch": {
+          "id": "aa8d118f-ebeb-446e-93ac-766e7d9eccc2",
+          "name": "Delhi North Hub 1792512950238",
+          "franchiseId": "81327ff7-b244-4951-b7a7-b287ec7d954a",
+          "franchise": {
+            "id": "81327ff7-b244-4951-b7a7-b287ec7d954a",
+            "name": "Titan North Trucks Hub 1792512950238"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "46e87433-52fc-44b3-8350-a69b3132ab38",
+            "employeeId": "5c850cf2-39d3-487d-be2c-6cde4ab22031",
+            "roleId": "00d44926-c14e-411b-9cd0-674305095469",
+            "assignedAt": "2026-10-20T16:15:50.386Z",
+            "assignedBy": null,
+            "role": {
+              "id": "00d44926-c14e-411b-9cd0-674305095469",
+              "name": "SUPER_ADMIN",
+              "rank": 1
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "3d512abb-4721-4c74-b63c-08fb2c284702",
+      "email": "fm1.p1.1792512950238@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T16:15:50.400Z",
+      "employeeProfile": {
+        "id": "512c630d-f351-4db4-a142-22eccae78b80",
+        "employeeCode": "EMP-FM1-P1-1792512950238",
+        "firstName": "Aarav",
+        "lastName": "Kapoor",
+        "designation": "North Regional Director",
+        "branchId": "aa8d118f-ebeb-446e-93ac-766e7d9eccc2",
+        "branch": {
+          "id": "aa8d118f-ebeb-446e-93ac-766e7d9eccc2",
+          "name": "Delhi North Hub 1792512950238",
+          "franchiseId": "81327ff7-b244-4951-b7a7-b287ec7d954a",
+          "franchise": {
+            "id": "81327ff7-b244-4951-b7a7-b287ec7d954a",
+            "name": "Titan North Trucks Hub 1792512950238"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "8a8487ed-83df-402c-a4d5-ff5edbc3c4be",
+            "employeeId": "512c630d-f351-4db4-a142-22eccae78b80",
+            "roleId": "0d31a84e-e610-4ecc-b25f-8534ac5a45a6",
+            "assignedAt": "2026-10-20T16:15:50.400Z",
+            "assignedBy": null,
+            "role": {
+              "id": "0d31a84e-e610-4ecc-b25f-8534ac5a45a6",
+              "name": "FRANCHISE_MANAGER",
+              "rank": 3
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "00071550-a60d-4725-bc1a-150b75efa3bd",
+      "email": "fm2.p1.1792512950238@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T16:15:50.407Z",
+      "employeeProfile": {
+        "id": "2894fc9e-9936-4ac2-8c84-391991ae8c1b",
+        "employeeCode": "EMP-FM2-P1-1792512950238",
+        "firstName": "Suresh",
+        "lastName": "Rao",
+        "designation": "South Regional Director",
+        "branchId": "c040709f-e409-4917-9769-ff54506eb9d5",
+        "branch": {
+          "id": "c040709f-e409-4917-9769-ff54506eb9d5",
+          "name": "Bengaluru Tech Hub 1792512950238",
+          "franchiseId": "ba8b8d9e-772b-451c-ab17-ccb0c02ac5cc",
+          "franchise": {
+            "id": "ba8b8d9e-772b-451c-ab17-ccb0c02ac5cc",
+            "name": "Titan South Logistics 1792512950238"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "ca495171-1b8c-4bdd-b191-765491f975be",
+            "employeeId": "2894fc9e-9936-4ac2-8c84-391991ae8c1b",
+            "roleId": "0d31a84e-e610-4ecc-b25f-8534ac5a45a6",
+            "assignedAt": "2026-10-20T16:15:50.407Z",
+            "assignedBy": null,
+            "role": {
+              "id": "0d31a84e-e610-4ecc-b25f-8534ac5a45a6",
+              "name": "FRANCHISE_MANAGER",
+              "rank": 3
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "cc039bf8-da7f-4940-baed-c5d096666f69",
+      "email": "bma1.p1.1792512950238@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T16:15:50.414Z",
+      "employeeProfile": {
+        "id": "c4405bb3-b47c-49bc-962a-6d94fa4b4425",
+        "employeeCode": "EMP-BMA1-P1-1792512950238",
+        "firstName": "Rohan",
+        "lastName": "Verma",
+        "designation": "Delhi Branch Manager",
+        "branchId": "aa8d118f-ebeb-446e-93ac-766e7d9eccc2",
+        "branch": {
+          "id": "aa8d118f-ebeb-446e-93ac-766e7d9eccc2",
+          "name": "Delhi North Hub 1792512950238",
+          "franchiseId": "81327ff7-b244-4951-b7a7-b287ec7d954a",
+          "franchise": {
+            "id": "81327ff7-b244-4951-b7a7-b287ec7d954a",
+            "name": "Titan North Trucks Hub 1792512950238"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "c6658d28-017a-4593-8d2c-3ccfc855e600",
+            "employeeId": "c4405bb3-b47c-49bc-962a-6d94fa4b4425",
+            "roleId": "c4976cef-26e0-4306-8d60-48d164285741",
+            "assignedAt": "2026-10-20T16:15:50.414Z",
+            "assignedBy": null,
+            "role": {
+              "id": "c4976cef-26e0-4306-8d60-48d164285741",
+              "name": "BRANCH_MANAGER",
+              "rank": 5
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "95385ce5-408f-4d48-b02f-138c3a2d4c91",
+      "email": "bmb1.p1.1792512950238@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T16:15:50.423Z",
+      "employeeProfile": {
+        "id": "12ebb5c6-3e27-43cd-a04e-d7a768bbe31c",
+        "employeeCode": "EMP-BMB1-P1-1792512950238",
+        "firstName": "Karan",
+        "lastName": "Choudhary",
+        "designation": "Jaipur Branch Manager",
+        "branchId": "afbdfbbf-a027-49ea-b148-0aecf2f4a754",
+        "branch": {
+          "id": "afbdfbbf-a027-49ea-b148-0aecf2f4a754",
+          "name": "Jaipur Express Hub 1792512950238",
+          "franchiseId": "81327ff7-b244-4951-b7a7-b287ec7d954a",
+          "franchise": {
+            "id": "81327ff7-b244-4951-b7a7-b287ec7d954a",
+            "name": "Titan North Trucks Hub 1792512950238"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "9233255e-b8ac-4367-a89a-defd822d9310",
+            "employeeId": "12ebb5c6-3e27-43cd-a04e-d7a768bbe31c",
+            "roleId": "c4976cef-26e0-4306-8d60-48d164285741",
+            "assignedAt": "2026-10-20T16:15:50.423Z",
+            "assignedBy": null,
+            "role": {
+              "id": "c4976cef-26e0-4306-8d60-48d164285741",
+              "name": "BRANCH_MANAGER",
+              "rank": 5
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "3e2c2dc5-ecad-4f8e-b068-faa93b78f457",
+      "email": "bmc2.p1.1792512950238@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T16:15:50.457Z",
+      "employeeProfile": {
+        "id": "612346a9-4d0f-46f3-8217-696f3cb008c0",
+        "employeeCode": "EMP-BMC2-P1-1792512950238",
+        "firstName": "Praveen",
+        "lastName": "Gowda",
+        "designation": "Bengaluru Branch Manager",
+        "branchId": "c040709f-e409-4917-9769-ff54506eb9d5",
+        "branch": {
+          "id": "c040709f-e409-4917-9769-ff54506eb9d5",
+          "name": "Bengaluru Tech Hub 1792512950238",
+          "franchiseId": "ba8b8d9e-772b-451c-ab17-ccb0c02ac5cc",
+          "franchise": {
+            "id": "ba8b8d9e-772b-451c-ab17-ccb0c02ac5cc",
+            "name": "Titan South Logistics 1792512950238"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "b303d489-c2bf-4a6a-a285-69938f3dd441",
+            "employeeId": "612346a9-4d0f-46f3-8217-696f3cb008c0",
+            "roleId": "c4976cef-26e0-4306-8d60-48d164285741",
+            "assignedAt": "2026-10-20T16:15:50.457Z",
+            "assignedBy": null,
+            "role": {
+              "id": "c4976cef-26e0-4306-8d60-48d164285741",
+              "name": "BRANCH_MANAGER",
+              "rank": 5
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "18d12cb9-a98b-471e-adcb-b18b9774e39f",
+      "email": "cust.p1.1792512950238@transport.com",
+      "phone": null,
+      "accountType": "CUSTOMER",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T16:15:50.466Z",
+      "employeeProfile": null,
+      "customerProfile": {
+        "id": "5b84c7ab-5bf5-45b2-a1ed-aabd23002bd2",
+        "name": "Hindustan Cargo Fleet 1792512950238",
+        "email": null,
+        "phone": "9212950238",
+        "preferredBranchId": "aa8d118f-ebeb-446e-93ac-766e7d9eccc2"
+      }
+    },
+    {
+      "id": "c10b1665-bb44-42f5-a4e5-18a78e197b2e",
+      "email": "sales.jaipur@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:05:40.345Z",
+      "employeeProfile": {
+        "id": "3d7c4f6d-2dad-4aff-8fb5-7fb49a932d12",
+        "employeeCode": "EMP-JAI-SALES01",
+        "firstName": "Amit",
+        "lastName": "Verma",
+        "designation": "Commercial Sales Executive",
+        "branchId": "8f146f47-f6d8-4909-8b85-996f444f701b",
+        "branch": {
+          "id": "8f146f47-f6d8-4909-8b85-996f444f701b",
+          "name": "Jaipur",
+          "franchiseId": "671bc0eb-1b3f-4592-89b6-3ffbf17232f0",
+          "franchise": {
+            "id": "671bc0eb-1b3f-4592-89b6-3ffbf17232f0",
+            "name": "Ashok Leyland Commercial Vehicles"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "a7994c98-280b-40d7-94fd-403f51bfd5fd",
+            "employeeId": "3d7c4f6d-2dad-4aff-8fb5-7fb49a932d12",
+            "roleId": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+            "assignedAt": "2026-10-04T15:05:40.354Z",
+            "assignedBy": null,
+            "role": {
+              "id": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+              "name": "SALES_EMPLOYEE",
+              "rank": 7
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "dcd5f6c7-3c17-4412-b962-2839898e05e7",
+      "email": "manager.branch2.1792513356765@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T16:22:36.922Z",
+      "employeeProfile": {
+        "id": "282484e6-8968-4d5e-b0b0-f7fc58e9ed59",
+        "employeeCode": "SE-356765",
+        "firstName": "Branch2",
+        "lastName": "Sales",
+        "designation": null,
+        "branchId": "afbdfbbf-a027-49ea-b148-0aecf2f4a754",
+        "branch": {
+          "id": "afbdfbbf-a027-49ea-b148-0aecf2f4a754",
+          "name": "Jaipur Express Hub 1792512950238",
+          "franchiseId": "81327ff7-b244-4951-b7a7-b287ec7d954a",
+          "franchise": {
+            "id": "81327ff7-b244-4951-b7a7-b287ec7d954a",
+            "name": "Titan North Trucks Hub 1792512950238"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "d57269ef-6891-4bc7-8a0f-0e6cca1121bc",
+            "employeeId": "282484e6-8968-4d5e-b0b0-f7fc58e9ed59",
+            "roleId": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+            "assignedAt": "2026-10-20T16:22:37.104Z",
+            "assignedBy": "6e615919-94c1-4d29-bc5b-c87849479355",
+            "role": {
+              "id": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+              "name": "SALES_EMPLOYEE",
+              "rank": 7
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "b6791a02-7cb3-4eb5-a98d-ce499d13efc5",
+      "email": "test.manager.b2.1792513363971@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T16:22:44.143Z",
+      "employeeProfile": {
+        "id": "716d076b-4c39-4bde-90ad-e021cd8ab26f",
+        "employeeCode": "SE-363971",
+        "firstName": "Branch2",
+        "lastName": "Manager",
+        "designation": null,
+        "branchId": "afbdfbbf-a027-49ea-b148-0aecf2f4a754",
+        "branch": {
+          "id": "afbdfbbf-a027-49ea-b148-0aecf2f4a754",
+          "name": "Jaipur Express Hub 1792512950238",
+          "franchiseId": "81327ff7-b244-4951-b7a7-b287ec7d954a",
+          "franchise": {
+            "id": "81327ff7-b244-4951-b7a7-b287ec7d954a",
+            "name": "Titan North Trucks Hub 1792512950238"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "309850a8-afca-4aaa-80ea-c28e4a6da42f",
+            "employeeId": "716d076b-4c39-4bde-90ad-e021cd8ab26f",
+            "roleId": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+            "assignedAt": "2026-10-20T16:22:44.336Z",
+            "assignedBy": "6e615919-94c1-4d29-bc5b-c87849479355",
+            "role": {
+              "id": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+              "name": "SALES_EMPLOYEE",
+              "rank": 7
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "bcd70ed7-835a-4b33-ad7f-f760299f05f2",
+      "email": "sa.p1.1792513476264@titanauto.com",
+      "phone": null,
+      "accountType": "SUPER_ADMIN",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T16:24:36.438Z",
+      "employeeProfile": {
+        "id": "c26741e9-0935-464e-8831-46c7d830c71c",
+        "employeeCode": "EMP-SA-P1-1792513476264",
+        "firstName": "Super",
+        "lastName": "Admin",
+        "designation": "Managing Director",
+        "branchId": "14f23552-bd92-41b7-8a07-8be0f7ee0a52",
+        "branch": {
+          "id": "14f23552-bd92-41b7-8a07-8be0f7ee0a52",
+          "name": "Delhi North Hub 1792513476264",
+          "franchiseId": "909d736e-fda6-49c3-b708-407166f15099",
+          "franchise": {
+            "id": "909d736e-fda6-49c3-b708-407166f15099",
+            "name": "Titan North Trucks Hub 1792513476264"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "938a3f52-427b-4de2-a969-f1d72823e744",
+            "employeeId": "c26741e9-0935-464e-8831-46c7d830c71c",
+            "roleId": "00d44926-c14e-411b-9cd0-674305095469",
+            "assignedAt": "2026-10-20T16:24:36.438Z",
+            "assignedBy": null,
+            "role": {
+              "id": "00d44926-c14e-411b-9cd0-674305095469",
+              "name": "SUPER_ADMIN",
+              "rank": 1
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "f4c394ca-deb7-459a-a151-063507c4b7b0",
+      "email": "fm1.p1.1792513476264@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T16:24:36.453Z",
+      "employeeProfile": {
+        "id": "56907077-ca2b-4c10-9138-67428cae35d6",
+        "employeeCode": "EMP-FM1-P1-1792513476264",
+        "firstName": "Aarav",
+        "lastName": "Kapoor",
+        "designation": "North Regional Director",
+        "branchId": "14f23552-bd92-41b7-8a07-8be0f7ee0a52",
+        "branch": {
+          "id": "14f23552-bd92-41b7-8a07-8be0f7ee0a52",
+          "name": "Delhi North Hub 1792513476264",
+          "franchiseId": "909d736e-fda6-49c3-b708-407166f15099",
+          "franchise": {
+            "id": "909d736e-fda6-49c3-b708-407166f15099",
+            "name": "Titan North Trucks Hub 1792513476264"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "6bbc8b34-aa97-4707-9b12-423e1eb6cb7d",
+            "employeeId": "56907077-ca2b-4c10-9138-67428cae35d6",
+            "roleId": "0d31a84e-e610-4ecc-b25f-8534ac5a45a6",
+            "assignedAt": "2026-10-20T16:24:36.453Z",
+            "assignedBy": null,
+            "role": {
+              "id": "0d31a84e-e610-4ecc-b25f-8534ac5a45a6",
+              "name": "FRANCHISE_MANAGER",
+              "rank": 3
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "eb222699-a0b6-442b-91cb-57c766f587c2",
+      "email": "fm2.p1.1792513476264@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T16:24:36.460Z",
+      "employeeProfile": {
+        "id": "289c73f7-1a79-4be0-a77f-23c29fa71a34",
+        "employeeCode": "EMP-FM2-P1-1792513476264",
+        "firstName": "Suresh",
+        "lastName": "Rao",
+        "designation": "South Regional Director",
+        "branchId": "6d2a69fc-7e8c-4628-9123-68a59c4bea43",
+        "branch": {
+          "id": "6d2a69fc-7e8c-4628-9123-68a59c4bea43",
+          "name": "Bengaluru Tech Hub 1792513476264",
+          "franchiseId": "ad68b1b1-0a06-4a30-a941-6dcb3c36cf66",
+          "franchise": {
+            "id": "ad68b1b1-0a06-4a30-a941-6dcb3c36cf66",
+            "name": "Titan South Logistics 1792513476264"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "81c86a5c-523e-4795-8533-15ce4334603d",
+            "employeeId": "289c73f7-1a79-4be0-a77f-23c29fa71a34",
+            "roleId": "0d31a84e-e610-4ecc-b25f-8534ac5a45a6",
+            "assignedAt": "2026-10-20T16:24:36.460Z",
+            "assignedBy": null,
+            "role": {
+              "id": "0d31a84e-e610-4ecc-b25f-8534ac5a45a6",
+              "name": "FRANCHISE_MANAGER",
+              "rank": 3
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "273dd53e-503a-4885-8c2d-47fa1f078d95",
+      "email": "bma1.p1.1792513476264@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T16:24:36.469Z",
+      "employeeProfile": {
+        "id": "d5579de9-5f7b-480a-b74e-ffecf2b19f29",
+        "employeeCode": "EMP-BMA1-P1-1792513476264",
+        "firstName": "Rohan",
+        "lastName": "Verma",
+        "designation": "Delhi Branch Manager",
+        "branchId": "14f23552-bd92-41b7-8a07-8be0f7ee0a52",
+        "branch": {
+          "id": "14f23552-bd92-41b7-8a07-8be0f7ee0a52",
+          "name": "Delhi North Hub 1792513476264",
+          "franchiseId": "909d736e-fda6-49c3-b708-407166f15099",
+          "franchise": {
+            "id": "909d736e-fda6-49c3-b708-407166f15099",
+            "name": "Titan North Trucks Hub 1792513476264"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "ddca5906-78c9-4e8f-936a-1179c3a4abc1",
+            "employeeId": "d5579de9-5f7b-480a-b74e-ffecf2b19f29",
+            "roleId": "c4976cef-26e0-4306-8d60-48d164285741",
+            "assignedAt": "2026-10-20T16:24:36.469Z",
+            "assignedBy": null,
+            "role": {
+              "id": "c4976cef-26e0-4306-8d60-48d164285741",
+              "name": "BRANCH_MANAGER",
+              "rank": 5
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "f060a6c6-8de9-4731-a34c-093a710ac8b2",
+      "email": "bmb1.p1.1792513476264@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T16:24:36.482Z",
+      "employeeProfile": {
+        "id": "94623b86-2e1e-45a8-9293-4953e15a0f22",
+        "employeeCode": "EMP-BMB1-P1-1792513476264",
+        "firstName": "Karan",
+        "lastName": "Choudhary",
+        "designation": "Jaipur Branch Manager",
+        "branchId": "f7f21e04-219e-4969-a687-db7ca21c2616",
+        "branch": {
+          "id": "f7f21e04-219e-4969-a687-db7ca21c2616",
+          "name": "Jaipur Express Hub 1792513476264",
+          "franchiseId": "909d736e-fda6-49c3-b708-407166f15099",
+          "franchise": {
+            "id": "909d736e-fda6-49c3-b708-407166f15099",
+            "name": "Titan North Trucks Hub 1792513476264"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "7856bf25-60c3-427e-8000-ea7e23a6ea23",
+            "employeeId": "94623b86-2e1e-45a8-9293-4953e15a0f22",
+            "roleId": "c4976cef-26e0-4306-8d60-48d164285741",
+            "assignedAt": "2026-10-20T16:24:36.482Z",
+            "assignedBy": null,
+            "role": {
+              "id": "c4976cef-26e0-4306-8d60-48d164285741",
+              "name": "BRANCH_MANAGER",
+              "rank": 5
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "f6a23e1b-b764-4235-aaff-762d17692356",
+      "email": "bmc2.p1.1792513476264@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T16:24:36.489Z",
+      "employeeProfile": {
+        "id": "e6dd4e3c-baa3-4ebb-9c58-f071737453db",
+        "employeeCode": "EMP-BMC2-P1-1792513476264",
+        "firstName": "Praveen",
+        "lastName": "Gowda",
+        "designation": "Bengaluru Branch Manager",
+        "branchId": "6d2a69fc-7e8c-4628-9123-68a59c4bea43",
+        "branch": {
+          "id": "6d2a69fc-7e8c-4628-9123-68a59c4bea43",
+          "name": "Bengaluru Tech Hub 1792513476264",
+          "franchiseId": "ad68b1b1-0a06-4a30-a941-6dcb3c36cf66",
+          "franchise": {
+            "id": "ad68b1b1-0a06-4a30-a941-6dcb3c36cf66",
+            "name": "Titan South Logistics 1792513476264"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "38c7e3da-f920-42f4-93ec-ce9b35fd655f",
+            "employeeId": "e6dd4e3c-baa3-4ebb-9c58-f071737453db",
+            "roleId": "c4976cef-26e0-4306-8d60-48d164285741",
+            "assignedAt": "2026-10-20T16:24:36.489Z",
+            "assignedBy": null,
+            "role": {
+              "id": "c4976cef-26e0-4306-8d60-48d164285741",
+              "name": "BRANCH_MANAGER",
+              "rank": 5
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "e0afd672-bb99-4e3b-b8d5-b237ec382230",
+      "email": "cust.p1.1792513476264@transport.com",
+      "phone": null,
+      "accountType": "CUSTOMER",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T16:24:36.496Z",
+      "employeeProfile": null,
+      "customerProfile": {
+        "id": "f9112e28-9e96-4aeb-a470-c17a6aa080e6",
+        "name": "Hindustan Cargo Fleet 1792513476264",
+        "email": null,
+        "phone": "9213476264",
+        "preferredBranchId": "14f23552-bd92-41b7-8a07-8be0f7ee0a52"
+      }
+    },
+    {
+      "id": "c288a356-7bbe-4ff0-be89-6b0156f50474",
+      "email": "test.manager.b2.1792493031452@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T10:43:51.519Z",
+      "employeeProfile": {
+        "id": "1d28f789-b7d1-43b4-a082-665e1580c7d7",
+        "employeeCode": "SE-031452",
+        "firstName": "Branch2",
+        "lastName": "Manager",
+        "designation": null,
+        "branchId": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+        "branch": {
+          "id": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+          "name": "Test Branch A (Jaipur)",
+          "franchiseId": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+          "franchise": {
+            "id": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+            "name": "Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "a3df04e5-cd35-476b-bab3-a430c1168303",
+            "employeeId": "1d28f789-b7d1-43b4-a082-665e1580c7d7",
+            "roleId": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+            "assignedAt": "2026-10-20T10:43:51.560Z",
+            "assignedBy": "6e615919-94c1-4d29-bc5b-c87849479355",
+            "role": {
+              "id": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+              "name": "SALES_EMPLOYEE",
+              "rank": 7
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "622b90d4-5bb1-4fa9-a2de-330c3fa296d9",
+      "email": "manager.ann.b2.1792489811965@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T09:50:12.037Z",
+      "employeeProfile": {
+        "id": "7eecf63d-b984-40f1-b5d2-a835051bea8b",
+        "employeeCode": "BO-811965",
+        "firstName": "Branch2",
+        "lastName": "Operations",
+        "designation": null,
+        "branchId": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+        "branch": {
+          "id": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+          "name": "Test Branch A (Jaipur)",
+          "franchiseId": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+          "franchise": {
+            "id": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+            "name": "Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "aabd6fa0-2f90-441c-95e5-6593c2b2375d",
+            "employeeId": "7eecf63d-b984-40f1-b5d2-a835051bea8b",
+            "roleId": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+            "assignedAt": "2026-10-20T09:50:12.088Z",
+            "assignedBy": "6e615919-94c1-4d29-bc5b-c87849479355",
+            "role": {
+              "id": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+              "name": "SALES_EMPLOYEE",
+              "rank": 7
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "d82fe409-98c5-4d96-8686-8036081c6399",
+      "email": "customer.phase3.1792490473049@titanfleet.in",
+      "phone": "+919874101196",
+      "accountType": "CUSTOMER",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T10:01:13.110Z",
+      "employeeProfile": null,
+      "customerProfile": {
+        "id": "b96c0d03-f05b-4d67-9bfa-7b66c3ff3185",
+        "name": "Phase3 Logistics Fleet",
+        "email": "customer.phase3.1792490473049@titanfleet.in",
+        "phone": "+919874101196",
+        "preferredBranchId": null
+      }
+    },
+    {
+      "id": "addd037b-3e7d-4aef-b5e5-589ae0d9b124",
+      "email": "public_1792493241653@fleetuser.in",
+      "phone": "9722323644",
+      "accountType": "CUSTOMER",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T10:47:21.718Z",
+      "employeeProfile": null,
+      "customerProfile": {
+        "id": "8d9473ee-ed5a-48f9-82e8-48c1634ae165",
+        "name": "Arun FleetOps",
+        "email": "public_1792493241653@fleetuser.in",
+        "phone": "9722323644",
+        "preferredBranchId": null
+      }
+    },
+    {
+      "id": "e941f8f4-2d9b-4e92-8342-360bc7aee703",
+      "email": "manager.branch2.1792493026225@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T10:43:46.295Z",
+      "employeeProfile": {
+        "id": "59b8eac4-ddbd-44d4-987c-41d86884c5b9",
+        "employeeCode": "SE-026225",
+        "firstName": "Branch2",
+        "lastName": "Sales",
+        "designation": null,
+        "branchId": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+        "branch": {
+          "id": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+          "name": "Test Branch A (Jaipur)",
+          "franchiseId": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+          "franchise": {
+            "id": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+            "name": "Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "2f6804e0-5c07-4c00-932e-9f1cae36a85b",
+            "employeeId": "59b8eac4-ddbd-44d4-987c-41d86884c5b9",
+            "roleId": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+            "assignedAt": "2026-10-20T10:43:46.350Z",
+            "assignedBy": "6e615919-94c1-4d29-bc5b-c87849479355",
+            "role": {
+              "id": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+              "name": "SALES_EMPLOYEE",
+              "rank": 7
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "00e30f4b-c562-45ad-9bf7-6f30eb59a522",
+      "email": "customer.sec.1792493371861@titanfleet.in",
+      "phone": "+919879938675",
+      "accountType": "CUSTOMER",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T10:49:31.920Z",
+      "employeeProfile": null,
+      "customerProfile": {
+        "id": "f9fe6ffe-1f07-4215-bce4-9774474a3636",
+        "name": "Secured Fleet Logistics",
+        "email": "customer.sec.1792493371861@titanfleet.in",
+        "phone": "+919879938675",
+        "preferredBranchId": null
+      }
+    },
+    {
+      "id": "53f21852-d894-4701-9601-149ed2855375",
+      "email": "test.manager.b2.1792493250218@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T10:47:30.289Z",
+      "employeeProfile": {
+        "id": "d7f9de5b-f5ba-482b-aa4e-13a65dfc9869",
+        "employeeCode": "SE-250219",
+        "firstName": "Branch2",
+        "lastName": "Manager",
+        "designation": null,
+        "branchId": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+        "branch": {
+          "id": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+          "name": "Test Branch A (Jaipur)",
+          "franchiseId": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+          "franchise": {
+            "id": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+            "name": "Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "0649ec49-eebc-4944-9471-569915b35ba6",
+            "employeeId": "d7f9de5b-f5ba-482b-aa4e-13a65dfc9869",
+            "roleId": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+            "assignedAt": "2026-10-20T10:47:30.343Z",
+            "assignedBy": "6e615919-94c1-4d29-bc5b-c87849479355",
+            "role": {
+              "id": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+              "name": "SALES_EMPLOYEE",
+              "rank": 7
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "8c84365e-f2fc-4aca-b041-acfbc1934fec",
+      "email": "mechanic.jaipur@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:05:40.362Z",
+      "employeeProfile": {
+        "id": "f6246fe5-526b-442b-a053-632b87fc75bc",
+        "employeeCode": "EMP-JAI-TECH01",
+        "firstName": "Rahul",
+        "lastName": "Saini",
+        "designation": "Senior Heavy Commercial Technician",
+        "branchId": "8f146f47-f6d8-4909-8b85-996f444f701b",
+        "branch": {
+          "id": "8f146f47-f6d8-4909-8b85-996f444f701b",
+          "name": "Jaipur",
+          "franchiseId": "671bc0eb-1b3f-4592-89b6-3ffbf17232f0",
+          "franchise": {
+            "id": "671bc0eb-1b3f-4592-89b6-3ffbf17232f0",
+            "name": "Ashok Leyland Commercial Vehicles"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "7f4bbb75-e842-492d-9955-11771668682c",
+            "employeeId": "f6246fe5-526b-442b-a053-632b87fc75bc",
+            "roleId": "a1225fb6-9c63-47fe-a15b-00831813d5ec",
+            "assignedAt": "2026-10-04T15:05:40.371Z",
+            "assignedBy": null,
+            "role": {
+              "id": "a1225fb6-9c63-47fe-a15b-00831813d5ec",
+              "name": "MECHANIC",
+              "rank": 7
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "3ca53282-d158-4896-ba5d-d4c57cb1636f",
+      "email": "mechanic-1791126995076@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:16:35.078Z",
+      "employeeProfile": {
+        "id": "29dfccac-0c66-4e4a-9a01-32004bc2b272",
+        "employeeCode": "MCH-P3-1791126995078",
+        "firstName": "Master",
+        "lastName": "Mechanic",
+        "designation": "Heavy Commercial Vehicle Technician",
+        "branchId": "b66de2f2-f83d-4f0d-b46e-3c8cc9cb92f8",
+        "branch": {
+          "id": "b66de2f2-f83d-4f0d-b46e-3c8cc9cb92f8",
+          "name": "Phase 3 Service Center",
+          "franchiseId": "d6e3f5e3-6a79-4566-8dfe-7795f4523bca",
+          "franchise": {
+            "id": "d6e3f5e3-6a79-4566-8dfe-7795f4523bca",
+            "name": "Phase 3 Service Franchise"
+          }
+        },
+        "roleAssignments": []
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "45203f79-9fa6-41ff-95bb-6b136489fb72",
+      "email": "inactive-test-1791126995111@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "INACTIVE",
+      "createdAt": "2026-10-04T15:16:35.113Z",
+      "employeeProfile": null,
+      "customerProfile": null
+    },
+    {
+      "id": "2dc6ae3a-9665-411b-97f1-ee3676ab739c",
+      "email": "suspended-test-1791126995114@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "SUSPENDED",
+      "createdAt": "2026-10-04T15:16:35.115Z",
+      "employeeProfile": null,
+      "customerProfile": null
+    },
+    {
+      "id": "14bdd18b-6ddf-498f-9f51-9a55c242cc82",
+      "email": "p2admin-1791126995067@titanauto.com",
+      "phone": null,
+      "accountType": "SUPER_ADMIN",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:16:35.068Z",
+      "employeeProfile": {
+        "id": "68b9e557-d31c-42ec-8f16-6c964f51dda7",
+        "employeeCode": "EMP-P2-1791126995071",
+        "firstName": "Phase2",
+        "lastName": "Admin",
+        "designation": null,
+        "branchId": "3cf6ebc4-e0e9-4ce4-98fd-c2a8c5b6d157",
+        "branch": {
+          "id": "3cf6ebc4-e0e9-4ce4-98fd-c2a8c5b6d157",
+          "name": "Phase 2 Main Branch",
+          "franchiseId": "3c8c371e-4d38-4f47-bc81-e7ed12ebb7a8",
+          "franchise": {
+            "id": "3c8c371e-4d38-4f47-bc81-e7ed12ebb7a8",
+            "name": "Phase 2 Test Franchise"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "38ed8380-22c7-482f-8fb9-7334fc57a1d2",
+            "employeeId": "68b9e557-d31c-42ec-8f16-6c964f51dda7",
+            "roleId": "00d44926-c14e-411b-9cd0-674305095469",
+            "assignedAt": "2026-10-04T15:16:35.078Z",
+            "assignedBy": null,
+            "role": {
+              "id": "00d44926-c14e-411b-9cd0-674305095469",
+              "name": "SUPER_ADMIN",
+              "rank": 1
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "51b3c6f4-fee2-424b-8372-6a4e6a7329e9",
+      "email": "p3admin-1791126995068@titanauto.com",
+      "phone": null,
+      "accountType": "SUPER_ADMIN",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:16:35.069Z",
+      "employeeProfile": {
+        "id": "f138790b-6027-43e6-85ed-76de7fd40271",
+        "employeeCode": "ADV-P3-1791126995071",
+        "firstName": "Service",
+        "lastName": "Advisor",
+        "designation": "Senior Service Advisor",
+        "branchId": "b66de2f2-f83d-4f0d-b46e-3c8cc9cb92f8",
+        "branch": {
+          "id": "b66de2f2-f83d-4f0d-b46e-3c8cc9cb92f8",
+          "name": "Phase 3 Service Center",
+          "franchiseId": "d6e3f5e3-6a79-4566-8dfe-7795f4523bca",
+          "franchise": {
+            "id": "d6e3f5e3-6a79-4566-8dfe-7795f4523bca",
+            "name": "Phase 3 Service Franchise"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "7a6f6809-803b-4368-bf49-bd878d919161",
+            "employeeId": "f138790b-6027-43e6-85ed-76de7fd40271",
+            "roleId": "00d44926-c14e-411b-9cd0-674305095469",
+            "assignedAt": "2026-10-04T15:16:35.083Z",
+            "assignedBy": null,
+            "role": {
+              "id": "00d44926-c14e-411b-9cd0-674305095469",
+              "name": "SUPER_ADMIN",
+              "rank": 1
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "39a50ae8-4dcc-4f2c-a1f7-f0db828711ec",
+      "email": "admin-test-1791126995075@titanauto.com",
+      "phone": null,
+      "accountType": "SUPER_ADMIN",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:16:35.077Z",
+      "employeeProfile": {
+        "id": "fe43b315-ca26-49bb-bd6c-d26d6bb9b0f1",
+        "employeeCode": "EMP-ADM-1791126995079",
+        "firstName": "Super",
+        "lastName": "Admin",
+        "designation": null,
+        "branchId": "837e1d1a-2421-499e-a6cd-b9b187cc29d7",
+        "branch": {
+          "id": "837e1d1a-2421-499e-a6cd-b9b187cc29d7",
+          "name": "Test Branch A (Jaipur)",
+          "franchiseId": "b483da09-2f6c-4637-9c3f-e49e954f23e0",
+          "franchise": {
+            "id": "b483da09-2f6c-4637-9c3f-e49e954f23e0",
+            "name": "Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "c8b12174-8859-43d7-9ffc-76bfc943e0f2",
+            "employeeId": "fe43b315-ca26-49bb-bd6c-d26d6bb9b0f1",
+            "roleId": "00d44926-c14e-411b-9cd0-674305095469",
+            "assignedAt": "2026-10-04T15:16:35.081Z",
+            "assignedBy": null,
+            "role": {
+              "id": "00d44926-c14e-411b-9cd0-674305095469",
+              "name": "SUPER_ADMIN",
+              "rank": 1
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "472e393f-be24-4de1-87c5-e7b57ca20c5a",
+      "email": "sa-appr-1791126995086@titanauto.com",
+      "phone": null,
+      "accountType": "SUPER_ADMIN",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:16:35.088Z",
+      "employeeProfile": {
+        "id": "77022e22-3c34-42f0-8323-fb85d9a42c24",
+        "employeeCode": "EMP-SA-1791126995090",
+        "firstName": "Super",
+        "lastName": "Admin",
+        "designation": null,
+        "branchId": "0feb7fc4-6fff-4adb-9e0f-3930b6cf3efa",
+        "branch": {
+          "id": "0feb7fc4-6fff-4adb-9e0f-3930b6cf3efa",
+          "name": "Branch A",
+          "franchiseId": "66afc37b-86da-4300-9f10-63a52eafa221",
+          "franchise": {
+            "id": "66afc37b-86da-4300-9f10-63a52eafa221",
+            "name": "Approval Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "9e4209d5-3327-4c73-af9e-e547f310accf",
+            "employeeId": "77022e22-3c34-42f0-8323-fb85d9a42c24",
+            "roleId": "00d44926-c14e-411b-9cd0-674305095469",
+            "assignedAt": "2026-10-04T15:16:35.092Z",
+            "assignedBy": null,
+            "role": {
+              "id": "00d44926-c14e-411b-9cd0-674305095469",
+              "name": "SUPER_ADMIN",
+              "rank": 1
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "49930e50-c62f-4f8a-86e3-67604c1cfd6a",
+      "email": "bm-test-1791126995091@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:16:35.093Z",
+      "employeeProfile": {
+        "id": "e9316b4c-4784-4df3-b796-ce8c3b08cb2d",
+        "employeeCode": "EMP-BM-1791126995094",
+        "firstName": "Branch",
+        "lastName": "Manager",
+        "designation": null,
+        "branchId": "837e1d1a-2421-499e-a6cd-b9b187cc29d7",
+        "branch": {
+          "id": "837e1d1a-2421-499e-a6cd-b9b187cc29d7",
+          "name": "Test Branch A (Jaipur)",
+          "franchiseId": "b483da09-2f6c-4637-9c3f-e49e954f23e0",
+          "franchise": {
+            "id": "b483da09-2f6c-4637-9c3f-e49e954f23e0",
+            "name": "Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "7b9a41fe-336f-4b07-afd4-031444f074d9",
+            "employeeId": "e9316b4c-4784-4df3-b796-ce8c3b08cb2d",
+            "roleId": "c4976cef-26e0-4306-8d60-48d164285741",
+            "assignedAt": "2026-10-04T15:16:35.096Z",
+            "assignedBy": null,
+            "role": {
+              "id": "c4976cef-26e0-4306-8d60-48d164285741",
+              "name": "BRANCH_MANAGER",
+              "rank": 5
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "71b0479a-3c15-4da8-90e9-eb105502fd7a",
+      "email": "bm-a-1791126995101@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:16:35.103Z",
+      "employeeProfile": {
+        "id": "839ff77f-96bc-4e04-87fd-4660c426c6e3",
+        "employeeCode": "EMP-BMA-1791126995104",
+        "firstName": "Manager",
+        "lastName": "BranchA",
+        "designation": null,
+        "branchId": "0feb7fc4-6fff-4adb-9e0f-3930b6cf3efa",
+        "branch": {
+          "id": "0feb7fc4-6fff-4adb-9e0f-3930b6cf3efa",
+          "name": "Branch A",
+          "franchiseId": "66afc37b-86da-4300-9f10-63a52eafa221",
+          "franchise": {
+            "id": "66afc37b-86da-4300-9f10-63a52eafa221",
+            "name": "Approval Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "7fc0721b-44fd-4602-a0f4-b63b6d411b07",
+            "employeeId": "839ff77f-96bc-4e04-87fd-4660c426c6e3",
+            "roleId": "c4976cef-26e0-4306-8d60-48d164285741",
+            "assignedAt": "2026-10-04T15:16:35.106Z",
+            "assignedBy": null,
+            "role": {
+              "id": "c4976cef-26e0-4306-8d60-48d164285741",
+              "name": "BRANCH_MANAGER",
+              "rank": 5
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "4b8bbd0b-9018-4155-987c-ed5f1e6b5af9",
+      "email": "mech-test-1791126995100@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:16:35.102Z",
+      "employeeProfile": {
+        "id": "8a29f35f-ef32-4b9e-8e89-6084c1a6f470",
+        "employeeCode": "EMP-MECH-1791126995103",
+        "firstName": "Service",
+        "lastName": "Mechanic",
+        "designation": null,
+        "branchId": "837e1d1a-2421-499e-a6cd-b9b187cc29d7",
+        "branch": {
+          "id": "837e1d1a-2421-499e-a6cd-b9b187cc29d7",
+          "name": "Test Branch A (Jaipur)",
+          "franchiseId": "b483da09-2f6c-4637-9c3f-e49e954f23e0",
+          "franchise": {
+            "id": "b483da09-2f6c-4637-9c3f-e49e954f23e0",
+            "name": "Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "d39a9862-9ce7-49d4-ae5a-b34210ceb3d3",
+            "employeeId": "8a29f35f-ef32-4b9e-8e89-6084c1a6f470",
+            "roleId": "a1225fb6-9c63-47fe-a15b-00831813d5ec",
+            "assignedAt": "2026-10-04T15:16:35.105Z",
+            "assignedBy": null,
+            "role": {
+              "id": "a1225fb6-9c63-47fe-a15b-00831813d5ec",
+              "name": "MECHANIC",
+              "rank": 7
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "0942be4a-5ac5-4266-994e-6aafbe423fb0",
+      "email": "bm-b-1791126995110@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:16:35.112Z",
+      "employeeProfile": {
+        "id": "3817babb-7e05-4c3e-8bca-3eb12ea3b485",
+        "employeeCode": "EMP-BMB-1791126995112",
+        "firstName": "Manager",
+        "lastName": "BranchB",
+        "designation": null,
+        "branchId": "41ef10e4-1c93-4ce5-973c-1adeea3052c0",
+        "branch": {
+          "id": "41ef10e4-1c93-4ce5-973c-1adeea3052c0",
+          "name": "Branch B",
+          "franchiseId": "66afc37b-86da-4300-9f10-63a52eafa221",
+          "franchise": {
+            "id": "66afc37b-86da-4300-9f10-63a52eafa221",
+            "name": "Approval Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "e7792a62-4e4c-4c41-948f-3fef44fc8ab0",
+            "employeeId": "3817babb-7e05-4c3e-8bca-3eb12ea3b485",
+            "roleId": "c4976cef-26e0-4306-8d60-48d164285741",
+            "assignedAt": "2026-10-04T15:16:35.114Z",
+            "assignedBy": null,
+            "role": {
+              "id": "c4976cef-26e0-4306-8d60-48d164285741",
+              "name": "BRANCH_MANAGER",
+              "rank": 5
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "e443f3c3-8beb-4055-9e6a-2f8503c16fe5",
+      "email": "customer-test-1791126995109@titanauto.com",
+      "phone": null,
+      "accountType": "CUSTOMER",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:16:35.110Z",
+      "employeeProfile": null,
+      "customerProfile": null
+    },
+    {
+      "id": "093f2068-1e1c-4b0f-8ccc-de3183a1f65c",
+      "email": "cust-appr-1791126995121@titanauto.com",
+      "phone": null,
+      "accountType": "CUSTOMER",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:16:35.122Z",
+      "employeeProfile": null,
+      "customerProfile": null
+    },
+    {
+      "id": "c45db55c-957b-4783-883d-b2623425f652",
+      "email": "new-emp-b-1791126995503@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:16:35.608Z",
+      "employeeProfile": {
+        "id": "41f126f9-f512-42fa-b680-ed9e623a8c4d",
+        "employeeCode": "EMP-B-1791126995503",
+        "firstName": "Employee",
+        "lastName": "B",
+        "designation": null,
+        "branchId": "0feb7fc4-6fff-4adb-9e0f-3930b6cf3efa",
+        "branch": {
+          "id": "0feb7fc4-6fff-4adb-9e0f-3930b6cf3efa",
+          "name": "Branch A",
+          "franchiseId": "66afc37b-86da-4300-9f10-63a52eafa221",
+          "franchise": {
+            "id": "66afc37b-86da-4300-9f10-63a52eafa221",
+            "name": "Approval Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "fa549f75-c0d6-44df-8114-1a4c5a61af78",
+            "employeeId": "41f126f9-f512-42fa-b680-ed9e623a8c4d",
+            "roleId": "a1225fb6-9c63-47fe-a15b-00831813d5ec",
+            "assignedAt": "2026-10-04T15:16:35.773Z",
+            "assignedBy": "472e393f-be24-4de1-87c5-e7b57ca20c5a",
+            "role": {
+              "id": "a1225fb6-9c63-47fe-a15b-00831813d5ec",
+              "name": "MECHANIC",
+              "rank": 7
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "05e8c815-d669-44cb-a78d-8b7831ccc9b9",
+      "email": "p2admin-1791127087525@titanauto.com",
+      "phone": null,
+      "accountType": "SUPER_ADMIN",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:18:07.528Z",
+      "employeeProfile": {
+        "id": "1e4c1125-ed87-4ef0-b4e5-4591702985d8",
+        "employeeCode": "EMP-P2-1791127087530",
+        "firstName": "Phase2",
+        "lastName": "Admin",
+        "designation": null,
+        "branchId": "b1a8037b-3899-49bc-b67e-550ba0cd16be",
+        "branch": {
+          "id": "b1a8037b-3899-49bc-b67e-550ba0cd16be",
+          "name": "Phase 2 Main Branch",
+          "franchiseId": "b6590d81-3968-48f8-b912-b2e90b34d97d",
+          "franchise": {
+            "id": "b6590d81-3968-48f8-b912-b2e90b34d97d",
+            "name": "Phase 2 Test Franchise"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "87121e11-1971-4c9d-9557-3018bf2c2bb0",
+            "employeeId": "1e4c1125-ed87-4ef0-b4e5-4591702985d8",
+            "roleId": "00d44926-c14e-411b-9cd0-674305095469",
+            "assignedAt": "2026-10-04T15:18:07.539Z",
+            "assignedBy": null,
+            "role": {
+              "id": "00d44926-c14e-411b-9cd0-674305095469",
+              "name": "SUPER_ADMIN",
+              "rank": 1
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "cd431067-c648-410a-a65d-4e1ba8e1adfd",
+      "email": "new-mechanic-1791126995749@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "INACTIVE",
+      "createdAt": "2026-10-04T15:16:35.828Z",
+      "employeeProfile": {
+        "id": "f1944515-2f51-4319-8a25-5dfe9586d723",
+        "employeeCode": "EMP-JD-1791126995749",
+        "firstName": "John",
+        "lastName": "Doe",
+        "designation": null,
+        "branchId": "837e1d1a-2421-499e-a6cd-b9b187cc29d7",
+        "branch": {
+          "id": "837e1d1a-2421-499e-a6cd-b9b187cc29d7",
+          "name": "Test Branch A (Jaipur)",
+          "franchiseId": "b483da09-2f6c-4637-9c3f-e49e954f23e0",
+          "franchise": {
+            "id": "b483da09-2f6c-4637-9c3f-e49e954f23e0",
+            "name": "Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "f5bf0c5e-91a6-49e3-80b9-e132b1029d13",
+            "employeeId": "f1944515-2f51-4319-8a25-5dfe9586d723",
+            "roleId": "a1225fb6-9c63-47fe-a15b-00831813d5ec",
+            "assignedAt": "2026-10-04T15:16:35.903Z",
+            "assignedBy": "39a50ae8-4dcc-4f2c-a1f7-f0db828711ec",
+            "role": {
+              "id": "a1225fb6-9c63-47fe-a15b-00831813d5ec",
+              "name": "MECHANIC",
+              "rank": 7
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "102063b5-cc2e-4e90-bf44-352805001d0e",
+      "email": "bm1-1791126995958@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:16:35.960Z",
+      "employeeProfile": {
+        "id": "7300bc81-3b26-404f-831e-06fd09dc1529",
+        "employeeCode": "EMP-BM1-1791126995960",
+        "firstName": "BM1",
+        "lastName": "Manager",
+        "designation": null,
+        "branchId": "837e1d1a-2421-499e-a6cd-b9b187cc29d7",
+        "branch": {
+          "id": "837e1d1a-2421-499e-a6cd-b9b187cc29d7",
+          "name": "Test Branch A (Jaipur)",
+          "franchiseId": "b483da09-2f6c-4637-9c3f-e49e954f23e0",
+          "franchise": {
+            "id": "b483da09-2f6c-4637-9c3f-e49e954f23e0",
+            "name": "Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "c5712b18-8d98-4999-9fd6-24a3b08b621b",
+            "employeeId": "7300bc81-3b26-404f-831e-06fd09dc1529",
+            "roleId": "c4976cef-26e0-4306-8d60-48d164285741",
+            "assignedAt": "2026-10-04T15:16:35.962Z",
+            "assignedBy": null,
+            "role": {
+              "id": "c4976cef-26e0-4306-8d60-48d164285741",
+              "name": "BRANCH_MANAGER",
+              "rank": 5
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "28c7946b-9ff7-41d0-b94d-031f22f25170",
+      "email": "bm2-1791126995964@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:16:35.966Z",
+      "employeeProfile": {
+        "id": "2f0dd181-9bf8-464c-9dad-8f156f47f386",
+        "employeeCode": "EMP-BM2-1791126995965",
+        "firstName": "BM2",
+        "lastName": "Manager",
+        "designation": null,
+        "branchId": "837e1d1a-2421-499e-a6cd-b9b187cc29d7",
+        "branch": {
+          "id": "837e1d1a-2421-499e-a6cd-b9b187cc29d7",
+          "name": "Test Branch A (Jaipur)",
+          "franchiseId": "b483da09-2f6c-4637-9c3f-e49e954f23e0",
+          "franchise": {
+            "id": "b483da09-2f6c-4637-9c3f-e49e954f23e0",
+            "name": "Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "a82c0fda-90be-4b81-9390-c6b5fffe3b36",
+            "employeeId": "2f0dd181-9bf8-464c-9dad-8f156f47f386",
+            "roleId": "c4976cef-26e0-4306-8d60-48d164285741",
+            "assignedAt": "2026-10-04T15:16:35.967Z",
+            "assignedBy": null,
+            "role": {
+              "id": "c4976cef-26e0-4306-8d60-48d164285741",
+              "name": "BRANCH_MANAGER",
+              "rank": 5
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "5236f2a2-1670-403f-aa88-75c7b17a8345",
+      "email": "p2admin-1791127133102@titanauto.com",
+      "phone": null,
+      "accountType": "SUPER_ADMIN",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:18:53.106Z",
+      "employeeProfile": {
+        "id": "5647e95a-628f-46bd-8702-12ed306eaf7e",
+        "employeeCode": "EMP-P2-1791127133107",
+        "firstName": "Phase2",
+        "lastName": "Admin",
+        "designation": null,
+        "branchId": "8b54c2ab-fa8a-4051-a8ee-40bb27a17bdd",
+        "branch": {
+          "id": "8b54c2ab-fa8a-4051-a8ee-40bb27a17bdd",
+          "name": "Phase 2 Main Branch",
+          "franchiseId": "a15548b5-b667-4331-bea9-dae1acd60bf5",
+          "franchise": {
+            "id": "a15548b5-b667-4331-bea9-dae1acd60bf5",
+            "name": "Phase 2 Test Franchise"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "2aac7de2-77ea-4d15-89df-0094de3630d0",
+            "employeeId": "5647e95a-628f-46bd-8702-12ed306eaf7e",
+            "roleId": "00d44926-c14e-411b-9cd0-674305095469",
+            "assignedAt": "2026-10-04T15:18:53.119Z",
+            "assignedBy": null,
+            "role": {
+              "id": "00d44926-c14e-411b-9cd0-674305095469",
+              "name": "SUPER_ADMIN",
+              "rank": 1
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "f95dfb97-4b23-416b-aeb8-50dae1ae9298",
+      "email": "mechanic-1791127145641@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:19:05.648Z",
+      "employeeProfile": {
+        "id": "212232f1-d0a0-4e28-95f7-4bdb27b46da7",
+        "employeeCode": "MCH-P3-1791127145644",
+        "firstName": "Master",
+        "lastName": "Mechanic",
+        "designation": "Heavy Commercial Vehicle Technician",
+        "branchId": "a65ae802-714a-43e9-b8ca-a7bb0aad4487",
+        "branch": {
+          "id": "a65ae802-714a-43e9-b8ca-a7bb0aad4487",
+          "name": "Phase 3 Service Center",
+          "franchiseId": "38be3505-cd96-4007-bbe4-2ea86fdc1497",
+          "franchise": {
+            "id": "38be3505-cd96-4007-bbe4-2ea86fdc1497",
+            "name": "Phase 3 Service Franchise"
+          }
+        },
+        "roleAssignments": []
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "14d98604-b9e3-4815-abd0-76d4d73d2d3e",
+      "email": "p3admin-1791127145631@titanauto.com",
+      "phone": null,
+      "accountType": "SUPER_ADMIN",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:19:05.638Z",
+      "employeeProfile": {
+        "id": "7d27aba9-c3d5-43d7-ba7f-a528de7eb436",
+        "employeeCode": "ADV-P3-1791127145636",
+        "firstName": "Service",
+        "lastName": "Advisor",
+        "designation": "Senior Service Advisor",
+        "branchId": "a65ae802-714a-43e9-b8ca-a7bb0aad4487",
+        "branch": {
+          "id": "a65ae802-714a-43e9-b8ca-a7bb0aad4487",
+          "name": "Phase 3 Service Center",
+          "franchiseId": "38be3505-cd96-4007-bbe4-2ea86fdc1497",
+          "franchise": {
+            "id": "38be3505-cd96-4007-bbe4-2ea86fdc1497",
+            "name": "Phase 3 Service Franchise"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "e2b78547-296c-4d2b-97be-a7d857574cfe",
+            "employeeId": "7d27aba9-c3d5-43d7-ba7f-a528de7eb436",
+            "roleId": "00d44926-c14e-411b-9cd0-674305095469",
+            "assignedAt": "2026-10-04T15:19:05.655Z",
+            "assignedBy": null,
+            "role": {
+              "id": "00d44926-c14e-411b-9cd0-674305095469",
+              "name": "SUPER_ADMIN",
+              "rank": 1
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "f7af6970-24db-4ad1-8836-9efc5f4129b6",
+      "email": "mechanic-1791127233989@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:20:33.991Z",
+      "employeeProfile": {
+        "id": "84c3de6d-1f74-4df0-ae9d-5b821977a795",
+        "employeeCode": "MCH-P3-1791127233992",
+        "firstName": "Master",
+        "lastName": "Mechanic",
+        "designation": "Heavy Commercial Vehicle Technician",
+        "branchId": "4c43e366-9628-46f1-9a4c-28c7c07b9d30",
+        "branch": {
+          "id": "4c43e366-9628-46f1-9a4c-28c7c07b9d30",
+          "name": "Phase 3 Service Center",
+          "franchiseId": "f5ffebf2-9bc5-4302-ad36-9fa5adf65ff9",
+          "franchise": {
+            "id": "f5ffebf2-9bc5-4302-ad36-9fa5adf65ff9",
+            "name": "Phase 3 Service Franchise"
+          }
+        },
+        "roleAssignments": []
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "8a1baedc-49f9-4065-b15e-29b97a958b62",
+      "email": "p3admin-1791127233977@titanauto.com",
+      "phone": null,
+      "accountType": "SUPER_ADMIN",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:20:33.979Z",
+      "employeeProfile": {
+        "id": "a86d690b-f7f4-494a-a4be-c37a0abbf48a",
+        "employeeCode": "ADV-P3-1791127233982",
+        "firstName": "Service",
+        "lastName": "Advisor",
+        "designation": "Senior Service Advisor",
+        "branchId": "4c43e366-9628-46f1-9a4c-28c7c07b9d30",
+        "branch": {
+          "id": "4c43e366-9628-46f1-9a4c-28c7c07b9d30",
+          "name": "Phase 3 Service Center",
+          "franchiseId": "f5ffebf2-9bc5-4302-ad36-9fa5adf65ff9",
+          "franchise": {
+            "id": "f5ffebf2-9bc5-4302-ad36-9fa5adf65ff9",
+            "name": "Phase 3 Service Franchise"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "ae6c4d40-ad91-46d1-85ba-ba97720df423",
+            "employeeId": "a86d690b-f7f4-494a-a4be-c37a0abbf48a",
+            "roleId": "00d44926-c14e-411b-9cd0-674305095469",
+            "assignedAt": "2026-10-04T15:20:33.997Z",
+            "assignedBy": null,
+            "role": {
+              "id": "00d44926-c14e-411b-9cd0-674305095469",
+              "name": "SUPER_ADMIN",
+              "rank": 1
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "8e8e3690-56f0-4e57-95ff-6ad1b1dafeb2",
+      "email": "inactive-test-1791127345128@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "INACTIVE",
+      "createdAt": "2026-10-04T15:22:25.131Z",
+      "employeeProfile": null,
+      "customerProfile": null
+    },
+    {
+      "id": "ff091b72-9b2f-42c6-b583-b4d50e24d12c",
+      "email": "new-emp-b-1791127357293@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:22:37.382Z",
+      "employeeProfile": {
+        "id": "edf678f9-d36c-402a-8b0d-16aa6e91a8f2",
+        "employeeCode": "EMP-B-1791127357293",
+        "firstName": "Employee",
+        "lastName": "B",
+        "designation": null,
+        "branchId": "6c2216ed-d040-4ccd-8d29-b83538e3a0e5",
+        "branch": {
+          "id": "6c2216ed-d040-4ccd-8d29-b83538e3a0e5",
+          "name": "Branch A",
+          "franchiseId": "078a6ebf-4c43-4c2b-a0cb-18e998fa6b77",
+          "franchise": {
+            "id": "078a6ebf-4c43-4c2b-a0cb-18e998fa6b77",
+            "name": "Approval Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "e3a2c041-b6da-4fb6-a8c6-d757ab19c279",
+            "employeeId": "edf678f9-d36c-402a-8b0d-16aa6e91a8f2",
+            "roleId": "a1225fb6-9c63-47fe-a15b-00831813d5ec",
+            "assignedAt": "2026-10-04T15:22:37.612Z",
+            "assignedBy": "4f27a0ec-6ace-4dd9-bf10-85f7d8f49265",
+            "role": {
+              "id": "a1225fb6-9c63-47fe-a15b-00831813d5ec",
+              "name": "MECHANIC",
+              "rank": 7
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "f60852f1-6382-4cd0-ac2d-78c9af234883",
+      "email": "manager.branch2.1792493469098@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T10:51:09.166Z",
+      "employeeProfile": {
+        "id": "7138fa1e-b154-44b7-b35b-becbefc1aae4",
+        "employeeCode": "SE-469098",
+        "firstName": "Branch2",
+        "lastName": "Sales",
+        "designation": null,
+        "branchId": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+        "branch": {
+          "id": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+          "name": "Test Branch A (Jaipur)",
+          "franchiseId": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+          "franchise": {
+            "id": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+            "name": "Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "275fe87a-bf68-4bbf-ab6d-456a951b80a1",
+            "employeeId": "7138fa1e-b154-44b7-b35b-becbefc1aae4",
+            "roleId": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+            "assignedAt": "2026-10-20T10:51:09.209Z",
+            "assignedBy": "6e615919-94c1-4d29-bc5b-c87849479355",
+            "role": {
+              "id": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+              "name": "SALES_EMPLOYEE",
+              "rank": 7
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "755b2211-9586-4bfe-95bb-f66f06f177a1",
+      "email": "fm1.p1.1792512788288@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T16:13:08.392Z",
+      "employeeProfile": {
+        "id": "aa6f2060-5294-48d9-ae70-bc48b067d92d",
+        "employeeCode": "EMP-FM1-P1-1792512788288",
+        "firstName": "Aarav",
+        "lastName": "Kapoor",
+        "designation": "North Regional Director",
+        "branchId": "49bc76c7-6b71-4dac-8e82-28be880bfebd",
+        "branch": {
+          "id": "49bc76c7-6b71-4dac-8e82-28be880bfebd",
+          "name": "Delhi North Hub 1792512788288",
+          "franchiseId": "96aa23dc-d6b9-47d0-a6cb-79f358213ea3",
+          "franchise": {
+            "id": "96aa23dc-d6b9-47d0-a6cb-79f358213ea3",
+            "name": "Titan North Trucks Hub 1792512788288"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "095311f4-0825-4431-8286-3837642e9efc",
+            "employeeId": "aa6f2060-5294-48d9-ae70-bc48b067d92d",
+            "roleId": "0d31a84e-e610-4ecc-b25f-8534ac5a45a6",
+            "assignedAt": "2026-10-20T16:13:08.392Z",
+            "assignedBy": null,
+            "role": {
+              "id": "0d31a84e-e610-4ecc-b25f-8534ac5a45a6",
+              "name": "FRANCHISE_MANAGER",
+              "rank": 3
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "74f40bc5-d038-4695-a18d-50e667c5b942",
+      "email": "fm2.p1.1792512788288@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T16:13:08.395Z",
+      "employeeProfile": {
+        "id": "06d99de3-3cd2-4526-b054-64debc6369bf",
+        "employeeCode": "EMP-FM2-P1-1792512788288",
+        "firstName": "Suresh",
+        "lastName": "Rao",
+        "designation": "South Regional Director",
+        "branchId": "1c77f0ba-3eac-40f1-b5f0-181b3e53955d",
+        "branch": {
+          "id": "1c77f0ba-3eac-40f1-b5f0-181b3e53955d",
+          "name": "Bengaluru Tech Hub 1792512788288",
+          "franchiseId": "fc14a13e-4ab5-4455-8174-7906a81e3e6c",
+          "franchise": {
+            "id": "fc14a13e-4ab5-4455-8174-7906a81e3e6c",
+            "name": "Titan South Logistics 1792512788288"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "a42e2ac1-b1b4-452f-9f0e-eac29f19a842",
+            "employeeId": "06d99de3-3cd2-4526-b054-64debc6369bf",
+            "roleId": "0d31a84e-e610-4ecc-b25f-8534ac5a45a6",
+            "assignedAt": "2026-10-20T16:13:08.395Z",
+            "assignedBy": null,
+            "role": {
+              "id": "0d31a84e-e610-4ecc-b25f-8534ac5a45a6",
+              "name": "FRANCHISE_MANAGER",
+              "rank": 3
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "cce5016c-992e-4d06-85d8-2dec58e3a239",
+      "email": "bma1.p1.1792512788288@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T16:13:08.398Z",
+      "employeeProfile": {
+        "id": "ae897d9a-8909-4025-9a58-4348c91ea85e",
+        "employeeCode": "EMP-BMA1-P1-1792512788288",
+        "firstName": "Rohan",
+        "lastName": "Verma",
+        "designation": "Delhi Branch Manager",
+        "branchId": "49bc76c7-6b71-4dac-8e82-28be880bfebd",
+        "branch": {
+          "id": "49bc76c7-6b71-4dac-8e82-28be880bfebd",
+          "name": "Delhi North Hub 1792512788288",
+          "franchiseId": "96aa23dc-d6b9-47d0-a6cb-79f358213ea3",
+          "franchise": {
+            "id": "96aa23dc-d6b9-47d0-a6cb-79f358213ea3",
+            "name": "Titan North Trucks Hub 1792512788288"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "45dfdcf4-e6c9-4aea-986d-2f1bb5384a79",
+            "employeeId": "ae897d9a-8909-4025-9a58-4348c91ea85e",
+            "roleId": "c4976cef-26e0-4306-8d60-48d164285741",
+            "assignedAt": "2026-10-20T16:13:08.398Z",
+            "assignedBy": null,
+            "role": {
+              "id": "c4976cef-26e0-4306-8d60-48d164285741",
+              "name": "BRANCH_MANAGER",
+              "rank": 5
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "5b76e6df-53e1-4302-b3da-cd52fc9b6350",
+      "email": "bmb1.p1.1792512788288@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T16:13:08.403Z",
+      "employeeProfile": {
+        "id": "0c978e37-6808-41ac-be0e-45e70038d3c2",
+        "employeeCode": "EMP-BMB1-P1-1792512788288",
+        "firstName": "Karan",
+        "lastName": "Choudhary",
+        "designation": "Jaipur Branch Manager",
+        "branchId": "c5e04e56-3344-427a-a24a-5cbba2a9a167",
+        "branch": {
+          "id": "c5e04e56-3344-427a-a24a-5cbba2a9a167",
+          "name": "Jaipur Express Hub 1792512788288",
+          "franchiseId": "96aa23dc-d6b9-47d0-a6cb-79f358213ea3",
+          "franchise": {
+            "id": "96aa23dc-d6b9-47d0-a6cb-79f358213ea3",
+            "name": "Titan North Trucks Hub 1792512788288"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "0e158b9b-87bd-4436-a556-a9fcc5d265cf",
+            "employeeId": "0c978e37-6808-41ac-be0e-45e70038d3c2",
+            "roleId": "c4976cef-26e0-4306-8d60-48d164285741",
+            "assignedAt": "2026-10-20T16:13:08.403Z",
+            "assignedBy": null,
+            "role": {
+              "id": "c4976cef-26e0-4306-8d60-48d164285741",
+              "name": "BRANCH_MANAGER",
+              "rank": 5
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "8b39c2f9-7e5a-40d5-9f90-da034078e991",
+      "email": "suspended-test-1791127345131@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "SUSPENDED",
+      "createdAt": "2026-10-04T15:22:25.133Z",
+      "employeeProfile": null,
+      "customerProfile": null
+    },
+    {
+      "id": "8f0e4196-0388-4890-a037-630de09ea22a",
+      "email": "bm-test-1791127345110@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:22:25.112Z",
+      "employeeProfile": {
+        "id": "ad8067c1-0c03-46e2-9e59-5e85d7766c13",
+        "employeeCode": "EMP-BM-1791127345112",
+        "firstName": "Branch",
+        "lastName": "Manager",
+        "designation": null,
+        "branchId": "c550ac52-9b89-4832-94c5-a5f77ded8c19",
+        "branch": {
+          "id": "c550ac52-9b89-4832-94c5-a5f77ded8c19",
+          "name": "Test Branch A (Jaipur)",
+          "franchiseId": "8ebf9966-45e0-465a-a2ee-a96c349774b2",
+          "franchise": {
+            "id": "8ebf9966-45e0-465a-a2ee-a96c349774b2",
+            "name": "Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "bea9f036-5e2c-40c0-8265-66a6d0e3fbe9",
+            "employeeId": "ad8067c1-0c03-46e2-9e59-5e85d7766c13",
+            "roleId": "c4976cef-26e0-4306-8d60-48d164285741",
+            "assignedAt": "2026-10-04T15:22:25.114Z",
+            "assignedBy": null,
+            "role": {
+              "id": "c4976cef-26e0-4306-8d60-48d164285741",
+              "name": "BRANCH_MANAGER",
+              "rank": 5
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "eb56280c-8e1c-4544-bf47-f0e6d7092802",
+      "email": "mech-test-1791127345118@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:22:25.120Z",
+      "employeeProfile": {
+        "id": "7cc8efc1-fff2-4807-a9a9-bdd3e934a0a8",
+        "employeeCode": "EMP-MECH-1791127345120",
+        "firstName": "Service",
+        "lastName": "Mechanic",
+        "designation": null,
+        "branchId": "c550ac52-9b89-4832-94c5-a5f77ded8c19",
+        "branch": {
+          "id": "c550ac52-9b89-4832-94c5-a5f77ded8c19",
+          "name": "Test Branch A (Jaipur)",
+          "franchiseId": "8ebf9966-45e0-465a-a2ee-a96c349774b2",
+          "franchise": {
+            "id": "8ebf9966-45e0-465a-a2ee-a96c349774b2",
+            "name": "Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "db5a2ef8-50d6-45f6-bd4f-320c6adff3e9",
+            "employeeId": "7cc8efc1-fff2-4807-a9a9-bdd3e934a0a8",
+            "roleId": "a1225fb6-9c63-47fe-a15b-00831813d5ec",
+            "assignedAt": "2026-10-04T15:22:25.122Z",
+            "assignedBy": null,
+            "role": {
+              "id": "a1225fb6-9c63-47fe-a15b-00831813d5ec",
+              "name": "MECHANIC",
+              "rank": 7
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "2689f569-76bf-4254-a58a-de74488362f4",
+      "email": "customer-test-1791127345126@titanauto.com",
+      "phone": null,
+      "accountType": "CUSTOMER",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:22:25.128Z",
+      "employeeProfile": null,
+      "customerProfile": null
+    },
+    {
+      "id": "ac00366e-cfac-4ac4-b7ca-721eac8155ed",
+      "email": "bm1-1791127346032@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:22:26.035Z",
+      "employeeProfile": {
+        "id": "72b5cb2b-0e63-425b-9ebb-297c66b9e152",
+        "employeeCode": "EMP-BM1-1791127346034",
+        "firstName": "BM1",
+        "lastName": "Manager",
+        "designation": null,
+        "branchId": "c550ac52-9b89-4832-94c5-a5f77ded8c19",
+        "branch": {
+          "id": "c550ac52-9b89-4832-94c5-a5f77ded8c19",
+          "name": "Test Branch A (Jaipur)",
+          "franchiseId": "8ebf9966-45e0-465a-a2ee-a96c349774b2",
+          "franchise": {
+            "id": "8ebf9966-45e0-465a-a2ee-a96c349774b2",
+            "name": "Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "f0cc85d0-f005-42b1-ac45-46f72d60ed4a",
+            "employeeId": "72b5cb2b-0e63-425b-9ebb-297c66b9e152",
+            "roleId": "c4976cef-26e0-4306-8d60-48d164285741",
+            "assignedAt": "2026-10-04T15:22:26.037Z",
+            "assignedBy": null,
+            "role": {
+              "id": "c4976cef-26e0-4306-8d60-48d164285741",
+              "name": "BRANCH_MANAGER",
+              "rank": 5
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "1171c82c-dd78-4f82-bee7-d1de19a02811",
+      "email": "admin-test-1791127345097@titanauto.com",
+      "phone": null,
+      "accountType": "SUPER_ADMIN",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:22:25.100Z",
+      "employeeProfile": {
+        "id": "88e4e156-e828-457f-b780-8ae7117149f8",
+        "employeeCode": "EMP-ADM-1791127345101",
+        "firstName": "Super",
+        "lastName": "Admin",
+        "designation": null,
+        "branchId": "c550ac52-9b89-4832-94c5-a5f77ded8c19",
+        "branch": {
+          "id": "c550ac52-9b89-4832-94c5-a5f77ded8c19",
+          "name": "Test Branch A (Jaipur)",
+          "franchiseId": "8ebf9966-45e0-465a-a2ee-a96c349774b2",
+          "franchise": {
+            "id": "8ebf9966-45e0-465a-a2ee-a96c349774b2",
+            "name": "Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "4414506d-21d0-4381-8b62-59fcd0bba1f1",
+            "employeeId": "88e4e156-e828-457f-b780-8ae7117149f8",
+            "roleId": "00d44926-c14e-411b-9cd0-674305095469",
+            "assignedAt": "2026-10-04T15:22:25.104Z",
+            "assignedBy": null,
+            "role": {
+              "id": "00d44926-c14e-411b-9cd0-674305095469",
+              "name": "SUPER_ADMIN",
+              "rank": 1
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "3e4d37bc-bf65-4126-9b8f-14478f00d71c",
+      "email": "new-mechanic-1791127345773@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "INACTIVE",
+      "createdAt": "2026-10-04T15:22:25.854Z",
+      "employeeProfile": {
+        "id": "da77abfd-82f0-46ab-aea0-775ee5811f93",
+        "employeeCode": "EMP-JD-1791127345773",
+        "firstName": "John",
+        "lastName": "Doe",
+        "designation": null,
+        "branchId": "c550ac52-9b89-4832-94c5-a5f77ded8c19",
+        "branch": {
+          "id": "c550ac52-9b89-4832-94c5-a5f77ded8c19",
+          "name": "Test Branch A (Jaipur)",
+          "franchiseId": "8ebf9966-45e0-465a-a2ee-a96c349774b2",
+          "franchise": {
+            "id": "8ebf9966-45e0-465a-a2ee-a96c349774b2",
+            "name": "Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "ae64465b-ab28-4614-a99d-14d6f96a2919",
+            "employeeId": "da77abfd-82f0-46ab-aea0-775ee5811f93",
+            "roleId": "a1225fb6-9c63-47fe-a15b-00831813d5ec",
+            "assignedAt": "2026-10-04T15:22:25.975Z",
+            "assignedBy": "1171c82c-dd78-4f82-bee7-d1de19a02811",
+            "role": {
+              "id": "a1225fb6-9c63-47fe-a15b-00831813d5ec",
+              "name": "MECHANIC",
+              "rank": 7
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "d2a87f89-c367-4d54-88a1-378f11c03612",
+      "email": "bm2-1791127346038@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:22:26.040Z",
+      "employeeProfile": {
+        "id": "6aca53a8-704d-4c8f-ac77-86318b7b9d50",
+        "employeeCode": "EMP-BM2-1791127346040",
+        "firstName": "BM2",
+        "lastName": "Manager",
+        "designation": null,
+        "branchId": "c550ac52-9b89-4832-94c5-a5f77ded8c19",
+        "branch": {
+          "id": "c550ac52-9b89-4832-94c5-a5f77ded8c19",
+          "name": "Test Branch A (Jaipur)",
+          "franchiseId": "8ebf9966-45e0-465a-a2ee-a96c349774b2",
+          "franchise": {
+            "id": "8ebf9966-45e0-465a-a2ee-a96c349774b2",
+            "name": "Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "33d99a23-0779-4e06-824d-0ab91e0ae534",
+            "employeeId": "6aca53a8-704d-4c8f-ac77-86318b7b9d50",
+            "roleId": "c4976cef-26e0-4306-8d60-48d164285741",
+            "assignedAt": "2026-10-04T15:22:26.043Z",
+            "assignedBy": null,
+            "role": {
+              "id": "c4976cef-26e0-4306-8d60-48d164285741",
+              "name": "BRANCH_MANAGER",
+              "rank": 5
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "722d5ef9-622f-4aad-a5df-2ec0123bc8ef",
+      "email": "mechanic-1791127356865@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:22:36.866Z",
+      "employeeProfile": {
+        "id": "ef7a8dd1-dbbd-4da0-bc41-5a06cea122b9",
+        "employeeCode": "MCH-P3-1791127356874",
+        "firstName": "Master",
+        "lastName": "Mechanic",
+        "designation": "Heavy Commercial Vehicle Technician",
+        "branchId": "e6817869-dd41-45ec-bcfc-7594994df684",
+        "branch": {
+          "id": "e6817869-dd41-45ec-bcfc-7594994df684",
+          "name": "Phase 3 Service Center",
+          "franchiseId": "08ee4007-61d8-4073-9149-8c53ade24c41",
+          "franchise": {
+            "id": "08ee4007-61d8-4073-9149-8c53ade24c41",
+            "name": "Phase 3 Service Franchise"
+          }
+        },
+        "roleAssignments": []
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "fafb1c6d-f163-4aef-9899-f8d66860a66f",
+      "email": "p3admin-1791127356852@titanauto.com",
+      "phone": null,
+      "accountType": "SUPER_ADMIN",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:22:36.853Z",
+      "employeeProfile": {
+        "id": "85bfb343-3f71-4ff3-9505-85eb598f89e9",
+        "employeeCode": "ADV-P3-1791127356856",
+        "firstName": "Service",
+        "lastName": "Advisor",
+        "designation": "Senior Service Advisor",
+        "branchId": "e6817869-dd41-45ec-bcfc-7594994df684",
+        "branch": {
+          "id": "e6817869-dd41-45ec-bcfc-7594994df684",
+          "name": "Phase 3 Service Center",
+          "franchiseId": "08ee4007-61d8-4073-9149-8c53ade24c41",
+          "franchise": {
+            "id": "08ee4007-61d8-4073-9149-8c53ade24c41",
+            "name": "Phase 3 Service Franchise"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "dbf5d9a7-4e4c-44a1-8e06-f56ecd95a4d2",
+            "employeeId": "85bfb343-3f71-4ff3-9505-85eb598f89e9",
+            "roleId": "00d44926-c14e-411b-9cd0-674305095469",
+            "assignedAt": "2026-10-04T15:22:36.878Z",
+            "assignedBy": null,
+            "role": {
+              "id": "00d44926-c14e-411b-9cd0-674305095469",
+              "name": "SUPER_ADMIN",
+              "rank": 1
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "4f27a0ec-6ace-4dd9-bf10-85f7d8f49265",
+      "email": "sa-appr-1791127356878@titanauto.com",
+      "phone": null,
+      "accountType": "SUPER_ADMIN",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:22:36.879Z",
+      "employeeProfile": {
+        "id": "af87e6c1-a4a2-4d44-9a26-2f3779b0802e",
+        "employeeCode": "EMP-SA-1791127356882",
+        "firstName": "Super",
+        "lastName": "Admin",
+        "designation": null,
+        "branchId": "6c2216ed-d040-4ccd-8d29-b83538e3a0e5",
+        "branch": {
+          "id": "6c2216ed-d040-4ccd-8d29-b83538e3a0e5",
+          "name": "Branch A",
+          "franchiseId": "078a6ebf-4c43-4c2b-a0cb-18e998fa6b77",
+          "franchise": {
+            "id": "078a6ebf-4c43-4c2b-a0cb-18e998fa6b77",
+            "name": "Approval Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "dc3656cc-3b3e-4f17-add7-4b38e5b8368f",
+            "employeeId": "af87e6c1-a4a2-4d44-9a26-2f3779b0802e",
+            "roleId": "00d44926-c14e-411b-9cd0-674305095469",
+            "assignedAt": "2026-10-04T15:22:36.883Z",
+            "assignedBy": null,
+            "role": {
+              "id": "00d44926-c14e-411b-9cd0-674305095469",
+              "name": "SUPER_ADMIN",
+              "rank": 1
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "0d2a4ae0-8301-4dcf-8ce8-e0694e16d0dc",
+      "email": "customer@rajasthanlogistics.com",
+      "phone": null,
+      "accountType": "CUSTOMER",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:05:40.380Z",
+      "employeeProfile": null,
+      "customerProfile": {
+        "id": "253668b0-0895-4cf5-944a-33f709361ab2",
+        "name": "Vikram Singh Shekhawat",
+        "email": "customer@rajasthanlogistics.com",
+        "phone": "+91 98290 12345",
+        "preferredBranchId": null
+      }
+    },
+    {
+      "id": "c24780fe-a575-41a5-9052-c9cd3b860c58",
+      "email": "manager.jaipur@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:05:40.324Z",
+      "employeeProfile": {
+        "id": "acdebbcd-b9f7-48e4-a351-907ab2405b82",
+        "employeeCode": "EMP-JAI-MGR01",
+        "firstName": "Rajesh",
+        "lastName": "Sharma",
+        "designation": "Branch General Manager",
+        "branchId": "8f146f47-f6d8-4909-8b85-996f444f701b",
+        "branch": {
+          "id": "8f146f47-f6d8-4909-8b85-996f444f701b",
+          "name": "Jaipur",
+          "franchiseId": "671bc0eb-1b3f-4592-89b6-3ffbf17232f0",
+          "franchise": {
+            "id": "671bc0eb-1b3f-4592-89b6-3ffbf17232f0",
+            "name": "Ashok Leyland Commercial Vehicles"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "a0c7a7d0-2f6a-4a9c-a5b3-f6f51891d065",
+            "employeeId": "acdebbcd-b9f7-48e4-a351-907ab2405b82",
+            "roleId": "c4976cef-26e0-4306-8d60-48d164285741",
+            "assignedAt": "2026-10-04T15:05:40.335Z",
+            "assignedBy": null,
+            "role": {
+              "id": "c4976cef-26e0-4306-8d60-48d164285741",
+              "name": "BRANCH_MANAGER",
+              "rank": 5
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "4d720454-ac2f-49e3-8643-ec0b7914de1f",
+      "email": "inactive-test-1791127356970@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "INACTIVE",
+      "createdAt": "2026-10-04T15:22:36.973Z",
+      "employeeProfile": null,
+      "customerProfile": null
+    },
+    {
+      "id": "84a602d7-7fc0-4620-9601-1d96f2d02547",
+      "email": "suspended-test-1791127356972@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "SUSPENDED",
+      "createdAt": "2026-10-04T15:22:36.975Z",
+      "employeeProfile": null,
+      "customerProfile": null
+    },
+    {
+      "id": "2affdce9-2b86-4784-a954-50ac061c75e8",
+      "email": "bm-a-1791127356901@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:22:36.902Z",
+      "employeeProfile": {
+        "id": "91035778-dc49-4521-a416-a94db7ad2cc5",
+        "employeeCode": "EMP-BMA-1791127356905",
+        "firstName": "Manager",
+        "lastName": "BranchA",
+        "designation": null,
+        "branchId": "6c2216ed-d040-4ccd-8d29-b83538e3a0e5",
+        "branch": {
+          "id": "6c2216ed-d040-4ccd-8d29-b83538e3a0e5",
+          "name": "Branch A",
+          "franchiseId": "078a6ebf-4c43-4c2b-a0cb-18e998fa6b77",
+          "franchise": {
+            "id": "078a6ebf-4c43-4c2b-a0cb-18e998fa6b77",
+            "name": "Approval Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "2454f453-291f-40a4-94f6-15c0382d98b3",
+            "employeeId": "91035778-dc49-4521-a416-a94db7ad2cc5",
+            "roleId": "c4976cef-26e0-4306-8d60-48d164285741",
+            "assignedAt": "2026-10-04T15:22:36.906Z",
+            "assignedBy": null,
+            "role": {
+              "id": "c4976cef-26e0-4306-8d60-48d164285741",
+              "name": "BRANCH_MANAGER",
+              "rank": 5
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "894ab54f-8858-409f-858a-8c4ddad39250",
+      "email": "bm-test-1791127356949@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:22:36.952Z",
+      "employeeProfile": {
+        "id": "32e2d9b4-4ebd-4cab-a0b5-011d86f8a8e0",
+        "employeeCode": "EMP-BM-1791127356951",
+        "firstName": "Branch",
+        "lastName": "Manager",
+        "designation": null,
+        "branchId": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+        "branch": {
+          "id": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+          "name": "Test Branch A (Jaipur)",
+          "franchiseId": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+          "franchise": {
+            "id": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+            "name": "Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "c3efc02a-b281-454f-a249-30a54b5bdab7",
+            "employeeId": "32e2d9b4-4ebd-4cab-a0b5-011d86f8a8e0",
+            "roleId": "c4976cef-26e0-4306-8d60-48d164285741",
+            "assignedAt": "2026-10-04T15:22:36.954Z",
+            "assignedBy": null,
+            "role": {
+              "id": "c4976cef-26e0-4306-8d60-48d164285741",
+              "name": "BRANCH_MANAGER",
+              "rank": 5
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "c043b1d1-147d-4b43-a308-368c15d9c04f",
+      "email": "bm-b-1791127356910@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:22:36.911Z",
+      "employeeProfile": {
+        "id": "b4f99b7e-3223-46b3-b2a4-ccd915ceee5f",
+        "employeeCode": "EMP-BMB-1791127356912",
+        "firstName": "Manager",
+        "lastName": "BranchB",
+        "designation": null,
+        "branchId": "b46b7b90-d0f4-4c00-abbb-50a613b657ee",
+        "branch": {
+          "id": "b46b7b90-d0f4-4c00-abbb-50a613b657ee",
+          "name": "Branch B",
+          "franchiseId": "078a6ebf-4c43-4c2b-a0cb-18e998fa6b77",
+          "franchise": {
+            "id": "078a6ebf-4c43-4c2b-a0cb-18e998fa6b77",
+            "name": "Approval Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "aa9ddc93-29df-4067-872e-53e24093b2f3",
+            "employeeId": "b4f99b7e-3223-46b3-b2a4-ccd915ceee5f",
+            "roleId": "c4976cef-26e0-4306-8d60-48d164285741",
+            "assignedAt": "2026-10-04T15:22:36.913Z",
+            "assignedBy": null,
+            "role": {
+              "id": "c4976cef-26e0-4306-8d60-48d164285741",
+              "name": "BRANCH_MANAGER",
+              "rank": 5
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "69548009-9ccb-4fcb-8e2d-5dc8079df0b7",
+      "email": "mech-test-1791127356957@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:22:36.959Z",
+      "employeeProfile": {
+        "id": "675c95cc-f955-4f40-aca0-0448b4165c2d",
+        "employeeCode": "EMP-MECH-1791127356959",
+        "firstName": "Service",
+        "lastName": "Mechanic",
+        "designation": null,
+        "branchId": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+        "branch": {
+          "id": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+          "name": "Test Branch A (Jaipur)",
+          "franchiseId": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+          "franchise": {
+            "id": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+            "name": "Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "96803f1e-54f3-4ba1-9bf0-caeea5f7f120",
+            "employeeId": "675c95cc-f955-4f40-aca0-0448b4165c2d",
+            "roleId": "a1225fb6-9c63-47fe-a15b-00831813d5ec",
+            "assignedAt": "2026-10-04T15:22:36.961Z",
+            "assignedBy": null,
+            "role": {
+              "id": "a1225fb6-9c63-47fe-a15b-00831813d5ec",
+              "name": "MECHANIC",
+              "rank": 7
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "e27871c2-44c9-4bb3-87b9-051b6dff9a42",
+      "email": "cust-appr-1791127356921@titanauto.com",
+      "phone": null,
+      "accountType": "CUSTOMER",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:22:36.922Z",
+      "employeeProfile": null,
+      "customerProfile": null
+    },
+    {
+      "id": "4cc90016-01e2-49ef-ae67-c2281c4db94e",
+      "email": "customer-test-1791127356967@titanauto.com",
+      "phone": null,
+      "accountType": "CUSTOMER",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:22:36.970Z",
+      "employeeProfile": null,
+      "customerProfile": null
+    },
+    {
+      "id": "fce85911-decc-4551-9902-6f7832f8e19a",
+      "email": "admin-test-1791127356933@titanauto.com",
+      "phone": null,
+      "accountType": "SUPER_ADMIN",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:22:36.936Z",
+      "employeeProfile": {
+        "id": "e0afd46d-eee9-4c4a-bf27-ea446d4949a4",
+        "employeeCode": "EMP-ADM-1791127356938",
+        "firstName": "Super",
+        "lastName": "Admin",
+        "designation": null,
+        "branchId": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+        "branch": {
+          "id": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+          "name": "Test Branch A (Jaipur)",
+          "franchiseId": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+          "franchise": {
+            "id": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+            "name": "Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "e87f7643-02e4-4bbe-85a4-8f5e40faa5e0",
+            "employeeId": "e0afd46d-eee9-4c4a-bf27-ea446d4949a4",
+            "roleId": "00d44926-c14e-411b-9cd0-674305095469",
+            "assignedAt": "2026-10-04T15:22:36.941Z",
+            "assignedBy": null,
+            "role": {
+              "id": "00d44926-c14e-411b-9cd0-674305095469",
+              "name": "SUPER_ADMIN",
+              "rank": 1
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "43ac397e-aff4-49fb-93a4-e3ea1041d2e6",
+      "email": "new-mechanic-1791127357637@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "INACTIVE",
+      "createdAt": "2026-10-04T15:22:37.724Z",
+      "employeeProfile": {
+        "id": "b3f224e4-387c-430e-bbc1-363b20833f3e",
+        "employeeCode": "EMP-JD-1791127357637",
+        "firstName": "John",
+        "lastName": "Doe",
+        "designation": null,
+        "branchId": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+        "branch": {
+          "id": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+          "name": "Test Branch A (Jaipur)",
+          "franchiseId": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+          "franchise": {
+            "id": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+            "name": "Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "0b3494f0-68dd-4431-a2f1-72d2805bee2f",
+            "employeeId": "b3f224e4-387c-430e-bbc1-363b20833f3e",
+            "roleId": "a1225fb6-9c63-47fe-a15b-00831813d5ec",
+            "assignedAt": "2026-10-04T15:22:37.813Z",
+            "assignedBy": "fce85911-decc-4551-9902-6f7832f8e19a",
+            "role": {
+              "id": "a1225fb6-9c63-47fe-a15b-00831813d5ec",
+              "name": "MECHANIC",
+              "rank": 7
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "af85aa51-e1f1-44fe-a38e-3e184c6966d6",
+      "email": "bm1-1791127357867@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:22:37.869Z",
+      "employeeProfile": {
+        "id": "187beff1-0b7c-40e5-b70d-7eef4aae798d",
+        "employeeCode": "EMP-BM1-1791127357868",
+        "firstName": "BM1",
+        "lastName": "Manager",
+        "designation": null,
+        "branchId": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+        "branch": {
+          "id": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+          "name": "Test Branch A (Jaipur)",
+          "franchiseId": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+          "franchise": {
+            "id": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+            "name": "Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "9ccb628c-363e-4e85-8e2a-b93d802db98d",
+            "employeeId": "187beff1-0b7c-40e5-b70d-7eef4aae798d",
+            "roleId": "c4976cef-26e0-4306-8d60-48d164285741",
+            "assignedAt": "2026-10-04T15:22:37.871Z",
+            "assignedBy": null,
+            "role": {
+              "id": "c4976cef-26e0-4306-8d60-48d164285741",
+              "name": "BRANCH_MANAGER",
+              "rank": 5
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "0c8568d8-a8a1-433f-9a12-46ef56b135cf",
+      "email": "bm2-1791127357872@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:22:37.875Z",
+      "employeeProfile": {
+        "id": "0ab1d120-a414-40bb-a540-6f4a23b17f46",
+        "employeeCode": "EMP-BM2-1791127357874",
+        "firstName": "BM2",
+        "lastName": "Manager",
+        "designation": null,
+        "branchId": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+        "branch": {
+          "id": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+          "name": "Test Branch A (Jaipur)",
+          "franchiseId": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+          "franchise": {
+            "id": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+            "name": "Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "e359ac76-fdca-4d3f-bec1-dec09a7a26dc",
+            "employeeId": "0ab1d120-a414-40bb-a540-6f4a23b17f46",
+            "roleId": "c4976cef-26e0-4306-8d60-48d164285741",
+            "assignedAt": "2026-10-04T15:22:37.876Z",
+            "assignedBy": null,
+            "role": {
+              "id": "c4976cef-26e0-4306-8d60-48d164285741",
+              "name": "BRANCH_MANAGER",
+              "rank": 5
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "c8352fec-b73c-4f4b-a130-75a910c29e67",
+      "email": "p2admin-1791127356837@titanauto.com",
+      "phone": null,
+      "accountType": "SUPER_ADMIN",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:22:36.839Z",
+      "employeeProfile": {
+        "id": "a6aa9797-4bf5-4c67-8537-b0ea2b0a549d",
+        "employeeCode": "EMP-P2-1791127356841",
+        "firstName": "Phase2",
+        "lastName": "Admin",
+        "designation": null,
+        "branchId": "f7c975f3-eeb9-413f-80a4-d59b094dea21",
+        "branch": {
+          "id": "f7c975f3-eeb9-413f-80a4-d59b094dea21",
+          "name": "Phase 2 Main Branch",
+          "franchiseId": "a2180e97-ed24-4fc6-8019-ba410c4ac607",
+          "franchise": {
+            "id": "a2180e97-ed24-4fc6-8019-ba410c4ac607",
+            "name": "Phase 2 Test Franchise"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "f993a257-7c52-495f-b5e7-23af7bd62840",
+            "employeeId": "a6aa9797-4bf5-4c67-8537-b0ea2b0a549d",
+            "roleId": "00d44926-c14e-411b-9cd0-674305095469",
+            "assignedAt": "2026-10-04T15:22:36.848Z",
+            "assignedBy": null,
+            "role": {
+              "id": "00d44926-c14e-411b-9cd0-674305095469",
+              "name": "SUPER_ADMIN",
+              "rank": 1
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "21c33234-3696-4d7a-9ac6-53c0a5f9c871",
+      "email": "ravibhatt2406@gmail.com",
+      "phone": "09057496989",
+      "accountType": "EMPLOYEE",
+      "status": "PENDING",
+      "createdAt": "2026-10-04T15:34:38.005Z",
+      "employeeProfile": {
+        "id": "e310847a-14df-4b6d-9e48-fb96f2427766",
+        "employeeCode": "EMP-8673",
+        "firstName": "Ravi",
+        "lastName": "Bhatt",
+        "designation": "Staff",
+        "branchId": "a65ae802-714a-43e9-b8ca-a7bb0aad4487",
+        "branch": {
+          "id": "a65ae802-714a-43e9-b8ca-a7bb0aad4487",
+          "name": "Phase 3 Service Center",
+          "franchiseId": "38be3505-cd96-4007-bbe4-2ea86fdc1497",
+          "franchise": {
+            "id": "38be3505-cd96-4007-bbe4-2ea86fdc1497",
+            "name": "Phase 3 Service Franchise"
+          }
+        },
+        "roleAssignments": []
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "2da68072-bdc2-4dd3-9023-f827fa11b947",
+      "email": "manager.branch2.1792484426413@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T08:20:26.587Z",
+      "employeeProfile": {
+        "id": "015c4b60-8dba-4c37-9637-99ffeda6ef22",
+        "employeeCode": "SE-426413",
+        "firstName": "Branch2",
+        "lastName": "Sales",
+        "designation": null,
+        "branchId": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+        "branch": {
+          "id": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+          "name": "Test Branch A (Jaipur)",
+          "franchiseId": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+          "franchise": {
+            "id": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+            "name": "Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "8f82ec43-d80b-4bf1-b20d-092ad9aa1320",
+            "employeeId": "015c4b60-8dba-4c37-9637-99ffeda6ef22",
+            "roleId": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+            "assignedAt": "2026-10-20T08:20:26.767Z",
+            "assignedBy": "6e615919-94c1-4d29-bc5b-c87849479355",
+            "role": {
+              "id": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+              "name": "SALES_EMPLOYEE",
+              "rank": 7
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "498c0e1c-829b-4a36-87e7-a4d1eea9cb9e",
+      "email": "public_1792484885340@fleetuser.in",
+      "phone": "9770269209",
+      "accountType": "CUSTOMER",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T08:28:05.403Z",
+      "employeeProfile": null,
+      "customerProfile": {
+        "id": "d81d3576-7665-4210-ad54-f7db00c13b5c",
+        "name": "Arun FleetOps",
+        "email": "public_1792484885340@fleetuser.in",
+        "phone": "9770269209",
+        "preferredBranchId": null
+      }
+    },
+    {
+      "id": "9b3b92c9-1901-4064-93c8-0861c097f695",
+      "email": "public_1792485551508@fleetuser.in",
+      "phone": "9782384068",
+      "accountType": "CUSTOMER",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T08:39:11.574Z",
+      "employeeProfile": null,
+      "customerProfile": {
+        "id": "911153ec-92dd-4931-ac4a-0945f09bbe15",
+        "name": "Arun FleetOps",
+        "email": "public_1792485551508@fleetuser.in",
+        "phone": "9782384068",
+        "preferredBranchId": null
+      }
+    },
+    {
+      "id": "f9592be6-5f64-4d3b-85e0-aa826b5e6a91",
+      "email": "public_1792482660304@fleetuser.in",
+      "phone": "9745498349",
+      "accountType": "CUSTOMER",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T07:51:00.576Z",
+      "employeeProfile": null,
+      "customerProfile": {
+        "id": "ee62d867-cb2d-4165-ac53-17cbe8a9a1f9",
+        "name": "Arun FleetOps",
+        "email": "public_1792482660304@fleetuser.in",
+        "phone": "9745498349",
+        "preferredBranchId": null
+      }
+    },
+    {
+      "id": "6eef8927-d184-4966-88a8-7e8ec4586260",
+      "email": "public_1792482693662@fleetuser.in",
+      "phone": "9788922774",
+      "accountType": "CUSTOMER",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T07:51:33.896Z",
+      "employeeProfile": null,
+      "customerProfile": {
+        "id": "5272339d-00a0-4d1c-b472-aece1c9f5bfe",
+        "name": "Arun FleetOps",
+        "email": "public_1792482693662@fleetuser.in",
+        "phone": "9788922774",
+        "preferredBranchId": null
+      }
+    },
+    {
+      "id": "6f5a6ada-e4b7-43c3-b374-1707dcc69207",
+      "email": "manager.branch2.1792484890066@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T08:28:10.134Z",
+      "employeeProfile": {
+        "id": "e6a4f556-2044-4872-a46f-bc27c7df743e",
+        "employeeCode": "SE-890066",
+        "firstName": "Branch2",
+        "lastName": "Sales",
+        "designation": null,
+        "branchId": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+        "branch": {
+          "id": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+          "name": "Test Branch A (Jaipur)",
+          "franchiseId": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+          "franchise": {
+            "id": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+            "name": "Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "e115de9b-7de8-4b6a-a2f8-50664ac19552",
+            "employeeId": "e6a4f556-2044-4872-a46f-bc27c7df743e",
+            "roleId": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+            "assignedAt": "2026-10-20T08:28:10.187Z",
+            "assignedBy": "6e615919-94c1-4d29-bc5b-c87849479355",
+            "role": {
+              "id": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+              "name": "SALES_EMPLOYEE",
+              "rank": 7
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "b2c28538-bf9d-43cb-add0-178d3a336a05",
+      "email": "public_1792482740520@fleetuser.in",
+      "phone": "9744604303",
+      "accountType": "CUSTOMER",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T07:52:20.759Z",
+      "employeeProfile": null,
+      "customerProfile": {
+        "id": "37861c98-8a84-47bf-b58f-dc301452e1de",
+        "name": "Arun FleetOps",
+        "email": "public_1792482740520@fleetuser.in",
+        "phone": "9744604303",
+        "preferredBranchId": null
+      }
+    },
+    {
+      "id": "6e615919-94c1-4d29-bc5b-c87849479355",
+      "email": "admin@titanauto.com",
+      "phone": null,
+      "accountType": "SUPER_ADMIN",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-04T15:05:40.254Z",
+      "employeeProfile": {
+        "id": "2932d940-fc95-4adf-a633-05bad78cd275",
+        "employeeCode": "EMP-ADM-001",
+        "firstName": "Alexander",
+        "lastName": "Vance",
+        "designation": "Global Platform Admin",
+        "branchId": "8f146f47-f6d8-4909-8b85-996f444f701b",
+        "branch": {
+          "id": "8f146f47-f6d8-4909-8b85-996f444f701b",
+          "name": "Jaipur",
+          "franchiseId": "671bc0eb-1b3f-4592-89b6-3ffbf17232f0",
+          "franchise": {
+            "id": "671bc0eb-1b3f-4592-89b6-3ffbf17232f0",
+            "name": "Ashok Leyland Commercial Vehicles"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "c8a9be59-80e4-4254-8d66-77383640bfde",
+            "employeeId": "2932d940-fc95-4adf-a633-05bad78cd275",
+            "roleId": "00d44926-c14e-411b-9cd0-674305095469",
+            "assignedAt": "2026-10-04T15:05:40.307Z",
+            "assignedBy": null,
+            "role": {
+              "id": "00d44926-c14e-411b-9cd0-674305095469",
+              "name": "SUPER_ADMIN",
+              "rank": 1
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "d79e13de-9984-4cfc-a95f-03edf8022920",
+      "email": "manager.branch2.1792485556312@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T08:39:16.385Z",
+      "employeeProfile": {
+        "id": "16d1008a-1aff-4ff7-93f3-3daa259a27db",
+        "employeeCode": "SE-556312",
+        "firstName": "Branch2",
+        "lastName": "Sales",
+        "designation": null,
+        "branchId": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+        "branch": {
+          "id": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+          "name": "Test Branch A (Jaipur)",
+          "franchiseId": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+          "franchise": {
+            "id": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+            "name": "Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "929d0cd0-9e30-47e7-a0ff-d5005aa9ffe1",
+            "employeeId": "16d1008a-1aff-4ff7-93f3-3daa259a27db",
+            "roleId": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+            "assignedAt": "2026-10-20T08:39:16.462Z",
+            "assignedBy": "6e615919-94c1-4d29-bc5b-c87849479355",
+            "role": {
+              "id": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+              "name": "SALES_EMPLOYEE",
+              "rank": 7
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "169e6188-8f7c-435e-bed9-1bdb81926379",
+      "email": "customer.phase3.1792486926875@titanfleet.in",
+      "phone": "+919874697828",
+      "accountType": "CUSTOMER",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T09:02:06.940Z",
+      "employeeProfile": null,
+      "customerProfile": {
+        "id": "68644b64-a261-40b9-83d3-d57f30953c94",
+        "name": "Phase3 Logistics Fleet",
+        "email": "customer.phase3.1792486926875@titanfleet.in",
+        "phone": "+919874697828",
+        "preferredBranchId": null
+      }
+    },
+    {
+      "id": "eff13cc5-ca3c-4120-a11a-73a1456e15ad",
+      "email": "customer.phase3.1792487111041@titanfleet.in",
+      "phone": "+919879211660",
+      "accountType": "CUSTOMER",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T09:05:11.104Z",
+      "employeeProfile": null,
+      "customerProfile": {
+        "id": "18fc005a-0f64-4e8f-86c9-cbb48111f69b",
+        "name": "Phase3 Logistics Fleet",
+        "email": "customer.phase3.1792487111041@titanfleet.in",
+        "phone": "+919879211660",
+        "preferredBranchId": null
+      }
+    },
+    {
+      "id": "629be998-0276-4d30-be67-870f3d1ecda7",
+      "email": "customer.phase3.1792487164008@titanfleet.in",
+      "phone": "+919876856680",
+      "accountType": "CUSTOMER",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T09:06:04.077Z",
+      "employeeProfile": null,
+      "customerProfile": {
+        "id": "a1febbcd-b9ef-48b1-8d31-8332709fcd23",
+        "name": "Phase3 Logistics Fleet",
+        "email": "customer.phase3.1792487164008@titanfleet.in",
+        "phone": "+919876856680",
+        "preferredBranchId": null
+      }
+    },
+    {
+      "id": "e53275ce-2b27-4e44-889c-55d5609c3298",
+      "email": "test.manager.b2.1792487164343@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T09:06:04.414Z",
+      "employeeProfile": {
+        "id": "cb845e65-d194-463e-9435-fab96d03e693",
+        "employeeCode": "SE-164343",
+        "firstName": "Branch2",
+        "lastName": "Manager",
+        "designation": null,
+        "branchId": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+        "branch": {
+          "id": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+          "name": "Test Branch A (Jaipur)",
+          "franchiseId": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+          "franchise": {
+            "id": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+            "name": "Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "c9b92206-e104-425e-ae1d-75f4b06397c3",
+            "employeeId": "cb845e65-d194-463e-9435-fab96d03e693",
+            "roleId": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+            "assignedAt": "2026-10-20T09:06:04.475Z",
+            "assignedBy": "6e615919-94c1-4d29-bc5b-c87849479355",
+            "role": {
+              "id": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+              "name": "SALES_EMPLOYEE",
+              "rank": 7
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "7d25ad00-c7f5-424e-bc01-5e73b5873b6f",
+      "email": "public_1792487168993@fleetuser.in",
+      "phone": "9723603582",
+      "accountType": "CUSTOMER",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T09:06:09.056Z",
+      "employeeProfile": null,
+      "customerProfile": {
+        "id": "101dcf23-82ae-40a2-a26a-32dcea9a96cd",
+        "name": "Arun FleetOps",
+        "email": "public_1792487168993@fleetuser.in",
+        "phone": "9723603582",
+        "preferredBranchId": null
+      }
+    },
+    {
+      "id": "81495843-ed69-4e43-ad12-0502e03029a3",
+      "email": "manager.ann.b2.1792490456827@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T10:00:56.899Z",
+      "employeeProfile": {
+        "id": "cecbbe9d-d04f-4279-9f3c-6bd2bc82d5f3",
+        "employeeCode": "BO-456827",
+        "firstName": "Branch2",
+        "lastName": "Operations",
+        "designation": null,
+        "branchId": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+        "branch": {
+          "id": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+          "name": "Test Branch A (Jaipur)",
+          "franchiseId": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+          "franchise": {
+            "id": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+            "name": "Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "f4041240-d645-4823-93e3-7873779c70f4",
+            "employeeId": "cecbbe9d-d04f-4279-9f3c-6bd2bc82d5f3",
+            "roleId": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+            "assignedAt": "2026-10-20T10:00:56.946Z",
+            "assignedBy": "6e615919-94c1-4d29-bc5b-c87849479355",
+            "role": {
+              "id": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+              "name": "SALES_EMPLOYEE",
+              "rank": 7
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "e10bfe7a-8800-4175-a15d-1d0c9d6f071d",
+      "email": "manager.branch2.1792487175719@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T09:06:15.789Z",
+      "employeeProfile": {
+        "id": "19cd5258-e0eb-4532-88cc-d8dde9780d82",
+        "employeeCode": "SE-175719",
+        "firstName": "Branch2",
+        "lastName": "Sales",
+        "designation": null,
+        "branchId": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+        "branch": {
+          "id": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+          "name": "Test Branch A (Jaipur)",
+          "franchiseId": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+          "franchise": {
+            "id": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+            "name": "Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "1263aac1-0dc2-482e-9546-2ca476a9785b",
+            "employeeId": "19cd5258-e0eb-4532-88cc-d8dde9780d82",
+            "roleId": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+            "assignedAt": "2026-10-20T09:06:15.838Z",
+            "assignedBy": "6e615919-94c1-4d29-bc5b-c87849479355",
+            "role": {
+              "id": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+              "name": "SALES_EMPLOYEE",
+              "rank": 7
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "15106a80-00f3-491b-b1b7-738dc6ec7afc",
+      "email": "customer.phase3.1792489152219@titanfleet.in",
+      "phone": "+919878634935",
+      "accountType": "CUSTOMER",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T09:39:12.283Z",
+      "employeeProfile": null,
+      "customerProfile": {
+        "id": "69dc7c0b-d860-4421-909a-81a2f4e95636",
+        "name": "Phase3 Logistics Fleet",
+        "email": "customer.phase3.1792489152219@titanfleet.in",
+        "phone": "+919878634935",
+        "preferredBranchId": null
+      }
+    },
+    {
+      "id": "4d5e0713-6ce6-4e1d-ad37-2083401e8f76",
+      "email": "public_1792490461711@fleetuser.in",
+      "phone": "9745888480",
+      "accountType": "CUSTOMER",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T10:01:01.771Z",
+      "employeeProfile": null,
+      "customerProfile": {
+        "id": "8ee125a3-99a1-4707-9a1b-53a6d9d3a444",
+        "name": "Arun FleetOps",
+        "email": "public_1792490461711@fleetuser.in",
+        "phone": "9745888480",
+        "preferredBranchId": null
+      }
+    },
+    {
+      "id": "a81d4cb4-f018-428b-8c6d-d9e5372b9e0e",
+      "email": "test.manager.b2.1792489152536@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T09:39:12.607Z",
+      "employeeProfile": {
+        "id": "cb660482-95b5-4743-8592-112602f49290",
+        "employeeCode": "SE-152536",
+        "firstName": "Branch2",
+        "lastName": "Manager",
+        "designation": null,
+        "branchId": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+        "branch": {
+          "id": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+          "name": "Test Branch A (Jaipur)",
+          "franchiseId": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+          "franchise": {
+            "id": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+            "name": "Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "7522ea39-3e7d-486b-831f-557925c8373d",
+            "employeeId": "cb660482-95b5-4743-8592-112602f49290",
+            "roleId": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+            "assignedAt": "2026-10-20T09:39:12.665Z",
+            "assignedBy": "6e615919-94c1-4d29-bc5b-c87849479355",
+            "role": {
+              "id": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+              "name": "SALES_EMPLOYEE",
+              "rank": 7
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "0286b1be-386c-4062-b4ef-33b9083c20f0",
+      "email": "manager.ann.b2.1792513373425@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T16:22:53.608Z",
+      "employeeProfile": {
+        "id": "254e199b-cdac-4c33-aa88-2035f42d101e",
+        "employeeCode": "BO-373425",
+        "firstName": "Branch2",
+        "lastName": "Operations",
+        "designation": null,
+        "branchId": "afbdfbbf-a027-49ea-b148-0aecf2f4a754",
+        "branch": {
+          "id": "afbdfbbf-a027-49ea-b148-0aecf2f4a754",
+          "name": "Jaipur Express Hub 1792512950238",
+          "franchiseId": "81327ff7-b244-4951-b7a7-b287ec7d954a",
+          "franchise": {
+            "id": "81327ff7-b244-4951-b7a7-b287ec7d954a",
+            "name": "Titan North Trucks Hub 1792512950238"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "89ded5d4-1dbb-4d11-847d-8a2895e73210",
+            "employeeId": "254e199b-cdac-4c33-aa88-2035f42d101e",
+            "roleId": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+            "assignedAt": "2026-10-20T16:22:53.764Z",
+            "assignedBy": "6e615919-94c1-4d29-bc5b-c87849479355",
+            "role": {
+              "id": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+              "name": "SALES_EMPLOYEE",
+              "rank": 7
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "63c245d9-a61e-41d7-b876-c411c488cd73",
+      "email": "test.manager.b2.1792490473374@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T10:01:13.445Z",
+      "employeeProfile": {
+        "id": "52730fb6-7bd8-4829-ae32-93e9df089c41",
+        "employeeCode": "SE-473374",
+        "firstName": "Branch2",
+        "lastName": "Manager",
+        "designation": null,
+        "branchId": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+        "branch": {
+          "id": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+          "name": "Test Branch A (Jaipur)",
+          "franchiseId": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+          "franchise": {
+            "id": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+            "name": "Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "03617aae-8ba5-4c9b-8ac0-897d40d50c4d",
+            "employeeId": "52730fb6-7bd8-4829-ae32-93e9df089c41",
+            "roleId": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+            "assignedAt": "2026-10-20T10:01:13.498Z",
+            "assignedBy": "6e615919-94c1-4d29-bc5b-c87849479355",
+            "role": {
+              "id": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+              "name": "SALES_EMPLOYEE",
+              "rank": 7
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "60d3955a-6a7f-4215-9332-a9728766331c",
+      "email": "customer.phase3.1792493031125@titanfleet.in",
+      "phone": "+919874632308",
+      "accountType": "CUSTOMER",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T10:43:51.186Z",
+      "employeeProfile": null,
+      "customerProfile": {
+        "id": "102ae0f8-d6cc-4ae8-88ff-f51d467542bc",
+        "name": "Phase3 Logistics Fleet",
+        "email": "customer.phase3.1792493031125@titanfleet.in",
+        "phone": "+919874632308",
+        "preferredBranchId": null
+      }
+    },
+    {
+      "id": "537d7deb-435d-45ef-a164-61fbbcc4cfcd",
+      "email": "manager.branch2.1792493246002@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T10:47:26.073Z",
+      "employeeProfile": {
+        "id": "4a3a0d99-44df-43af-8c13-7b6bb702613d",
+        "employeeCode": "SE-246002",
+        "firstName": "Branch2",
+        "lastName": "Sales",
+        "designation": null,
+        "branchId": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+        "branch": {
+          "id": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+          "name": "Test Branch A (Jaipur)",
+          "franchiseId": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+          "franchise": {
+            "id": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+            "name": "Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "a9c7f697-8eac-43f9-a673-70b654dae535",
+            "employeeId": "4a3a0d99-44df-43af-8c13-7b6bb702613d",
+            "roleId": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+            "assignedAt": "2026-10-20T10:47:26.125Z",
+            "assignedBy": "6e615919-94c1-4d29-bc5b-c87849479355",
+            "role": {
+              "id": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+              "name": "SALES_EMPLOYEE",
+              "rank": 7
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "5d78b38d-8e26-4ed1-9386-1ec3581f8327",
+      "email": "manager.ann.b2.1792493254917@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T10:47:34.986Z",
+      "employeeProfile": {
+        "id": "da2faa21-3e37-4c99-8e4a-2f9043242128",
+        "employeeCode": "BO-254917",
+        "firstName": "Branch2",
+        "lastName": "Operations",
+        "designation": null,
+        "branchId": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+        "branch": {
+          "id": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+          "name": "Test Branch A (Jaipur)",
+          "franchiseId": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+          "franchise": {
+            "id": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+            "name": "Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "2501069b-4c88-4e39-9775-8477a90d5dac",
+            "employeeId": "da2faa21-3e37-4c99-8e4a-2f9043242128",
+            "roleId": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+            "assignedAt": "2026-10-20T10:47:35.033Z",
+            "assignedBy": "6e615919-94c1-4d29-bc5b-c87849479355",
+            "role": {
+              "id": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+              "name": "SALES_EMPLOYEE",
+              "rank": 7
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "0309d1b1-12eb-4bca-a101-a36f211efd5a",
+      "email": "customer.phase3.1792493469596@titanfleet.in",
+      "phone": "+919878630466",
+      "accountType": "CUSTOMER",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T10:51:09.658Z",
+      "employeeProfile": null,
+      "customerProfile": {
+        "id": "0bd474fd-5e7e-4cef-95b3-251d56147b16",
+        "name": "Phase3 Logistics Fleet",
+        "email": "customer.phase3.1792493469596@titanfleet.in",
+        "phone": "+919878630466",
+        "preferredBranchId": null
+      }
+    },
+    {
+      "id": "d8b49d0f-f328-41f6-8dcf-cc1ce049881c",
+      "email": "manager.branch2.1792513446242@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T16:24:06.413Z",
+      "employeeProfile": {
+        "id": "4ad6a60d-5850-49a5-815f-41da0e61f028",
+        "employeeCode": "EM-446242",
+        "firstName": "Branch2",
+        "lastName": "Manager",
+        "designation": null,
+        "branchId": "afbdfbbf-a027-49ea-b148-0aecf2f4a754",
+        "branch": {
+          "id": "afbdfbbf-a027-49ea-b148-0aecf2f4a754",
+          "name": "Jaipur Express Hub 1792512950238",
+          "franchiseId": "81327ff7-b244-4951-b7a7-b287ec7d954a",
+          "franchise": {
+            "id": "81327ff7-b244-4951-b7a7-b287ec7d954a",
+            "name": "Titan North Trucks Hub 1792512950238"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "c0d6543d-e6bc-419d-8193-3d57b8cc4148",
+            "employeeId": "4ad6a60d-5850-49a5-815f-41da0e61f028",
+            "roleId": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+            "assignedAt": "2026-10-20T16:24:06.594Z",
+            "assignedBy": "6e615919-94c1-4d29-bc5b-c87849479355",
+            "role": {
+              "id": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+              "name": "SALES_EMPLOYEE",
+              "rank": 7
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "e3f5a116-38ed-415f-94ca-4d17eda72d38",
+      "email": "test.manager.b2.1792493469901@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T10:51:09.972Z",
+      "employeeProfile": {
+        "id": "8e4f1fa5-403f-4b9f-835d-2efae5773f35",
+        "employeeCode": "SE-469901",
+        "firstName": "Branch2",
+        "lastName": "Manager",
+        "designation": null,
+        "branchId": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+        "branch": {
+          "id": "03777e88-eb9a-4eeb-acc4-7140cd3a2e42",
+          "name": "Test Branch A (Jaipur)",
+          "franchiseId": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+          "franchise": {
+            "id": "14c1a4d0-99b2-46a7-9c6d-6eedbec5ecf8",
+            "name": "Test Franchise A"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "46a9673d-ad98-40ba-a92c-524b4f1a6d95",
+            "employeeId": "8e4f1fa5-403f-4b9f-835d-2efae5773f35",
+            "roleId": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+            "assignedAt": "2026-10-20T10:51:10.024Z",
+            "assignedBy": "6e615919-94c1-4d29-bc5b-c87849479355",
+            "role": {
+              "id": "4f88d1ec-52b2-419b-84ab-04c3c9f3c0b4",
+              "name": "SALES_EMPLOYEE",
+              "rank": 7
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "ac96efe1-ab03-4e60-a64b-321a0dbd57db",
+      "email": "sa.p1.1792512788288@titanauto.com",
+      "phone": null,
+      "accountType": "SUPER_ADMIN",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T16:13:08.383Z",
+      "employeeProfile": {
+        "id": "319bad19-287c-4fb7-aadd-d49b3141150d",
+        "employeeCode": "EMP-SA-P1-1792512788288",
+        "firstName": "Super",
+        "lastName": "Admin",
+        "designation": "Managing Director",
+        "branchId": "49bc76c7-6b71-4dac-8e82-28be880bfebd",
+        "branch": {
+          "id": "49bc76c7-6b71-4dac-8e82-28be880bfebd",
+          "name": "Delhi North Hub 1792512788288",
+          "franchiseId": "96aa23dc-d6b9-47d0-a6cb-79f358213ea3",
+          "franchise": {
+            "id": "96aa23dc-d6b9-47d0-a6cb-79f358213ea3",
+            "name": "Titan North Trucks Hub 1792512788288"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "9d4118e8-88bb-44d0-8f6c-2c8ce18d0c04",
+            "employeeId": "319bad19-287c-4fb7-aadd-d49b3141150d",
+            "roleId": "00d44926-c14e-411b-9cd0-674305095469",
+            "assignedAt": "2026-10-20T16:13:08.383Z",
+            "assignedBy": null,
+            "role": {
+              "id": "00d44926-c14e-411b-9cd0-674305095469",
+              "name": "SUPER_ADMIN",
+              "rank": 1
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "1fbeb8bf-ea54-46b2-89c6-7029da3d44b1",
+      "email": "bmc2.p1.1792512788288@titanauto.com",
+      "phone": null,
+      "accountType": "EMPLOYEE",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T16:13:08.407Z",
+      "employeeProfile": {
+        "id": "c925974f-effa-4c15-887b-5a4fa803a56c",
+        "employeeCode": "EMP-BMC2-P1-1792512788288",
+        "firstName": "Praveen",
+        "lastName": "Gowda",
+        "designation": "Bengaluru Branch Manager",
+        "branchId": "1c77f0ba-3eac-40f1-b5f0-181b3e53955d",
+        "branch": {
+          "id": "1c77f0ba-3eac-40f1-b5f0-181b3e53955d",
+          "name": "Bengaluru Tech Hub 1792512788288",
+          "franchiseId": "fc14a13e-4ab5-4455-8174-7906a81e3e6c",
+          "franchise": {
+            "id": "fc14a13e-4ab5-4455-8174-7906a81e3e6c",
+            "name": "Titan South Logistics 1792512788288"
+          }
+        },
+        "roleAssignments": [
+          {
+            "id": "326733db-6855-4c7e-85e5-19337cf934e9",
+            "employeeId": "c925974f-effa-4c15-887b-5a4fa803a56c",
+            "roleId": "c4976cef-26e0-4306-8d60-48d164285741",
+            "assignedAt": "2026-10-20T16:13:08.407Z",
+            "assignedBy": null,
+            "role": {
+              "id": "c4976cef-26e0-4306-8d60-48d164285741",
+              "name": "BRANCH_MANAGER",
+              "rank": 5
+            }
+          }
+        ]
+      },
+      "customerProfile": null
+    },
+    {
+      "id": "73d5940d-d09c-4989-b758-bc134c31e8f9",
+      "email": "cust.p1.1792512788288@transport.com",
+      "phone": null,
+      "accountType": "CUSTOMER",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T16:13:08.410Z",
+      "employeeProfile": null,
+      "customerProfile": {
+        "id": "3398f12a-4cd3-499a-b0d4-ebb6200d72c9",
+        "name": "Hindustan Cargo Fleet 1792512788288",
+        "email": null,
+        "phone": "9212788288",
+        "preferredBranchId": "49bc76c7-6b71-4dac-8e82-28be880bfebd"
+      }
+    },
+    {
+      "id": "dd97709b-ae57-4dfa-bbe1-ff71e09bc908",
+      "email": "public_1792513348618@fleetuser.in",
+      "phone": "9742152842",
+      "accountType": "CUSTOMER",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T16:22:28.769Z",
+      "employeeProfile": null,
+      "customerProfile": {
+        "id": "9b90b4a4-de33-4a08-86b6-0b95ff056b8b",
+        "name": "Arun FleetOps",
+        "email": "public_1792513348618@fleetuser.in",
+        "phone": "9742152842",
+        "preferredBranchId": null
+      }
+    },
+    {
+      "id": "d8434a11-5abb-46b2-9324-681ffcb3371c",
+      "email": "customer.phase3.1792513363064@titanfleet.in",
+      "phone": "+919878003842",
+      "accountType": "CUSTOMER",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T16:22:43.186Z",
+      "employeeProfile": null,
+      "customerProfile": {
+        "id": "ea10cca7-c1c5-47ea-9674-5471160feefa",
+        "name": "Phase3 Logistics Fleet",
+        "email": "customer.phase3.1792513363064@titanfleet.in",
+        "phone": "+919878003842",
+        "preferredBranchId": null
+      }
+    },
+    {
+      "id": "be24ec6d-e9a4-429f-bd52-f421b18f12e8",
+      "email": "customer.sec.1792513446760@titanfleet.in",
+      "phone": "+919874150254",
+      "accountType": "CUSTOMER",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-20T16:24:06.900Z",
+      "employeeProfile": null,
+      "customerProfile": {
+        "id": "618cf63d-5127-4bcd-80b5-e539c0686469",
+        "name": "Secured Fleet Logistics",
+        "email": "customer.sec.1792513446760@titanfleet.in",
+        "phone": "+919874150254",
+        "preferredBranchId": null
+      }
+    }
+  ],
+  "foreignKeyConstraints": [
+    {
+      "table_name": "announcements",
+      "column_name": "branch_id",
+      "foreign_table_name": "branches",
+      "foreign_column_name": "id",
+      "delete_rule": "CASCADE"
+    },
+    {
+      "table_name": "bookings",
+      "column_name": "branch_id",
+      "foreign_table_name": "branches",
+      "foreign_column_name": "id",
+      "delete_rule": "RESTRICT"
+    },
+    {
+      "table_name": "campaigns",
+      "column_name": "branch_id",
+      "foreign_table_name": "branches",
+      "foreign_column_name": "id",
+      "delete_rule": "CASCADE"
+    },
+    {
+      "table_name": "conversations",
+      "column_name": "branch_id",
+      "foreign_table_name": "branches",
+      "foreign_column_name": "id",
+      "delete_rule": "CASCADE"
+    },
+    {
+      "table_name": "customer_reminders",
+      "column_name": "branch_id",
+      "foreign_table_name": "branches",
+      "foreign_column_name": "id",
+      "delete_rule": "CASCADE"
+    },
+    {
+      "table_name": "customers",
+      "column_name": "preferred_branch_id",
+      "foreign_table_name": "branches",
+      "foreign_column_name": "id",
+      "delete_rule": "SET NULL"
+    },
+    {
+      "table_name": "employees",
+      "column_name": "branch_id",
+      "foreign_table_name": "branches",
+      "foreign_column_name": "id",
+      "delete_rule": "CASCADE"
+    },
+    {
+      "table_name": "invoices",
+      "column_name": "branch_id",
+      "foreign_table_name": "branches",
+      "foreign_column_name": "id",
+      "delete_rule": "RESTRICT"
+    },
+    {
+      "table_name": "leads",
+      "column_name": "branch_id",
+      "foreign_table_name": "branches",
+      "foreign_column_name": "id",
+      "delete_rule": "CASCADE"
+    },
+    {
+      "table_name": "part_stocks",
+      "column_name": "branch_id",
+      "foreign_table_name": "branches",
+      "foreign_column_name": "id",
+      "delete_rule": "CASCADE"
+    },
+    {
+      "table_name": "quotations",
+      "column_name": "branch_id",
+      "foreign_table_name": "branches",
+      "foreign_column_name": "id",
+      "delete_rule": "RESTRICT"
+    },
+    {
+      "table_name": "service_appointments",
+      "column_name": "branch_id",
+      "foreign_table_name": "branches",
+      "foreign_column_name": "id",
+      "delete_rule": "RESTRICT"
+    },
+    {
+      "table_name": "service_jobs",
+      "column_name": "branch_id",
+      "foreign_table_name": "branches",
+      "foreign_column_name": "id",
+      "delete_rule": "RESTRICT"
+    },
+    {
+      "table_name": "vehicles",
+      "column_name": "branch_id",
+      "foreign_table_name": "branches",
+      "foreign_column_name": "id",
+      "delete_rule": "RESTRICT"
+    },
+    {
+      "table_name": "announcements",
+      "column_name": "franchise_id",
+      "foreign_table_name": "franchises",
+      "foreign_column_name": "id",
+      "delete_rule": "CASCADE"
+    },
+    {
+      "table_name": "branches",
+      "column_name": "franchise_id",
+      "foreign_table_name": "franchises",
+      "foreign_column_name": "id",
+      "delete_rule": "CASCADE"
+    },
+    {
+      "table_name": "campaigns",
+      "column_name": "franchise_id",
+      "foreign_table_name": "franchises",
+      "foreign_column_name": "id",
+      "delete_rule": "CASCADE"
+    },
+    {
+      "table_name": "customer_franchises",
+      "column_name": "franchise_id",
+      "foreign_table_name": "franchises",
+      "foreign_column_name": "id",
+      "delete_rule": "CASCADE"
+    },
+    {
+      "table_name": "invoices",
+      "column_name": "franchise_id",
+      "foreign_table_name": "franchises",
+      "foreign_column_name": "id",
+      "delete_rule": "RESTRICT"
+    },
+    {
+      "table_name": "leads",
+      "column_name": "franchise_id",
+      "foreign_table_name": "franchises",
+      "foreign_column_name": "id",
+      "delete_rule": "CASCADE"
+    },
+    {
+      "table_name": "quotations",
+      "column_name": "franchise_id",
+      "foreign_table_name": "franchises",
+      "foreign_column_name": "id",
+      "delete_rule": "RESTRICT"
+    }
+  ]
+}

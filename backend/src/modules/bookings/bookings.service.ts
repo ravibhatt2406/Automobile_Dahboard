@@ -81,11 +81,15 @@ export class BookingsService {
     }
 
     // Tenant boundary checks for non-superadmin internal users
+    const scope = user?.effectiveScope;
+    const allowedBranchId = scope?.effectiveBranchId || user.assignedBranchId || user.branchId;
+    const allowedFranchiseId = scope?.effectiveFranchiseId || user.assignedFranchiseId || user.franchiseId;
+
     if (!isSuperAdmin && !isCustomer) {
-      if (user?.branchId && user.branchId !== branch.id) {
+      if (allowedBranchId && allowedBranchId !== branch.id) {
         throw new ForbiddenException('Cannot create booking for another branch');
       }
-      if (user?.franchiseId && user.franchiseId !== branch.franchiseId) {
+      if (allowedFranchiseId && allowedFranchiseId !== branch.franchiseId) {
         throw new ForbiddenException('Cannot create booking for another franchise');
       }
     }

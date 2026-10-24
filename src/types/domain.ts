@@ -9,9 +9,13 @@ export interface Franchise {
   contactEmail: string;
   contactPhone: string;
   address?: string;
+  legalName?: string;
+  taxId?: string;
   totalBranches: number;
   status: 'active' | 'inactive';
+  branches?: Branch[];
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface Branch {
@@ -104,32 +108,119 @@ export type LeadStatus =
   | 'CONVERTED'
   | 'LOST';
 
+export type LeadActivityType =
+  | 'CALL'
+  | 'MEETING'
+  | 'NOTE'
+  | 'TEST_DRIVE'
+  | 'FOLLOW_UP'
+  | 'STAGE_CHANGE';
+
+export interface LeadActivity {
+  id: string;
+  leadId: string;
+  employeeId?: string | null;
+  activityType: LeadActivityType;
+  title: string;
+  description?: string | null;
+  scheduledAt?: string | null;
+  completedAt?: string | null;
+  metadata?: any;
+  createdAt: string;
+  employee?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    designation?: string;
+  } | null;
+}
+
 export interface Lead {
   id: string;
-  customerName: string;
+  leadNumber?: string;
+  customerName?: string;
+  prospectName?: string;
   companyName?: string;
-  email: string;
-  phone: string;
+  email?: string;
+  prospectEmail?: string;
+  phone?: string;
+  prospectPhone?: string;
   requirement?: string;
   interestedModel?: string;
   expectedBudget?: number | string;
-  estimatedUnits: number;
+  estimatedUnits?: number;
   source: string;
   branchId?: string;
-  branch?: { id: string; name: string };
-  customerId?: string;
+  branch?: { id: string; name: string; code?: string; franchise?: { id: string; name: string } };
+  customerId?: string | null;
   customer?: any;
   assignedEmployeeId?: string;
   assignedEmployeeName?: string;
   assignedEmployee?: any;
   status: LeadStatus;
   priority: 'low' | 'medium' | 'high' | 'urgent' | 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+  expectedPurchaseDate?: string;
   nextFollowUpDate?: string;
   lostReason?: string;
   notes?: string;
+  activities?: LeadActivity[];
   quotations?: any[];
   followUps?: any[];
   createdAt: string;
+  updatedAt?: string;
+}
+
+export type AnnouncementCategory =
+  | 'GENERAL'
+  | 'OPERATIONS'
+  | 'SALES'
+  | 'SERVICE'
+  | 'FINANCE'
+  | 'HR'
+  | 'URGENT';
+
+export type AnnouncementPriority = 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
+
+export type AnnouncementStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED' | 'EXPIRED';
+
+export type AnnouncementAudience =
+  | 'PLATFORM_WIDE'
+  | 'FRANCHISE'
+  | 'BRANCH'
+  | 'SELECTED_BRANCHES';
+
+export interface Announcement {
+  id: string;
+  title: string;
+  body: string;
+  category: AnnouncementCategory;
+  priority: AnnouncementPriority;
+  status: AnnouncementStatus;
+  audienceType: AnnouncementAudience;
+  franchiseId?: string | null;
+  branchId?: string | null;
+  targetBranchIds?: string[];
+  startDate?: string | null;
+  expiryDate?: string | null;
+  publishedAt?: string | null;
+  authorId?: string;
+  authorEmployeeId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  author?: {
+    id: string;
+    email: string;
+    employeeProfile?: {
+      firstName: string;
+      lastName: string;
+      designation?: string;
+    };
+  };
+  franchise?: { id: string; name: string; code: string };
+  branch?: { id: string; name: string; code: string };
+  isRead?: boolean;
+  readsCount?: number;
+  readAt?: string | null;
 }
 
 export type VehicleStatus =

@@ -16,9 +16,6 @@ const branchSchema = z.object({
   address: z.string().min(2, 'Address required'),
   city: z.string().min(2, 'City required'),
   state: z.string().min(2, 'State required'),
-  pincode: z.string().optional(),
-  phone: z.string().optional(),
-  email: z.string().optional(),
   status: z.enum(['active', 'inactive']),
 });
 
@@ -59,9 +56,6 @@ export const BranchFormModal: React.FC<BranchFormModalProps> = ({
       address: initialData?.address || '',
       city: initialData?.city || '',
       state: initialData?.state || '',
-      pincode: initialData?.pincode || '',
-      phone: initialData?.phone || '',
-      email: initialData?.email || '',
       status: (initialData?.status?.toLowerCase() === 'inactive' ? 'inactive' : 'active') as 'active' | 'inactive',
     },
   });
@@ -153,47 +147,25 @@ export const BranchFormModal: React.FC<BranchFormModalProps> = ({
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-slate-400 mb-1">City</label>
                   <input
                     {...register('city')}
+                    placeholder="City"
                     className="w-full h-9 px-3 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 focus:border-blue-500"
                   />
+                  {errors.city && <p className="text-rose-400 text-[11px] mt-1">{errors.city.message}</p>}
                 </div>
 
                 <div>
                   <label className="block text-slate-400 mb-1">State / Province</label>
                   <input
                     {...register('state')}
+                    placeholder="State"
                     className="w-full h-9 px-3 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 focus:border-blue-500"
                   />
-                </div>
-
-                <div>
-                  <label className="block text-slate-400 mb-1">Pincode / ZIP</label>
-                  <input
-                    {...register('pincode')}
-                    className="w-full h-9 px-3 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 font-mono focus:border-blue-500"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-400 mb-1">Phone</label>
-                  <input
-                    {...register('phone')}
-                    className="w-full h-9 px-3 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 focus:border-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-slate-400 mb-1">Email</label>
-                  <input
-                    {...register('email')}
-                    className="w-full h-9 px-3 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 focus:border-blue-500"
-                  />
+                  {errors.state && <p className="text-rose-400 text-[11px] mt-1">{errors.state.message}</p>}
                 </div>
               </div>
 

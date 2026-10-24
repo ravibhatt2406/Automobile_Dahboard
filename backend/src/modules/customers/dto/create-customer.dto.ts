@@ -66,4 +66,9 @@ export class CreateCustomerDto {
   @IsString()
   @IsOptional()
   branchId?: string | null;
+
+  @ApiProperty({ example: '8f146f47-f6d8-4909-8b85-996f444f701b', required: false })
+  @IsString()
+  @IsOptional()
+  franchiseId?: string | null;
 }

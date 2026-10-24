@@ -5,6 +5,7 @@ import { BranchPerformanceChart } from '@/components/charts/BranchPerformanceCha
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { BranchFilterBar } from '@/components/data-display/BranchFilterBar';
 import { useScope } from '@/app/providers/ScopeContext';
+import { useAuth } from '@/app/providers/AuthContext';
 import { reportsService } from '@/services/reports.service';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -30,21 +31,40 @@ import {
 export const ReportsPage: React.FC = () => {
   const { selectedBranchId, selectedFranchiseId, activeBranchName, activeFranchiseName } =
     useScope();
+  const { activeRole, user } = useAuth();
+  const isSuperAdmin = user?.accountType === 'SUPER_ADMIN' || user?.roles.includes('SUPER_ADMIN');
+
+  const canViewSales = isSuperAdmin || ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER', 'BRANCH_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE'].includes(activeRole);
+  const canViewCRM = isSuperAdmin || ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER', 'BRANCH_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE'].includes(activeRole);
+  const canViewInventory = isSuperAdmin || ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER', 'BRANCH_OWNER', 'BRANCH_MANAGER', 'INVENTORY_MANAGER'].includes(activeRole);
+  const canViewService = isSuperAdmin || ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER', 'BRANCH_OWNER', 'BRANCH_MANAGER', 'SERVICE_ADVISOR', 'MECHANIC'].includes(activeRole);
+  const canViewCompliance = isSuperAdmin || ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER', 'BRANCH_OWNER', 'BRANCH_MANAGER', 'SERVICE_ADVISOR'].includes(activeRole);
+  const canViewFinance = isSuperAdmin || ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER', 'BRANCH_OWNER', 'BRANCH_MANAGER', 'ACCOUNTANT'].includes(activeRole);
+
+  const getDefaultCategory = (): 'sales' | 'crm' | 'inventory' | 'service' | 'compliance' | 'finance' => {
+    if (activeRole === 'MECHANIC' || activeRole === 'SERVICE_ADVISOR') return 'service';
+    if (activeRole === 'INVENTORY_MANAGER') return 'inventory';
+    if (activeRole === 'ACCOUNTANT') return 'finance';
+    return 'sales';
+  };
+
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [activeCategory, setActiveCategory] = useState<
     'sales' | 'crm' | 'inventory' | 'service' | 'compliance' | 'finance'
-  >('sales');
+  >(getDefaultCategory);
   const [isExporting, setIsExporting] = useState(false);
 
-  const categories = [
-    { id: 'sales' as const, label: 'Sales & Bookings', icon: TrendingUp },
-    { id: 'crm' as const, label: 'CRM & Pipeline', icon: Users },
-    { id: 'inventory' as const, label: 'Inventory Stock', icon: Truck },
-    { id: 'service' as const, label: 'Workshop & Repairs', icon: Wrench },
-    { id: 'compliance' as const, label: 'Compliance & Expiries', icon: ShieldAlert },
-    { id: 'finance' as const, label: 'Finance & Payments', icon: DollarSign },
+  const allCategories = [
+    { id: 'sales' as const, label: 'Sales & Bookings', icon: TrendingUp, allowed: canViewSales },
+    { id: 'crm' as const, label: 'CRM & Pipeline', icon: Users, allowed: canViewCRM },
+    { id: 'inventory' as const, label: 'Inventory Stock', icon: Truck, allowed: canViewInventory },
+    { id: 'service' as const, label: 'Workshop & Repairs', icon: Wrench, allowed: canViewService },
+    { id: 'compliance' as const, label: 'Compliance & Expiries', icon: ShieldAlert, allowed: canViewCompliance },
+    { id: 'finance' as const, label: 'Finance & Payments', icon: DollarSign, allowed: canViewFinance },
   ];
+
+  const categories = allCategories.filter((c) => c.allowed);
 
   // Queries
   const {
@@ -60,7 +80,7 @@ export const ReportsPage: React.FC = () => {
         startDate: startDate || undefined,
         endDate: endDate || undefined,
       }),
-    enabled: activeCategory === 'sales',
+    enabled: activeCategory === 'sales' && canViewSales,
   });
 
   const {
@@ -76,7 +96,7 @@ export const ReportsPage: React.FC = () => {
         startDate: startDate || undefined,
         endDate: endDate || undefined,
       }),
-    enabled: activeCategory === 'crm',
+    enabled: activeCategory === 'crm' && canViewCRM,
   });
 
   const {
@@ -90,7 +110,7 @@ export const ReportsPage: React.FC = () => {
         branchId: selectedBranchId !== 'ALL' ? selectedBranchId : undefined,
         franchiseId: selectedFranchiseId !== 'ALL' ? selectedFranchiseId : undefined,
       }),
-    enabled: activeCategory === 'inventory',
+    enabled: activeCategory === 'inventory' && canViewInventory,
   });
 
   const {
@@ -106,7 +126,7 @@ export const ReportsPage: React.FC = () => {
         startDate: startDate || undefined,
         endDate: endDate || undefined,
       }),
-    enabled: activeCategory === 'service',
+    enabled: activeCategory === 'service' && canViewService,
   });
 
   const {
@@ -120,7 +140,7 @@ export const ReportsPage: React.FC = () => {
         branchId: selectedBranchId !== 'ALL' ? selectedBranchId : undefined,
         franchiseId: selectedFranchiseId !== 'ALL' ? selectedFranchiseId : undefined,
       }),
-    enabled: activeCategory === 'compliance',
+    enabled: activeCategory === 'compliance' && canViewCompliance,
   });
 
   const {
@@ -136,7 +156,7 @@ export const ReportsPage: React.FC = () => {
         startDate: startDate || undefined,
         endDate: endDate || undefined,
       }),
-    enabled: activeCategory === 'finance',
+    enabled: activeCategory === 'finance' && canViewFinance,
   });
 
   const isLoading =

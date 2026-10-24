@@ -27,3 +27,4 @@ dist-ssr
 *.zip
 scratch/
 backend/scratch/
+*.ext4

@@ -1,17 +1,17 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Franchise } from '@/types/domain';
-import { X, Building, Save } from 'lucide-react';
+import { X, Building, Save, AlertCircle, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const franchiseSchema = z.object({
-  name: z.string().min(2, 'Franchise name required'),
-  code: z.string().min(2, 'Franchise code required'),
-  brand: z.string().min(2, 'Brand required'),
-  contactEmail: z.string().email('Valid email required'),
-  contactPhone: z.string().min(5, 'Phone number required'),
+  name: z.string().min(2, 'Franchise name must be at least 2 characters'),
+  code: z.string().min(2, 'Franchise code required (e.g. FR-NA-01)'),
+  brand: z.string().optional(),
+  contactEmail: z.string().email('Valid email address required').optional().or(z.literal('')),
+  contactPhone: z.string().optional(),
   address: z.string().optional(),
   ownerName: z.string().optional(),
   status: z.enum(['active', 'inactive']),
@@ -22,7 +22,7 @@ type FranchiseFormData = z.infer<typeof franchiseSchema>;
 interface FranchiseFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: Partial<Franchise>) => void;
+  onSubmit: (data: Partial<Franchise>) => Promise<void> | void;
   initialData?: Franchise | null;
 }
 
@@ -33,33 +33,62 @@ export const FranchiseFormModal: React.FC<FranchiseFormModalProps> = ({
   initialData,
 }) => {
   const isEditing = Boolean(initialData);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm<FranchiseFormData>({
     resolver: zodResolver(franchiseSchema),
     defaultValues: {
-      name: initialData?.name || '',
-      code: initialData?.code || '',
-      brand: initialData?.brand || 'Titan Heavy Duty',
-      contactEmail: initialData?.contactEmail || '',
-      contactPhone: initialData?.contactPhone || '',
-      address: initialData?.address || '',
-      ownerName: initialData?.ownerName || '',
-      status: initialData?.status || 'active',
+      name: '',
+      code: '',
+      brand: '',
+      contactEmail: '',
+      contactPhone: '',
+      address: '',
+      ownerName: '',
+      status: 'active',
     },
   });
 
-  const handleFormSubmit = (data: FranchiseFormData) => {
-    onSubmit({
-      ...initialData,
-      ...data,
-      totalBranches: initialData?.totalBranches || 0,
-      createdAt: initialData?.createdAt || new Date().toISOString(),
-    });
-    onClose();
+  useEffect(() => {
+    if (isOpen) {
+      reset({
+        name: initialData?.name || '',
+        code: initialData?.code || '',
+        brand: initialData?.brand || (initialData?.name?.includes('Tata') ? 'Tata Motors' : initialData?.name?.includes('Ashok') ? 'Ashok Leyland' : ''),
+        contactEmail: initialData?.contactEmail || '',
+        contactPhone: initialData?.contactPhone || '',
+        address: initialData?.address || '',
+        ownerName: initialData?.ownerName || '',
+        status: (initialData?.status?.toLowerCase() === 'inactive' ? 'inactive' : 'active') as 'active' | 'inactive',
+      });
+      setFormError(null);
+    }
+  }, [isOpen, initialData, reset]);
+
+  const handleFormSubmit = async (data: FranchiseFormData) => {
+    setFormError(null);
+    try {
+      const payload: Partial<Franchise> = {
+        name: data.name.trim(),
+        code: isEditing && initialData ? initialData.code : data.code.trim().toUpperCase(),
+        status: data.status,
+      };
+      if (data.brand?.trim()) payload.brand = data.brand.trim();
+      if (data.contactEmail?.trim()) payload.contactEmail = data.contactEmail.trim();
+      if (data.contactPhone?.trim()) payload.contactPhone = data.contactPhone.trim();
+      if (data.address?.trim()) payload.address = data.address.trim();
+      if (data.ownerName?.trim()) payload.ownerName = data.ownerName.trim();
+
+      await onSubmit(payload);
+      onClose();
+    } catch (err: any) {
+      setFormError(err?.message || 'Failed to save franchise entity.');
+    }
   };
 
   return (
@@ -82,9 +111,16 @@ export const FranchiseFormModal: React.FC<FranchiseFormModalProps> = ({
               </button>
             </div>
 
+            {formError && (
+              <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{formError}</span>
+              </div>
+            )}
+
             <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4 text-xs">
               <div>
-                <label className="block text-slate-400 mb-1">Franchise Business Name</label>
+                <label className="block text-slate-400 mb-1">Franchise Business Name <span className="text-rose-400">*</span></label>
                 <input
                   {...register('name')}
                   placeholder="e.g. Titan Commercial NA"
@@ -95,19 +131,29 @@ export const FranchiseFormModal: React.FC<FranchiseFormModalProps> = ({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-400 mb-1 font-mono">Franchise Code</label>
+                  <label className="block text-slate-400 mb-1 font-mono">
+                    Franchise Code <span className="text-rose-400">*</span>
+                  </label>
                   <input
                     {...register('code')}
+                    disabled={isEditing}
                     placeholder="e.g. FR-NA-01"
-                    className="w-full h-9 px-3 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 font-mono uppercase focus:border-blue-500"
+                    className={`w-full h-9 px-3 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 font-mono uppercase focus:border-blue-500 ${
+                      isEditing ? 'opacity-60 cursor-not-allowed bg-slate-950' : ''
+                    }`}
                   />
-                  {errors.code && <p className="text-rose-400 text-[11px] mt-1">{errors.code.message}</p>}
+                  {isEditing ? (
+                    <p className="text-slate-500 text-[10px] mt-1">Franchise code cannot be modified after registration.</p>
+                  ) : errors.code ? (
+                    <p className="text-rose-400 text-[11px] mt-1">{errors.code.message}</p>
+                  ) : null}
                 </div>
 
                 <div>
                   <label className="block text-slate-400 mb-1">Automotive Brand License</label>
                   <input
                     {...register('brand')}
+                    placeholder="e.g. Ashok Leyland, Tata Motors"
                     className="w-full h-9 px-3 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 focus:border-blue-500"
                   />
                 </div>
@@ -130,7 +176,7 @@ export const FranchiseFormModal: React.FC<FranchiseFormModalProps> = ({
                   <label className="block text-slate-400 mb-1">Contact Phone</label>
                   <input
                     {...register('contactPhone')}
-                    placeholder="+1 800-555..."
+                    placeholder="+91 98290 00000"
                     className="w-full h-9 px-3 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 focus:border-blue-500"
                   />
                 </div>
@@ -140,7 +186,7 @@ export const FranchiseFormModal: React.FC<FranchiseFormModalProps> = ({
                 <label className="block text-slate-400 mb-1">Franchise Owner / Principal</label>
                 <input
                   {...register('ownerName')}
-                  placeholder="Principal Owner Name"
+                  placeholder="Principal Owner or Partner Name"
                   className="w-full h-9 px-3 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 focus:border-blue-500"
                 />
               </div>
@@ -150,7 +196,7 @@ export const FranchiseFormModal: React.FC<FranchiseFormModalProps> = ({
                 <textarea
                   {...register('address')}
                   rows={2}
-                  placeholder="HQ Street address, City, Country"
+                  placeholder="HQ Street address, Industrial Area, City, State"
                   className="w-full p-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 focus:border-blue-500 resize-none"
                 />
               </div>
@@ -170,16 +216,22 @@ export const FranchiseFormModal: React.FC<FranchiseFormModalProps> = ({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium"
+                  disabled={isSubmitting}
+                  className="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-lg shadow-blue-600/20"
+                  className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-semibold shadow-lg shadow-blue-600/20 transition-colors"
                 >
-                  <Save className="w-3.5 h-3.5" /> Save Franchise
+                  {isSubmitting ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Save className="w-3.5 h-3.5" />
+                  )}
+                  {isEditing ? 'Save Changes' : 'Create Franchise'}
                 </button>
               </div>
             </form>

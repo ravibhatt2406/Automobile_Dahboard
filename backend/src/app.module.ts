@@ -53,6 +53,7 @@ import { DashboardsModule } from './modules/dashboards/dashboards.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { CsvDataModule } from './modules/csv-data/csv-data.module';
 import { SearchModule } from './modules/search/search.module';
+import { AnnouncementsModule } from './modules/announcements/announcements.module';
 
 @Module({
   imports: [
@@ -101,6 +102,7 @@ import { SearchModule } from './modules/search/search.module';
     ChatModule,
     CsvDataModule,
     SearchModule,
+    AnnouncementsModule,
   ],
   providers: [
     {

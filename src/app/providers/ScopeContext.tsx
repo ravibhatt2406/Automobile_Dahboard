@@ -7,9 +7,11 @@ import { branchService } from '@/services/branch.service';
 
 // Roles that are strictly locked to their assigned branch
 const BRANCH_SCOPED_ROLES: UserRole[] = [
+  'BRANCH_OWNER',
   'BRANCH_MANAGER',
   'DEPARTMENT_MANAGER',
   'SALES_EMPLOYEE',
+  'SERVICE_ADVISOR',
   'MECHANIC',
 ];
 

@@ -131,31 +131,36 @@ export async function resolveUserScope(
           where: { OR: [{ id: cleanFranchise }, { code: cleanFranchise }] },
           select: { id: true },
         });
-        effectiveFranchiseId = f ? f.id : null;
+        if (!f) {
+          throw new NotFoundException(`Franchise '${cleanFranchise}' not found`);
+        }
+        effectiveFranchiseId = f.id;
 
-        if (cleanBranch && effectiveFranchiseId) {
+        if (cleanBranch) {
           const b = await prisma.branch.findFirst({
             where: { OR: [{ id: cleanBranch }, { code: cleanBranch }] },
             select: { id: true, franchiseId: true },
           });
-          if (b && b.franchiseId === effectiveFranchiseId) {
-            effectiveBranchId = b.id;
-          } else {
-            effectiveBranchId = null;
+          if (!b) {
+            throw new NotFoundException(`Branch '${cleanBranch}' not found`);
           }
+          if (b.franchiseId !== effectiveFranchiseId) {
+            throw new BadRequestException(
+              'Selected branch does not belong to the selected franchise',
+            );
+          }
+          effectiveBranchId = b.id;
         }
       } else if (cleanBranch) {
         const b = await prisma.branch.findFirst({
           where: { OR: [{ id: cleanBranch }, { code: cleanBranch }] },
           select: { id: true, franchiseId: true },
         });
-        if (b) {
-          effectiveBranchId = b.id;
-          effectiveFranchiseId = b.franchiseId;
-        } else {
-          effectiveBranchId = null;
-          effectiveFranchiseId = null;
+        if (!b) {
+          throw new NotFoundException(`Branch '${cleanBranch}' not found`);
         }
+        effectiveBranchId = b.id;
+        effectiveFranchiseId = b.franchiseId;
       }
     } else if (isActingFranchiseLevel) {
       // Super Admin viewing as Franchise Owner / Manager
@@ -164,30 +169,32 @@ export async function resolveUserScope(
           where: { OR: [{ id: cleanFranchise }, { code: cleanFranchise }] },
           select: { id: true },
         });
-        effectiveFranchiseId = f ? f.id : null;
-      }
-      
-      if (!effectiveFranchiseId) {
-        if (assignedFranchiseId) {
-          effectiveFranchiseId = assignedFranchiseId;
-        } else {
-          const firstF = await prisma.franchise.findFirst({
-            where: { status: 'ACTIVE' },
-            select: { id: true },
-          });
-          effectiveFranchiseId = firstF?.id || null;
+        if (!f) {
+          throw new NotFoundException(`Franchise '${cleanFranchise}' not found`);
         }
+        effectiveFranchiseId = f.id;
+      } else if (assignedFranchiseId) {
+        effectiveFranchiseId = assignedFranchiseId;
+      } else {
+        effectiveFranchiseId = null;
       }
 
-      if (cleanBranch && effectiveFranchiseId) {
+      if (cleanBranch) {
         const b = await prisma.branch.findFirst({
           where: { OR: [{ id: cleanBranch }, { code: cleanBranch }] },
           select: { id: true, franchiseId: true },
         });
-        if (b && b.franchiseId === effectiveFranchiseId) {
-          effectiveBranchId = b.id;
-        } else {
-          effectiveBranchId = null;
+        if (!b) {
+          throw new NotFoundException(`Branch '${cleanBranch}' not found`);
+        }
+        if (effectiveFranchiseId && b.franchiseId !== effectiveFranchiseId) {
+          throw new ForbiddenException(
+            `Branch '${cleanBranch}' does not belong to franchise '${effectiveFranchiseId}'`,
+          );
+        }
+        effectiveBranchId = b.id;
+        if (!effectiveFranchiseId) {
+          effectiveFranchiseId = b.franchiseId;
         }
       }
     } else {
@@ -197,24 +204,17 @@ export async function resolveUserScope(
           where: { OR: [{ id: cleanBranch }, { code: cleanBranch }] },
           select: { id: true, franchiseId: true },
         });
-        if (b) {
-          effectiveBranchId = b.id;
-          effectiveFranchiseId = b.franchiseId;
+        if (!b) {
+          throw new NotFoundException(`Branch '${cleanBranch}' not found`);
         }
-      }
-      
-      if (!effectiveBranchId) {
-        if (assignedBranchId) {
-          effectiveBranchId = assignedBranchId;
-          effectiveFranchiseId = assignedFranchiseId;
-        } else {
-          const firstB = await prisma.branch.findFirst({
-            where: { status: 'ACTIVE' },
-            select: { id: true, franchiseId: true },
-          });
-          effectiveBranchId = firstB?.id || null;
-          effectiveFranchiseId = firstB?.franchiseId || null;
-        }
+        effectiveBranchId = b.id;
+        effectiveFranchiseId = b.franchiseId;
+      } else if (assignedBranchId) {
+        effectiveBranchId = assignedBranchId;
+        effectiveFranchiseId = assignedFranchiseId;
+      } else {
+        effectiveBranchId = null;
+        effectiveFranchiseId = null;
       }
     }
   } else if (isActingFranchiseLevel) {
@@ -228,7 +228,10 @@ export async function resolveUserScope(
         where: { OR: [{ id: cleanFranchise }, { code: cleanFranchise }] },
         select: { id: true },
       });
-      if (f?.id !== assignedFranchiseId) {
+      if (!f) {
+        throw new NotFoundException(`Franchise '${cleanFranchise}' not found`);
+      }
+      if (f.id !== assignedFranchiseId) {
         throw new ForbiddenException(
           'Multi-tenant scope violation: Unauthorized franchise access attempt',
         );
@@ -241,7 +244,10 @@ export async function resolveUserScope(
         where: { OR: [{ id: cleanBranch }, { code: cleanBranch }] },
         select: { id: true, franchiseId: true },
       });
-      if (!b || b.franchiseId !== assignedFranchiseId) {
+      if (!b) {
+        throw new NotFoundException(`Branch '${cleanBranch}' not found`);
+      }
+      if (b.franchiseId !== assignedFranchiseId) {
         throw new ForbiddenException(
           'Multi-tenant scope violation: Unauthorized branch access attempt',
         );
@@ -259,7 +265,10 @@ export async function resolveUserScope(
         where: { OR: [{ id: cleanBranch }, { code: cleanBranch }] },
         select: { id: true, code: true },
       });
-      if (!b || (b.id !== assignedBranchId && b.code !== assignedBranchId)) {
+      if (!b) {
+        throw new NotFoundException(`Branch '${cleanBranch}' not found`);
+      }
+      if (b.id !== assignedBranchId && b.code !== assignedBranchId) {
         throw new ForbiddenException(
           'Multi-tenant scope violation: Unauthorized branch access attempt',
         );
@@ -271,7 +280,10 @@ export async function resolveUserScope(
         where: { OR: [{ id: cleanFranchise }, { code: cleanFranchise }] },
         select: { id: true },
       });
-      if (f?.id !== assignedFranchiseId) {
+      if (!f) {
+        throw new NotFoundException(`Franchise '${cleanFranchise}' not found`);
+      }
+      if (f.id !== assignedFranchiseId) {
         throw new ForbiddenException(
           'Multi-tenant scope violation: Unauthorized franchise access attempt',
         );

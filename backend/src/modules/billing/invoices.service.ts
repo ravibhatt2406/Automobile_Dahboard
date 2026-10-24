@@ -47,8 +47,11 @@ export class InvoicesService {
         include: { branch: true },
       });
       if (booking) {
-        branchId = branchId || booking.branchId;
-        franchiseId = franchiseId || booking.branch?.franchiseId;
+        if (dto.branchId && dto.branchId !== booking.branchId) {
+          throw new BadRequestException('Invoice branch must match booking branch');
+        }
+        branchId = booking.branchId;
+        franchiseId = booking.branch?.franchiseId;
       }
     }
 
@@ -65,7 +68,10 @@ export class InvoicesService {
           `An active invoice already exists for service job '${dto.serviceJobId}'`,
         );
       }
-      branchId = branchId || serviceJob.branchId;
+      if (dto.branchId && dto.branchId !== serviceJob.branchId) {
+        throw new BadRequestException('Invoice branch must match service job branch');
+      }
+      branchId = serviceJob.branchId;
     }
 
     if (!branchId) {
@@ -79,11 +85,15 @@ export class InvoicesService {
 
     franchiseId = franchiseId || branch.franchiseId;
 
+    const scope = user?.effectiveScope;
+    const allowedBranchId = scope?.effectiveBranchId || user.assignedBranchId || user.branchId;
+    const allowedFranchiseId = scope?.effectiveFranchiseId || user.assignedFranchiseId || user.franchiseId;
+
     if (!isSuperAdmin) {
-      if (user?.branchId && user.branchId !== branch.id) {
+      if (allowedBranchId && allowedBranchId !== branch.id) {
         throw new ForbiddenException('Cannot generate invoice for another branch');
       }
-      if (user?.franchiseId && user.franchiseId !== branch.franchiseId) {
+      if (allowedFranchiseId && allowedFranchiseId !== branch.franchiseId) {
         throw new ForbiddenException('Cannot generate invoice for another franchise');
       }
     }

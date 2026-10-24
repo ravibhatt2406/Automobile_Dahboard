@@ -239,7 +239,9 @@ export class CampaignsService {
     );
 
     const leadIds = campaign.leads.map((l) => l.id);
-    const customerIds = campaign.leads.map((l) => l.customerId);
+    const customerIds = campaign.leads
+      .map((l) => l.customerId)
+      .filter((id): id is string => Boolean(id));
 
     let quotationsCount = 0;
     let bookingsCount = 0;

@@ -4,6 +4,7 @@ import { CrmService } from './crm.service';
 import { CreateLeadDto } from './dto/create-lead.dto';
 import { UpdateLeadDto } from './dto/update-lead.dto';
 import { CreateFollowUpDto } from './dto/create-followup.dto';
+import { CreateLeadActivityDto } from './dto/create-lead-activity.dto';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
 import { TenantScopeGuard } from '@/common/guards/tenant-scope.guard';
@@ -27,7 +28,7 @@ export class CrmController {
 
   @Get()
   @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE')
-  @ApiOperation({ summary: 'Get list of leads (filtered by branchId, franchiseId, or status)' })
+  @ApiOperation({ summary: 'Get list of leads with view and search filters' })
   async findAllLeads(
     @Query('branchId') branchId?: string,
     @Query('franchiseId') franchiseId?: string,
@@ -35,6 +36,8 @@ export class CrmController {
     @Query('campaignId') campaignId?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
+    @Query('view') view?: string,
+    @Query('search') search?: string,
     @Query('limit') limit = 50,
     @Query('offset') offset = 0,
     @CurrentUser() user?: any,
@@ -49,6 +52,8 @@ export class CrmController {
       startDate,
       endDate,
       campaignId,
+      view,
+      search,
     );
   }
 
@@ -91,6 +96,31 @@ export class CrmController {
     @CurrentUser() user: any,
   ) {
     return this.crmService.updateLeadStatus(leadId, status, user, lostReason);
+  }
+
+  @Post(':id/activities')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE')
+  @ApiOperation({ summary: 'Record an activity on a lead (Call, Meeting, Note, Test Drive)' })
+  async addActivity(
+    @Param('id') leadId: string,
+    @Body() dto: CreateLeadActivityDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.crmService.addActivity(leadId, dto, user);
+  }
+
+  @Get(':id/activities')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE')
+  @ApiOperation({ summary: 'Get list of activity history on a lead' })
+  async getActivities(@Param('id') leadId: string, @CurrentUser() user: any) {
+    return this.crmService.getActivities(leadId, user);
+  }
+
+  @Post(':id/convert-customer')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE')
+  @ApiOperation({ summary: 'Convert prospect lead to an active Customer record' })
+  async convertProspectToCustomer(@Param('id') leadId: string, @CurrentUser() user: any) {
+    return this.crmService.convertProspectToCustomer(leadId, user);
   }
 
   @Post(':id/follow-ups')

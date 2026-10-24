@@ -98,14 +98,17 @@ export class QuotationsService {
       const roles: string[] = user.roles || [];
       const isSuperAdmin = user.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN');
       if (!isSuperAdmin) {
-        const isFranchiseLevel = roles.some((r) => ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r));
+        const scope = user?.effectiveScope;
+        const allowedBranchId = scope?.effectiveBranchId || user.assignedBranchId || user.branchId;
+        const allowedFranchiseId = scope?.effectiveFranchiseId || user.assignedFranchiseId || user.franchiseId;
+        const isFranchiseLevel = scope?.isActingFranchiseLevel || roles.some((r) => ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r));
         if (isFranchiseLevel) {
-          if (branch.franchiseId !== user.assignedFranchiseId) {
+          if (allowedFranchiseId && branch.franchiseId !== allowedFranchiseId) {
             throw new ForbiddenException('Multi-tenant scope violation: Cannot create quotation in another franchise');
           }
         } else {
           // Branch level
-          if (branch.id !== user.assignedBranchId && branch.code !== user.assignedBranchId) {
+          if (allowedBranchId && branch.id !== allowedBranchId && branch.code !== allowedBranchId) {
             throw new ForbiddenException('Multi-tenant scope violation: Cannot create quotation in another branch');
           }
         }
@@ -132,14 +135,9 @@ export class QuotationsService {
           where: { branch: { franchiseId: branch.franchiseId }, status: 'ACTIVE' },
         });
       }
-      if (!salesperson) {
-        salesperson = await this.prisma.employee.findFirst({
-          where: { status: 'ACTIVE' },
-        });
-      }
     }
     if (!salesperson) {
-      throw new BadRequestException('No active salesperson found to process quotation');
+      throw new BadRequestException('No active salesperson found in authorized branch to process quotation');
     }
 
     const unitBasePrice = Number(variant.basePrice);

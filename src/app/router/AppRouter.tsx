@@ -170,6 +170,12 @@ const ReportsPage = lazy(() => import('@/features/reports/ReportsPage').then((m)
 const NotificationsPage = lazy(() =>
   import('@/features/notifications/NotificationsPage').then((m) => ({ default: m.NotificationsPage }))
 );
+const AnnouncementsListPage = lazy(() =>
+  import('@/features/announcements/AnnouncementsListPage').then((m) => ({ default: m.AnnouncementsListPage }))
+);
+const AnnouncementDetailPage = lazy(() =>
+  import('@/features/announcements/AnnouncementDetailPage').then((m) => ({ default: m.AnnouncementDetailPage }))
+);
 const SettingsPage = lazy(() => import('@/features/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })));
 const NotFound = lazy(() => import('@/components/feedback/NotFound').then((m) => ({ default: m.NotFound })));
 
@@ -361,6 +367,12 @@ export const AppRouter: React.FC = () => {
             
             <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+
+            {/* Central Dealership Announcements */}
+            <Route element={<ProtectedRoute forbiddenRoles={['CUSTOMER']} />}>
+              <Route path="/announcements" element={<AnnouncementsListPage />} />
+              <Route path="/announcements/:id" element={<AnnouncementDetailPage />} />
+            </Route>
 
             {/* Customer & Branch Dealership Chat */}
             <Route path="/customer/chat" element={<CustomerChatPage />} />

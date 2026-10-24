@@ -99,8 +99,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             lastName: me.lastName || me.name?.split(' ').slice(1).join(' ') || '',
             roles,
             activeRole,
-            assignedBranchName: me.assignedBranchName || me.employee?.branch?.name,
-            assignedFranchiseName: me.assignedFranchiseName || me.employee?.branch?.franchise?.name,
+            assignedBranchId: me.assignedBranchId || me.scope?.branchId || me.employeeProfile?.branchId || me.employee?.branch?.id || me.branch?.id,
+            assignedBranchName: me.assignedBranchName || me.employeeProfile?.branch?.name || me.employee?.branch?.name || me.branch?.name,
+            assignedFranchiseId: me.assignedFranchiseId || me.scope?.franchiseId || me.employeeProfile?.branch?.franchiseId || me.franchise?.id,
+            assignedFranchiseName: me.assignedFranchiseName || me.employeeProfile?.branch?.franchise?.name || me.franchise?.name,
+            accountType: me.accountType,
           };
           setUser(authenticatedUser);
           localStorage.setItem('titan_is_authenticated', 'true');
@@ -173,8 +176,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         lastName: backendUser.lastName || backendUser.name?.split(' ').slice(1).join(' ') || '',
         roles,
         activeRole,
-        assignedBranchName: backendUser.assignedBranchName || backendUser.employee?.branch?.name,
-        assignedFranchiseName: backendUser.assignedFranchiseName || backendUser.employee?.branch?.franchise?.name,
+        assignedBranchId: backendUser.assignedBranchId || backendUser.scope?.branchId || backendUser.employeeProfile?.branchId || backendUser.employee?.branch?.id || backendUser.branch?.id,
+        assignedBranchName: backendUser.assignedBranchName || backendUser.employeeProfile?.branch?.name || backendUser.employee?.branch?.name || backendUser.branch?.name,
+        assignedFranchiseId: backendUser.assignedFranchiseId || backendUser.scope?.franchiseId || backendUser.employeeProfile?.branch?.franchiseId || backendUser.franchise?.id,
+        assignedFranchiseName: backendUser.assignedFranchiseName || backendUser.employeeProfile?.branch?.franchise?.name || backendUser.franchise?.name,
+        accountType: backendUser.accountType,
       };
 
       setUser(authenticatedUser);

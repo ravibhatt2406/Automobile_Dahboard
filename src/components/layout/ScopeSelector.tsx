@@ -24,38 +24,53 @@ export const ScopeSelector: React.FC = () => {
     return null;
   }
 
+  const isBranchLevel =
+    isBranchLocked ||
+    [
+      'BRANCH_OWNER',
+      'BRANCH_MANAGER',
+      'DEPARTMENT_MANAGER',
+      'SALES_EMPLOYEE',
+      'SERVICE_ADVISOR',
+      'MECHANIC',
+    ].includes(activeRole);
+
+  const isFranchiseLevel =
+    isFranchiseLocked || ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(activeRole);
+
   // Branch-scoped employee: Branch Manager, Sales Executive, Mechanic, Service Advisor, etc.
-  if (isBranchLocked) {
+  // Hide both global franchise and branch selectors
+  if (isBranchLevel) {
     return (
       <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#111111] text-white text-xs border border-zinc-800 shadow-xs font-mono">
         <div className="flex items-center gap-1.5 text-zinc-300">
           <Building className="w-3.5 h-3.5 text-[#F5A800]" />
           <span className="font-bold text-[#F5A800] uppercase tracking-wider">
-            {user?.assignedFranchiseName || activeFranchiseName || 'ASHOK LEYLAND'}
+            {activeFranchiseName || user?.assignedFranchiseName || 'ASHOK LEYLAND'}
           </span>
         </div>
         <span className="text-zinc-600">|</span>
         <div className="flex items-center gap-1.5 text-zinc-200">
           <Store className="w-3.5 h-3.5 text-amber-400" />
           <span className="font-semibold text-white">
-            {user?.assignedBranchName || activeBranchName || 'Assigned Branch'}
+            {activeBranchName || user?.assignedBranchName || 'Assigned Branch'}
           </span>
           <span className="inline-flex items-center gap-1 ml-1 px-1.5 py-0.5 rounded text-[10px] bg-amber-500/20 text-amber-300 font-sans">
-            <Lock className="w-2.5 h-2.5" /> Assigned
+            <Lock className="w-2.5 h-2.5" /> Scope
           </span>
         </div>
       </div>
     );
   }
 
-  // Franchise-level managers: Locked to franchise, but can cascade-filter branches
-  if (isFranchiseLocked) {
+  // Franchise-level managers: Hide franchise selector, show cascading branch selector
+  if (isFranchiseLevel) {
     return (
       <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs">
         <div className="flex items-center gap-1.5 text-zinc-300">
           <Building className="w-3.5 h-3.5 text-[#F5A800]" />
           <span className="font-bold text-[#F5A800] uppercase tracking-wider">
-            {user?.assignedFranchiseName || activeFranchiseName || 'Franchise Network'}
+            {activeFranchiseName || user?.assignedFranchiseName || 'Franchise Network'}
           </span>
           <span className="inline-flex items-center gap-1 ml-0.5 px-1.5 py-0.5 rounded text-[10px] bg-zinc-800 text-zinc-300 font-sans">
             <Lock className="w-2.5 h-2.5" />

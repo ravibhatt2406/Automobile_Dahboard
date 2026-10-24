@@ -42,6 +42,20 @@ export class BranchesService {
       throw new NotFoundException(`Franchise '${dto.franchiseId}' not found`);
     }
 
+    if (franchise.status === 'INACTIVE' || franchise.status === 'inactive') {
+      throw new BadRequestException(`Cannot create branch under inactive franchise '${franchise.name}'`);
+    }
+
+    if (userOrId && typeof userOrId === 'object') {
+      const roles: string[] = userOrId.roles || [];
+      const isSuperAdmin = userOrId.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN');
+      if (!isSuperAdmin) {
+        if (userOrId.assignedFranchiseId && franchise.id !== userOrId.assignedFranchiseId) {
+          throw new ForbiddenException('Multi-tenant scope violation: Unauthorized franchise assignment');
+        }
+      }
+    }
+
     const branch = await this.prisma.branch.create({
       data: {
         franchiseId: franchise.id,

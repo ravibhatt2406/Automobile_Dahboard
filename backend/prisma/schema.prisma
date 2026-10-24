@@ -223,6 +223,8 @@ model User {
   approvalRequestsHandled EmployeeApprovalRequest[] @relation("ApprovedByUser")
   auditLogs                AuditLog[]
   sentChatMessages         ChatMessage[]             @relation("SentChatMessages")
+  announcementsCreated     Announcement[]            @relation("AuthorAnnouncements")
+  announcementReads        AnnouncementRead[]
 
   @@map("users")
 }
@@ -243,6 +245,7 @@ model Franchise {
   quotations        Quotation[]
   invoices          Invoice[]
   campaigns         Campaign[]
+  announcements     Announcement[]
 
   @@map("franchises")
 }
@@ -273,6 +276,7 @@ model Branch {
   preferredCustomers Customer[]            @relation("CustomerPreferredBranch")
   campaigns          Campaign[]
   customerReminders  CustomerReminder[]
+  announcements      Announcement[]
 
   @@map("branches")
 }
@@ -303,6 +307,7 @@ model Employee {
   mechanicJobs        ServiceJob[]           @relation("MechanicJobs")
   diagnoses           ServiceDiagnosis[]
   assignedConversations Conversation[]       @relation("AssignedConversations")
+  leadActivities      LeadActivity[]
   coordinatedCampaigns Campaign[]            @relation("CampaignCoordinator")
   campaignMemberships CampaignMember[]
 
@@ -454,7 +459,12 @@ model CustomerFranchise {
 
 model Lead {
   id                   String       @id @default(uuid())
-  customerId           String       @map("customer_id")
+  leadNumber           String?      @unique @map("lead_number")
+  prospectName         String?      @map("prospect_name")
+  prospectPhone        String?      @map("prospect_phone")
+  prospectEmail        String?      @map("prospect_email")
+  companyName          String?      @map("company_name")
+  customerId           String?      @map("customer_id")
   franchiseId          String       @map("franchise_id")
   branchId             String       @map("branch_id")
   assignedEmployeeId   String?      @map("assigned_employee_id")
@@ -469,14 +479,15 @@ model Lead {
   createdAt            DateTime     @default(now()) @map("created_at")
   updatedAt            DateTime     @updatedAt @map("updated_at")
 
-  customer         Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  franchise        Franchise  @relation(fields: [franchiseId], references: [id], onDelete: Cascade)
-  branch           Branch     @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  assignedEmployee Employee?  @relation("AssignedLeadEmployee", fields: [assignedEmployeeId], references: [id])
-  campaignId       String?    @map("campaign_id")
-  campaign         Campaign?  @relation(fields: [campaignId], references: [id])
+  customer         Customer?      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  franchise        Franchise      @relation(fields: [franchiseId], references: [id], onDelete: Cascade)
+  branch           Branch         @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  assignedEmployee Employee?      @relation("AssignedLeadEmployee", fields: [assignedEmployeeId], references: [id])
+  campaignId       String?        @map("campaign_id")
+  campaign         Campaign?      @relation(fields: [campaignId], references: [id])
   followUps        FollowUp[]
   quotations       Quotation[]
+  activities       LeadActivity[]
 
   @@map("leads")
 }
@@ -1352,4 +1363,112 @@ model CustomerReminder {
   @@index([status])
   @@map("customer_reminders")
 }
+
+// ==========================================
+// PHASE 4: CRM ACTIVITIES & ANNOUNCEMENTS
+// ==========================================
+
+enum LeadActivityType {
+  NOTE
+  CALL
+  MEETING
+  TEST_DRIVE
+  STAGE_CHANGE
+  FOLLOW_UP
+}
+
+model LeadActivity {
+  id           String           @id @default(uuid())
+  leadId       String           @map("lead_id")
+  employeeId   String?          @map("employee_id")
+  activityType LeadActivityType @default(NOTE) @map("activity_type")
+  title        String
+  description  String?
+  scheduledAt  DateTime?        @map("scheduled_at")
+  completedAt  DateTime?        @map("completed_at")
+  metadata     Json?
+  createdAt    DateTime         @default(now()) @map("created_at")
+
+  lead     Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  employee Employee? @relation(fields: [employeeId], references: [id])
+
+  @@index([leadId])
+  @@map("lead_activities")
+}
+
+enum AnnouncementCategory {
+  GENERAL
+  OPERATIONS
+  SALES
+  SERVICE
+  FINANCE
+  HR
+  URGENT
+}
+
+enum AnnouncementPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum AnnouncementStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum AnnouncementAudience {
+  PLATFORM_WIDE
+  FRANCHISE
+  BRANCH
+  SELECTED_BRANCHES
+}
+
+model Announcement {
+  id              String               @id @default(uuid())
+  title           String
+  content         String
+  category        AnnouncementCategory @default(GENERAL)
+  priority        AnnouncementPriority @default(NORMAL)
+  status          AnnouncementStatus   @default(DRAFT)
+  targetAudience  AnnouncementAudience @default(PLATFORM_WIDE) @map("target_audience")
+  franchiseId     String?              @map("franchise_id")
+  branchId        String?              @map("branch_id")
+  targetBranchIds String[]             @default([]) @map("target_branch_ids")
+  authorUserId    String               @map("author_user_id")
+  authorName      String?              @map("author_name")
+  authorRole      String?              @map("author_role")
+  startDate       DateTime             @default(now()) @map("start_date")
+  expiryDate      DateTime?            @map("expiry_date")
+  publishedAt     DateTime?            @map("published_at")
+  createdAt       DateTime             @default(now()) @map("created_at")
+  updatedAt       DateTime             @updatedAt @map("updated_at")
+
+  franchise Franchise?         @relation(fields: [franchiseId], references: [id], onDelete: Cascade)
+  branch    Branch?            @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  author    User               @relation("AuthorAnnouncements", fields: [authorUserId], references: [id], onDelete: Cascade)
+  reads     AnnouncementRead[]
+
+  @@index([franchiseId])
+  @@index([branchId])
+  @@index([status])
+  @@map("announcements")
+}
+
+model AnnouncementRead {
+  id             String   @id @default(uuid())
+  announcementId String   @map("announcement_id")
+  userId         String   @map("user_id")
+  readAt         DateTime @default(now()) @map("read_at")
+
+  announcement Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([announcementId, userId])
+  @@index([userId])
+  @@map("announcement_reads")
+}
+
 

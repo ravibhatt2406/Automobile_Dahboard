@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Target, Save, AlertCircle, Loader2, User, Building2, Calendar, Phone, Mail } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { salesService } from '@/services/sales.service';
+import { crmService } from '@/services/crm.service';
 import { customerService } from '@/services/customer.service';
 import { branchService } from '@/services/branch.service';
 import { useQuery } from '@tanstack/react-query';
@@ -38,6 +38,7 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
   const [source, setSource] = useState('DIRECT_WALKIN');
   const [priority, setPriority] = useState<'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'>('MEDIUM');
   const [notes, setNotes] = useState('');
+  const [expectedPurchaseDate, setExpectedPurchaseDate] = useState('');
   const [nextFollowUpDate, setNextFollowUpDate] = useState('');
 
   const [loading, setLoading] = useState(false);
@@ -119,16 +120,17 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
     setLoading(true);
     try {
       if (isEditing && initialData?.id) {
-        await salesService.updateLead(initialData.id, {
+        await crmService.updateLead(initialData.id, {
           interestedModel,
           expectedBudget: expectedBudget ? Number(expectedBudget) : undefined,
           priority: priority as any,
           source,
           notes,
+          expectedPurchaseDate: expectedPurchaseDate ? new Date(expectedPurchaseDate).toISOString() : undefined,
           nextFollowUpDate: nextFollowUpDate ? new Date(nextFollowUpDate).toISOString() : undefined,
         });
       } else {
-        await salesService.createLead({
+        await crmService.createLead({
           customerId: useExistingCustomer ? selectedCustomerId : undefined,
           prospectName: !useExistingCustomer ? prospectName.trim() : undefined,
           prospectPhone: !useExistingCustomer ? prospectPhone.trim() : undefined,
@@ -140,6 +142,7 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
           priority,
           source,
           notes: notes.trim(),
+          expectedPurchaseDate: expectedPurchaseDate ? new Date(expectedPurchaseDate).toISOString() : undefined,
           nextFollowUpDate: nextFollowUpDate ? new Date(nextFollowUpDate).toISOString() : undefined,
         });
       }
@@ -334,6 +337,7 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
                   <option value="WEBSITE_INQUIRY">Website / Digital Enquiry</option>
                   <option value="PHONE_INQUIRY">Phone / Telephonic Inquiry</option>
                   <option value="CUSTOMER_REFERRAL">Existing Customer Referral</option>
+                  <option value="MARKETING_CAMP">Marketing Camp / Outreach</option>
                   <option value="FLEET_EXPO">Commercial Fleet Expo / Event</option>
                   <option value="OUTBOUND_CALL">Outbound Sales Prospecting</option>
                 </select>
@@ -354,15 +358,27 @@ export const LeadFormModal: React.FC<LeadFormModalProps> = ({
               </div>
             </div>
 
-            {/* Next Follow Up */}
-            <div>
-              <label className="block text-zinc-700 font-semibold mb-1">Next Scheduled Follow-Up Date & Time</label>
-              <input
-                type="datetime-local"
-                value={nextFollowUpDate}
-                onChange={(e) => setNextFollowUpDate(e.target.value)}
-                className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-zinc-900 bg-white focus:outline-none focus:ring-1 focus:ring-amber-500"
-              />
+            {/* Expected Purchase Date & Next Follow Up */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-zinc-700 font-semibold mb-1">Expected Purchase Date</label>
+                <input
+                  type="date"
+                  value={expectedPurchaseDate}
+                  onChange={(e) => setExpectedPurchaseDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-zinc-900 bg-white focus:outline-none focus:ring-1 focus:ring-amber-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-zinc-700 font-semibold mb-1">Next Follow-Up</label>
+                <input
+                  type="datetime-local"
+                  value={nextFollowUpDate}
+                  onChange={(e) => setNextFollowUpDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-zinc-900 bg-white focus:outline-none focus:ring-1 focus:ring-amber-500"
+                />
+              </div>
             </div>
 
             {/* Notes */}

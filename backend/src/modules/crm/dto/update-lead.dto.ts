@@ -48,6 +48,11 @@ export class UpdateLeadDto {
   @IsOptional()
   lostReason?: string;
 
+  @ApiProperty({ example: '2026-11-20T00:00:00.000Z', required: false })
+  @IsString()
+  @IsOptional()
+  expectedPurchaseDate?: string;
+
   @ApiProperty({ example: '2026-11-10T14:30:00.000Z', required: false })
   @IsString()
   @IsOptional()

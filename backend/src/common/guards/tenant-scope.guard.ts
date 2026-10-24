@@ -110,14 +110,31 @@ export class TenantScopeGuard implements CanActivate {
         request.body &&
         typeof request.body === 'object' &&
         ['POST', 'PATCH', 'PUT'].includes(request.method) &&
-        !effectiveScope.isActingSuperAdmin &&
-        (!isSubResourceAction || 'branchId' in request.body)
+        !effectiveScope.isActingSuperAdmin
       ) {
-        request.body.branchId = effectiveScope.effectiveBranchId;
+        if (request.body.branchId && request.body.branchId !== effectiveScope.effectiveBranchId) {
+          throw new ForbiddenException(
+            'Multi-tenant scope violation: Cannot submit records for an unauthorized branch',
+          );
+        }
+        if (!isSubResourceAction || 'branchId' in request.body) {
+          request.body.branchId = effectiveScope.effectiveBranchId;
+        }
       }
 
-      if (request.query && !request.query.branchId && !effectiveScope.isActingSuperAdmin) {
-        request.query.branchId = effectiveScope.effectiveBranchId;
+      if (request.query && !effectiveScope.isActingSuperAdmin) {
+        if (
+          request.query.branchId &&
+          request.query.branchId !== effectiveScope.effectiveBranchId &&
+          request.query.branchId !== 'ALL'
+        ) {
+          throw new ForbiddenException(
+            'Multi-tenant scope violation: Cannot query records for an unauthorized branch',
+          );
+        }
+        if (!request.query.branchId) {
+          request.query.branchId = effectiveScope.effectiveBranchId;
+        }
       }
     }
 
@@ -127,14 +144,31 @@ export class TenantScopeGuard implements CanActivate {
         request.body &&
         typeof request.body === 'object' &&
         ['POST', 'PATCH', 'PUT'].includes(request.method) &&
-        !effectiveScope.isActingSuperAdmin &&
-        (!isSubResourceAction || 'franchiseId' in request.body)
+        !effectiveScope.isActingSuperAdmin
       ) {
-        request.body.franchiseId = effectiveScope.effectiveFranchiseId;
+        if (request.body.franchiseId && request.body.franchiseId !== effectiveScope.effectiveFranchiseId) {
+          throw new ForbiddenException(
+            'Multi-tenant scope violation: Cannot submit records for an unauthorized franchise',
+          );
+        }
+        if (!isSubResourceAction || 'franchiseId' in request.body) {
+          request.body.franchiseId = effectiveScope.effectiveFranchiseId;
+        }
       }
 
-      if (request.query && !request.query.franchiseId && !effectiveScope.isActingSuperAdmin) {
-        request.query.franchiseId = effectiveScope.effectiveFranchiseId;
+      if (request.query && !effectiveScope.isActingSuperAdmin) {
+        if (
+          request.query.franchiseId &&
+          request.query.franchiseId !== effectiveScope.effectiveFranchiseId &&
+          request.query.franchiseId !== 'ALL'
+        ) {
+          throw new ForbiddenException(
+            'Multi-tenant scope violation: Cannot query records for an unauthorized franchise',
+          );
+        }
+        if (!request.query.franchiseId) {
+          request.query.franchiseId = effectiveScope.effectiveFranchiseId;
+        }
       }
     }
 

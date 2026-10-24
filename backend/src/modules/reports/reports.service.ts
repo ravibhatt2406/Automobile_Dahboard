@@ -9,7 +9,7 @@ export class ReportsService {
     const roles: string[] = user?.roles || [];
     const scope = user?.effectiveScope;
     const isSuperAdmin = scope
-      ? scope.isActingSuperAdmin
+      ? (scope.isActingSuperAdmin || scope.isRealSuperAdmin)
       : user?.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN');
     const isFranchiseLevel = scope
       ? scope.isActingFranchiseLevel
@@ -166,9 +166,9 @@ export class ReportsService {
       this.prisma.delivery.findMany({
         where: {
           ...(effectiveBranchId
-            ? { branchId: effectiveBranchId }
+            ? { booking: { branchId: effectiveBranchId } }
             : effectiveFranchiseId
-            ? { branch: { franchiseId: effectiveFranchiseId } }
+            ? { booking: { branch: { franchiseId: effectiveFranchiseId } } }
             : {}),
           ...(dateFilter ? { createdAt: dateFilter } : {}),
         },
@@ -687,9 +687,13 @@ export class ReportsService {
 
     return {
       // 1. Dealership Revenue & Collections
+      issuedInvoices,
       issuedInvoicesCount: issuedInvoices,
+      paidInvoices,
       paidInvoicesCount: paidInvoices,
+      partialInvoices,
       partialInvoicesCount: partialInvoices,
+      unpaidInvoices,
       unpaidInvoicesCount: unpaidInvoices,
       totalInvoiceAmount,
       totalCollectedPayments,

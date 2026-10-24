@@ -22,6 +22,9 @@ export class DashboardsService {
     const campaignWhere: any = {};
     const deliveryWhere: any = {};
     const complianceWhere: any = {};
+    const financeWhere: any = {};
+    const financeEmiWhere: any = {};
+    const customerWhere: any = { status: 'ACTIVE' };
 
     const now = new Date();
     const in30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
@@ -37,6 +40,16 @@ export class DashboardsService {
       campaignWhere.branchId = scope.effectiveBranchId;
       deliveryWhere.booking = { branchId: scope.effectiveBranchId };
       complianceWhere.vehicle = { branchId: scope.effectiveBranchId };
+      financeWhere.booking = { branchId: scope.effectiveBranchId };
+      financeEmiWhere.financeApplication = { booking: { branchId: scope.effectiveBranchId } };
+      customerWhere.OR = [
+        { preferredBranchId: scope.effectiveBranchId },
+        { quotations: { some: { branchId: scope.effectiveBranchId } } },
+        { bookings: { some: { branchId: scope.effectiveBranchId } } },
+        { vehicles: { some: { branchId: scope.effectiveBranchId } } },
+        { leads: { some: { branchId: scope.effectiveBranchId } } },
+        { serviceJobs: { some: { branchId: scope.effectiveBranchId } } },
+      ];
     } else if (scope?.effectiveFranchiseId) {
       franchiseWhere.id = scope.effectiveFranchiseId;
       branchWhere.franchiseId = scope.effectiveFranchiseId;
@@ -49,6 +62,17 @@ export class DashboardsService {
       campaignWhere.branch = { franchiseId: scope.effectiveFranchiseId };
       deliveryWhere.booking = { branch: { franchiseId: scope.effectiveFranchiseId } };
       complianceWhere.vehicle = { branch: { franchiseId: scope.effectiveFranchiseId } };
+      financeWhere.booking = { branch: { franchiseId: scope.effectiveFranchiseId } };
+      financeEmiWhere.financeApplication = { booking: { branch: { franchiseId: scope.effectiveFranchiseId } } };
+      customerWhere.OR = [
+        { preferredBranch: { franchiseId: scope.effectiveFranchiseId } },
+        { franchiseLinks: { some: { franchiseId: scope.effectiveFranchiseId } } },
+        { quotations: { franchiseId: scope.effectiveFranchiseId } },
+        { bookings: { branch: { franchiseId: scope.effectiveFranchiseId } } },
+        { vehicles: { branch: { franchiseId: scope.effectiveFranchiseId } } },
+        { leads: { franchiseId: scope.effectiveFranchiseId } },
+        { serviceJobs: { branch: { franchiseId: scope.effectiveFranchiseId } } },
+      ];
     }
 
     const [
@@ -78,7 +102,7 @@ export class DashboardsService {
       this.prisma.franchise.count({ where: franchiseWhere }),
       this.prisma.branch.count({ where: branchWhere }),
       this.prisma.employee.count({ where: employeeWhere }),
-      this.prisma.customer.count({ where: { status: 'ACTIVE' } }),
+      this.prisma.customer.count({ where: customerWhere }),
       this.prisma.vehicle.count({ where: vehicleWhere }),
       this.prisma.vehicle.count({ where: { ...vehicleWhere, status: 'IN_STOCK' } }),
       this.prisma.vehicle.count({ where: { ...vehicleWhere, status: 'RESERVED' } }),
@@ -111,10 +135,10 @@ export class DashboardsService {
         },
       }),
       this.prisma.financeApplication.count({
-        where: { status: { in: ['APPROVED', 'DISBURSED'] } },
+        where: { ...financeWhere, status: { in: ['APPROVED', 'DISBURSED'] } },
       }),
       this.prisma.financeEmiSchedule.count({
-        where: { status: 'OVERDUE' },
+        where: { ...financeEmiWhere, status: 'OVERDUE' },
       }),
       this.prisma.booking.findMany({
         where: bookingWhere,

@@ -4,22 +4,26 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { notificationService, AppNotification } from '@/services/notification.service';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/app/providers/AuthContext';
 
 export const NotificationPanel: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { isAuthenticated } = useAuth();
 
   const { data: notifications = [] } = useQuery<AppNotification[]>({
     queryKey: ['notifications'],
     queryFn: () => notificationService.getNotifications(),
-    refetchInterval: 10000,
+    enabled: isAuthenticated,
+    refetchInterval: isAuthenticated ? 10000 : false,
   });
 
   const { data: unreadCount = 0 } = useQuery<number>({
     queryKey: ['unreadNotificationCount'],
     queryFn: () => notificationService.getUnreadCount(),
-    refetchInterval: 10000,
+    enabled: isAuthenticated,
+    refetchInterval: isAuthenticated ? 10000 : false,
   });
 
   const markReadMutation = useMutation({

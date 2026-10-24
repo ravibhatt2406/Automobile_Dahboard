@@ -5,15 +5,18 @@ import { Inbox, CheckCircle2, ArrowRight } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { notificationService, AppNotification } from '@/services/notification.service';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/app/providers/AuthContext';
 
 export const NotificationsPage: React.FC = () => {
   const [filter, setFilter] = useState<'all' | 'unread' | 'read'>('unread');
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
 
   const { data: notifications = [], isLoading } = useQuery<AppNotification[]>({
     queryKey: ['notifications'],
     queryFn: () => notificationService.getNotifications(),
+    enabled: isAuthenticated,
   });
 
   const markReadMutation = useMutation({

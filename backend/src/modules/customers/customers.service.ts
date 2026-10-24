@@ -138,6 +138,19 @@ export class CustomersService {
       }
     }
 
+    if (dto.franchiseId) {
+      const franchise = await this.prisma.franchise.findUnique({ where: { id: dto.franchiseId } });
+      if (!franchise) {
+        throw new NotFoundException(`Specified franchise '${dto.franchiseId}' does not exist`);
+      }
+      if (branchFranchiseId && branchFranchiseId !== dto.franchiseId) {
+        throw new BadRequestException('Specified branch does not belong to the selected franchise');
+      }
+      if (!branchFranchiseId) {
+        branchFranchiseId = dto.franchiseId;
+      }
+    }
+
     // 4. Create customer record in database
     const customer = await this.prisma.customer.create({
       data: {
@@ -454,7 +467,7 @@ export class CustomersService {
         conversations: { include: { branch: true }, orderBy: { lastMessageAt: 'desc' } },
         leads: { include: { branch: true }, orderBy: { createdAt: 'desc' } },
         franchiseLinks: { include: { franchise: true } },
-        preferredBranch: { select: { id: true, code: true, name: true, city: true, state: true } },
+        preferredBranch: { select: { id: true, code: true, name: true, city: true, state: true, franchiseId: true } },
       },
     });
 
@@ -485,6 +498,7 @@ export class CustomersService {
           if (isFranchiseLevel) {
             const franchiseId = scope?.effectiveFranchiseId || user.assignedFranchiseId || user.franchiseId;
             const hasFranchiseLink =
+              customer.preferredBranch?.franchiseId === franchiseId ||
               customer.franchiseLinks?.some((fl) => fl.franchiseId === franchiseId) ||
               customer.leads?.some((l) => l.franchiseId === franchiseId) ||
               customer.quotations?.some((q) => q.franchiseId === franchiseId) ||
@@ -492,7 +506,8 @@ export class CustomersService {
               customer.vehicles?.some((v: any) => v.branch?.franchiseId === franchiseId) ||
               customer.serviceJobs?.some((sj: any) => sj.branch?.franchiseId === franchiseId) ||
               customer.serviceAppointments?.some((sa: any) => sa.branch?.franchiseId === franchiseId) ||
-              customer.conversations?.some((c: any) => c.branch?.franchiseId === franchiseId);
+              customer.conversations?.some((c: any) => c.branch?.franchiseId === franchiseId) ||
+              customer.invoices?.some((inv: any) => inv.branch?.franchiseId === franchiseId);
 
             if (!hasFranchiseLink) {
               throw new ForbiddenException(
@@ -501,8 +516,9 @@ export class CustomersService {
             }
           } else {
             // Branch Level
-            const branchId = user.assignedBranchId || user.branchId;
+            const branchId = scope?.effectiveBranchId || user.assignedBranchId || user.branchId;
             const hasBranchLink =
+              customer.preferredBranchId === branchId ||
               customer.quotations?.some((q) => q.branchId === branchId) ||
               customer.bookings?.some((b) => b.branchId === branchId) ||
               customer.vehicles?.some((v) => v.branchId === branchId) ||

@@ -87,7 +87,7 @@ export const BranchesListPage: React.FC = () => {
     { header: 'Branch Name', accessorKey: 'name' },
     { header: 'Franchise', accessorKey: 'franchiseName' },
     { header: 'City', accessorKey: 'city' },
-    { header: 'Phone', accessorKey: 'phone' },
+    { header: 'State', accessorKey: 'state' },
     {
       header: 'Status',
       cell: (row) => <StatusBadge status={row.status} />,

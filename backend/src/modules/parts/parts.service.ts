@@ -24,6 +24,28 @@ export class PartsService {
       throw new BadRequestException(`Part number '${dto.partNumber}' already exists`);
     }
 
+    let targetBranch: any = null;
+    if (dto.branchId) {
+      targetBranch = await this.prisma.branch.findUnique({
+        where: { id: dto.branchId },
+      });
+      if (!targetBranch) {
+        throw new NotFoundException(`Branch '${dto.branchId}' not found`);
+      }
+      if (dto.franchiseId && targetBranch.franchiseId !== dto.franchiseId) {
+        throw new BadRequestException(
+          `Branch '${targetBranch.name}' does not belong to specified franchise '${dto.franchiseId}'`,
+        );
+      }
+    } else if (dto.franchiseId) {
+      const franchise = await this.prisma.franchise.findUnique({
+        where: { id: dto.franchiseId },
+      });
+      if (!franchise) {
+        throw new NotFoundException(`Franchise '${dto.franchiseId}' not found`);
+      }
+    }
+
     const part = await this.prisma.part.create({
       data: {
         partNumber: dto.partNumber,
@@ -36,12 +58,24 @@ export class PartsService {
       },
     });
 
+    if (targetBranch) {
+      const initialQty = dto.quantityOnHand ?? dto.stockQuantity ?? 0;
+      await this.prisma.partStock.create({
+        data: {
+          partId: part.id,
+          branchId: targetBranch.id,
+          quantityOnHand: initialQty,
+          quantityReserved: 0,
+        },
+      }).catch(() => {});
+    }
+
     await this.auditService.log({
       actorUserId,
       action: 'PART_CREATED',
       entityType: 'Part',
       entityId: part.id,
-      metadata: { partNumber: dto.partNumber, name: dto.name },
+      metadata: { partNumber: dto.partNumber, name: dto.name, branchId: targetBranch?.id },
     }).catch(() => {});
 
     return part;

@@ -1,11 +1,16 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsBoolean, IsDateString, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, Min } from 'class-validator';
+import { IsBoolean, IsDateString, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, Min, ValidateIf } from 'class-validator';
 
 export class CreateJobCardDto {
   @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', required: false })
   @IsString()
   @IsOptional()
   appointmentId?: string;
+
+  @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', required: false })
+  @IsString()
+  @IsOptional()
+  franchiseId?: string;
 
   @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' })
   @IsString()
@@ -49,6 +54,7 @@ export class CreateJobCardDto {
   fuelLevel?: string;
 
   @ApiProperty({ example: '2026-10-16T18:00:00.000Z', required: false })
+  @ValidateIf((o) => !!o.estimatedCompletionTime)
   @IsDateString()
   @IsOptional()
   estimatedCompletionTime?: string;

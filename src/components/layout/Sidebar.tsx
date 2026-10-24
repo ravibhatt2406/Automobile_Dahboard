@@ -1,6 +1,8 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '@/app/providers/AuthContext';
+import { useQuery } from '@tanstack/react-query';
+import { announcementsService } from '@/services/announcements.service';
 import {
   LayoutDashboard,
   Building,
@@ -26,6 +28,7 @@ import {
   CheckSquare,
   MessageSquare,
   Tent,
+  Megaphone,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -47,6 +50,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const isMechanic = activeRole === 'MECHANIC';
   const isSales = activeRole === 'SALES_EMPLOYEE';
   const isBranchManager = activeRole === 'BRANCH_MANAGER';
+
+  // Fetch live unread announcements count for current authenticated user
+  const { data: unreadAnnouncements = 0 } = useQuery({
+    queryKey: ['announcements-unread-count', activeRole],
+    queryFn: () => announcementsService.getUnreadCount(),
+    enabled: !isCustomer,
+    refetchInterval: 30000,
+  });
 
   // Role-specific navigation definition
   const getNavigationItems = () => {
@@ -72,6 +83,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { label: 'Assigned Service Jobs', path: '/service/jobs', icon: Wrench },
         { label: 'Mechanic Bay Workspace', path: '/service/mechanic-workspace', icon: Shield },
         { label: 'Service Appointments', path: '/service/appointments', icon: CheckSquare },
+        { label: 'Announcements', path: '/announcements', icon: Megaphone, badge: unreadAnnouncements },
         { label: 'Customer Messages', path: '/chat', icon: MessageSquare },
         { label: 'Spare Parts Requisitions', path: '/spare-parts', icon: Package },
         { label: 'Notifications', path: '/notifications', icon: Bell },
@@ -82,12 +94,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
     if (isSales) {
       return [
         { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+        { label: 'CRM & Leads', path: '/crm/leads', icon: Target },
         { label: 'Customers', path: '/customers', icon: UserCheck },
         { label: 'Sales & Quotations', path: '/sales', icon: ShoppingBag },
         { label: 'Available Inventory', path: '/inventory/vehicles', icon: Truck },
         { label: 'Customer Bookings', path: '/sales/bookings', icon: PackageCheck },
         { label: 'Camps & Outreach', path: '/marketing/campaigns', icon: Tent },
         { label: 'WhatsApp Reminders', path: '/reminders', icon: MessageSquare },
+        { label: 'Announcements', path: '/announcements', icon: Megaphone, badge: unreadAnnouncements },
         { label: 'Customer Messages', path: '/chat', icon: MessageSquare },
         { label: 'Notifications', path: '/notifications', icon: Bell },
         { label: 'Settings', path: '/settings', icon: Settings },
@@ -138,6 +152,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
         path: '/customers',
         icon: UserCheck,
         show: permissions.canViewAllCustomers,
+      },
+      {
+        label: 'CRM & Leads',
+        path: '/crm/leads',
+        icon: Target,
+        show: permissions.canViewLeads,
       },
       {
         label: 'Sales Overview',
@@ -211,6 +231,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
         icon: BarChart3,
         show: permissions.canViewReports,
       },
+      {
+        label: 'Announcements',
+        path: '/announcements',
+        icon: Megaphone,
+        show: true,
+        badge: unreadAnnouncements,
+      },
       { label: 'Notifications', path: '/notifications', icon: Bell, show: true },
       { label: 'Settings', path: '/settings', icon: Settings, show: true },
     ];
@@ -253,8 +280,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         <nav className="flex-1 overflow-y-auto p-2 space-y-0.5">
-          {navItems.map((item) => {
+          {navItems.map((item: any) => {
             const Icon = item.icon;
+            const badgeCount = Number(item.badge || 0);
             return (
               <NavLink
                 key={item.path}
@@ -269,8 +297,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 }
                 title={collapsed ? item.label : undefined}
               >
-                <Icon className={`w-4 h-4 shrink-0`} />
-                {!collapsed && <span className="truncate">{item.label}</span>}
+                <div className="relative flex items-center justify-center shrink-0">
+                  <Icon className={`w-4 h-4 shrink-0`} />
+                  {collapsed && badgeCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-[#F5A800] ring-2 ring-white" />
+                  )}
+                </div>
+                {!collapsed && <span className="truncate flex-1">{item.label}</span>}
+                {!collapsed && badgeCount > 0 && (
+                  <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-[#F5A800] text-black">
+                    {badgeCount}
+                  </span>
+                )}
               </NavLink>
             );
           })}

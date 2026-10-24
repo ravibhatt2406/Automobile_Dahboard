@@ -58,17 +58,17 @@ describe('DashboardsController Unit Tests', () => {
   it('should call getSalesDashboard with user', async () => {
     mockDashboardsService.getSalesDashboard.mockResolvedValue({ openQuotationsCount: 3 });
     const user = { id: 'u3', roles: ['SALES_EMPLOYEE'], employeeId: 'emp-1' };
-    const result = await controller.getSalesDashboard(user);
+    const result = await controller.getSalesDashboard('br-1', user);
     expect(result).toEqual({ openQuotationsCount: 3 });
-    expect(service.getSalesDashboard).toHaveBeenCalledWith(user);
+    expect(service.getSalesDashboard).toHaveBeenCalledWith(user, 'br-1');
   });
 
   it('should call getServiceAdvisorDashboard with user', async () => {
     mockDashboardsService.getServiceAdvisorDashboard.mockResolvedValue({ pendingAppointmentsCount: 4 });
     const user = { id: 'u4', roles: ['SERVICE_ADVISOR'], employeeId: 'emp-2' };
-    const result = await controller.getServiceAdvisorDashboard(user);
+    const result = await controller.getServiceAdvisorDashboard('br-1', user);
     expect(result).toEqual({ pendingAppointmentsCount: 4 });
-    expect(service.getServiceAdvisorDashboard).toHaveBeenCalledWith(user);
+    expect(service.getServiceAdvisorDashboard).toHaveBeenCalledWith(user, 'br-1');
   });
 
   it('should call getMechanicDashboard with mechanic employee id', async () => {

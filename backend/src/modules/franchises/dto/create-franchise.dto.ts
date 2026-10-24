@@ -21,4 +21,34 @@ export class CreateFranchiseDto {
   @IsString()
   @IsOptional()
   taxId?: string;
+
+  @ApiProperty({ example: 'Ashok Leyland', required: false })
+  @IsString()
+  @IsOptional()
+  brand?: string;
+
+  @ApiProperty({ example: 'franchise@titanauto.com', required: false })
+  @IsString()
+  @IsOptional()
+  contactEmail?: string;
+
+  @ApiProperty({ example: '+1 800-555-0199', required: false })
+  @IsString()
+  @IsOptional()
+  contactPhone?: string;
+
+  @ApiProperty({ example: 'Transport Nagar, Agra Road', required: false })
+  @IsString()
+  @IsOptional()
+  address?: string;
+
+  @ApiProperty({ example: 'Anand Agrawal', required: false })
+  @IsString()
+  @IsOptional()
+  ownerName?: string;
+
+  @ApiProperty({ example: 'active', required: false })
+  @IsString()
+  @IsOptional()
+  status?: string;
 }

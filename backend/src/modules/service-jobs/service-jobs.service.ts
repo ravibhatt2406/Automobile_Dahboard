@@ -50,6 +50,12 @@ export class ServiceJobsService {
     const branch = await this.prisma.branch.findUnique({ where: { id: dto.branchId } });
     if (!branch) throw new NotFoundException(`Branch ID '${dto.branchId}' not found`);
 
+    if (dto.franchiseId && branch.franchiseId !== dto.franchiseId) {
+      throw new BadRequestException(
+        `Branch '${branch.name}' does not belong to specified franchise '${dto.franchiseId}'`,
+      );
+    }
+
     if (!isSuperAdmin) {
       if (user?.branchId && user.branchId !== branch.id) {
         throw new ForbiddenException('Cannot create service job for another branch');

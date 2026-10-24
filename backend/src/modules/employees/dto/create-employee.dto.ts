@@ -46,4 +46,19 @@ export class CreateEmployeeDto {
   @IsString()
   @IsOptional()
   designation?: string;
+
+  @ApiProperty({ example: '8f146f47-f6d8-4909-8b85-996f444f701b', required: false })
+  @IsString()
+  @IsOptional()
+  franchiseId?: string;
+
+  @ApiProperty({ example: 'Operations', required: false })
+  @IsString()
+  @IsOptional()
+  department?: string;
+
+  @ApiProperty({ example: 'active', required: false })
+  @IsString()
+  @IsOptional()
+  status?: string;
 }

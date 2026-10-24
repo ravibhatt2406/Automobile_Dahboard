@@ -28,6 +28,11 @@ export class CreateLeadDto {
   @IsOptional()
   companyName?: string;
 
+  @ApiProperty({ example: '2026-11-20T00:00:00.000Z', required: false })
+  @IsString()
+  @IsOptional()
+  expectedPurchaseDate?: string;
+
   @ApiProperty({ example: '2026-11-05T10:00:00.000Z', required: false })
   @IsString()
   @IsOptional()

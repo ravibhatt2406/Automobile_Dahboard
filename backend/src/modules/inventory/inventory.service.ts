@@ -767,6 +767,7 @@ export class InventoryService {
 
     const where: any = {
       branch: { status: 'ACTIVE' },
+      customerId: null,
     };
 
     if (params.city && params.city !== 'ALL') {

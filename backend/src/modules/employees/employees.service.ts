@@ -62,6 +62,14 @@ export class EmployeesService {
       throw new NotFoundException(`Branch '${dto.branchId}' not found`);
     }
 
+    if (dto.franchiseId) {
+      if (targetBranch.franchiseId !== dto.franchiseId) {
+        throw new BadRequestException(
+          `Branch '${targetBranch.name}' does not belong to specified franchise '${dto.franchiseId}'`,
+        );
+      }
+    }
+
     // Tenant / Branch Scope Validation
     const isSuperAdmin =
       creatorHighestRank === 1 ||
@@ -132,7 +140,7 @@ export class EmployeesService {
           employeeCode: dto.employeeCode,
           firstName: dto.firstName,
           lastName: dto.lastName,
-          designation: dto.designation,
+          designation: dto.designation || dto.department,
           status: 'PENDING_APPROVAL',
         },
       });

@@ -16,7 +16,7 @@ export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
 
   @Get('sales')
-  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'FRANCHISE_MANAGER', 'BRANCH_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE')
   @ApiOperation({ summary: 'Get Sales Performance & Conversion Report' })
   @ApiQuery({ name: 'branchId', required: false })
   @ApiQuery({ name: 'franchiseId', required: false })
@@ -33,7 +33,7 @@ export class ReportsController {
   }
 
   @Get('crm')
-  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'FRANCHISE_MANAGER', 'BRANCH_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE')
   @ApiOperation({ summary: 'Get CRM Pipeline & Lead Conversion Report' })
   @ApiQuery({ name: 'branchId', required: false })
   @ApiQuery({ name: 'franchiseId', required: false })
@@ -50,7 +50,7 @@ export class ReportsController {
   }
 
   @Get('inventory')
-  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'INVENTORY_MANAGER')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'FRANCHISE_MANAGER', 'BRANCH_OWNER', 'BRANCH_MANAGER', 'INVENTORY_MANAGER')
   @ApiOperation({ summary: 'Get Inventory Stock & Valuation Report' })
   @ApiQuery({ name: 'branchId', required: false })
   @ApiQuery({ name: 'franchiseId', required: false })
@@ -63,7 +63,7 @@ export class ReportsController {
   }
 
   @Get('service')
-  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SERVICE_ADVISOR', 'MECHANIC')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'FRANCHISE_MANAGER', 'BRANCH_OWNER', 'BRANCH_MANAGER', 'SERVICE_ADVISOR', 'MECHANIC')
   @ApiOperation({ summary: 'Get Service Operations & Workload Report' })
   @ApiQuery({ name: 'branchId', required: false })
   @ApiQuery({ name: 'franchiseId', required: false })
@@ -80,7 +80,7 @@ export class ReportsController {
   }
 
   @Get('compliance')
-  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SERVICE_ADVISOR')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'FRANCHISE_MANAGER', 'BRANCH_OWNER', 'BRANCH_MANAGER', 'SERVICE_ADVISOR')
   @ApiOperation({ summary: 'Get Vehicle Compliance & Expiry Alert Report' })
   @ApiQuery({ name: 'branchId', required: false })
   @ApiQuery({ name: 'franchiseId', required: false })
@@ -93,7 +93,7 @@ export class ReportsController {
   }
 
   @Get('finance')
-  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'ACCOUNTANT')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'FRANCHISE_MANAGER', 'BRANCH_OWNER', 'BRANCH_MANAGER', 'ACCOUNTANT')
   @ApiOperation({ summary: 'Get Finance & Collections Report' })
   @ApiQuery({ name: 'branchId', required: false })
   @ApiQuery({ name: 'franchiseId', required: false })
@@ -110,7 +110,7 @@ export class ReportsController {
   }
 
   @Get('export')
-  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'ACCOUNTANT')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'FRANCHISE_MANAGER', 'BRANCH_OWNER', 'BRANCH_MANAGER', 'ACCOUNTANT')
   @ApiOperation({ summary: 'Export authorized filtered report data to CSV' })
   @ApiQuery({ name: 'category', required: true, enum: ['sales', 'crm', 'inventory', 'service', 'compliance', 'finance'] })
   @ApiQuery({ name: 'branchId', required: false })

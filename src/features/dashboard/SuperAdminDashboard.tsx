@@ -22,8 +22,10 @@ import {
 } from 'lucide-react';
 import { dashboardService, SuperAdminDashboardData } from '@/services/dashboard.service';
 import { ApiError } from '@/services/apiClient';
+import { useScope } from '@/app/providers/ScopeContext';
 
 export const SuperAdminDashboard: React.FC = () => {
+  const { selectedFranchiseId, selectedBranchId, activeBranchName, activeFranchiseName } = useScope();
   const [data, setData] = useState<SuperAdminDashboardData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<{ title: string; message: string; statusCode?: number } | null>(
@@ -34,7 +36,10 @@ export const SuperAdminDashboard: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await dashboardService.getSuperAdmin();
+      const res = await dashboardService.getSuperAdmin({
+        franchiseId: selectedFranchiseId !== 'ALL' ? selectedFranchiseId : undefined,
+        branchId: selectedBranchId !== 'ALL' ? selectedBranchId : undefined,
+      });
       setData(res);
     } catch (err: any) {
       if (err instanceof ApiError) {
@@ -70,7 +75,7 @@ export const SuperAdminDashboard: React.FC = () => {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [selectedFranchiseId, selectedBranchId]);
 
   return (
     <div className="space-y-6">
@@ -89,7 +94,11 @@ export const SuperAdminDashboard: React.FC = () => {
         </div>
         <div className="flex items-center gap-2">
           <span className="px-3 py-1 rounded-lg bg-zinc-100 border border-zinc-200 text-xs font-mono text-zinc-700">
-            {data
+            {selectedBranchId !== 'ALL'
+              ? `Branch: ${activeBranchName}`
+              : selectedFranchiseId !== 'ALL'
+              ? `Franchise: ${activeFranchiseName} (${data?.branchCount || 0} Dealerships)`
+              : data
               ? `${data.franchiseCount} Franchises • ${data.branchCount} Dealerships`
               : 'All Franchises & Branches'}
           </span>

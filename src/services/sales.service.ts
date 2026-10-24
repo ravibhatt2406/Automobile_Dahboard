@@ -122,6 +122,7 @@ export const salesService = {
     expectedBudget?: number;
     priority?: string;
     notes?: string;
+    expectedPurchaseDate?: string;
     nextFollowUpDate?: string;
   }): Promise<Lead> {
     const res = await apiFetch<any>('/leads', {

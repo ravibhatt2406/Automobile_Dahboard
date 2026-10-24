@@ -36,4 +36,24 @@ export class CreatePartDto {
   @IsNumber()
   @IsOptional()
   gstRate?: number;
+
+  @ApiProperty({ example: '8f146f47-f6d8-4909-8b85-996f444f701b', required: false })
+  @IsString()
+  @IsOptional()
+  branchId?: string;
+
+  @ApiProperty({ example: '8f146f47-f6d8-4909-8b85-996f444f701b', required: false })
+  @IsString()
+  @IsOptional()
+  franchiseId?: string;
+
+  @ApiProperty({ example: 10, required: false })
+  @IsNumber()
+  @IsOptional()
+  quantityOnHand?: number;
+
+  @ApiProperty({ example: 10, required: false })
+  @IsNumber()
+  @IsOptional()
+  stockQuantity?: number;
 }

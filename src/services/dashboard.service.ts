@@ -281,8 +281,16 @@ export interface CustomerDashboardData {
 }
 
 export const dashboardService = {
-  async getSuperAdmin(): Promise<SuperAdminDashboardData> {
-    const res = await apiFetch<any>('/dashboards/super-admin');
+  async getSuperAdmin(params?: { franchiseId?: string; branchId?: string }): Promise<SuperAdminDashboardData> {
+    const queryParams = new URLSearchParams();
+    if (params?.franchiseId && params.franchiseId !== 'ALL') {
+      queryParams.set('franchiseId', params.franchiseId);
+    }
+    if (params?.branchId && params.branchId !== 'ALL') {
+      queryParams.set('branchId', params.branchId);
+    }
+    const qs = queryParams.toString() ? `?${queryParams.toString()}` : '';
+    const res = await apiFetch<any>(`/dashboards/super-admin${qs}`);
     return unwrapData<SuperAdminDashboardData>(res);
   },
 

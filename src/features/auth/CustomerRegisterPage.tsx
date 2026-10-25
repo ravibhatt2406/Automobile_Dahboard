@@ -71,7 +71,7 @@ export const CustomerRegisterPage: React.FC = () => {
     }
 
     try {
-      await registerCustomer({
+      const userProfile = await registerCustomer({
         name: formData.name.trim(),
         email: formData.email.trim().toLowerCase(),
         phone: formData.phone.trim() || undefined,
@@ -79,8 +79,12 @@ export const CustomerRegisterPage: React.FC = () => {
         termsAccepted: formData.termsAccepted,
       });
 
-      // Redirect to customer dashboard upon successful registration & login
-      navigate('/customer/dashboard');
+      // Redirect to customer dashboard if already linked; otherwise to profile onboarding
+      if (userProfile.customerId || userProfile.customerProfile) {
+        navigate('/customer/dashboard');
+      } else {
+        navigate('/customer/onboarding');
+      }
     } catch (err: any) {
       const msg = err?.message || 'Registration failed. Please verify your details.';
       if (msg.toLowerCase().includes('already exists') || msg.toLowerCase().includes('email')) {

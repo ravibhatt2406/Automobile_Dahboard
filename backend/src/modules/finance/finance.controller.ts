@@ -27,11 +27,28 @@ import { FinanceStatus } from '@prisma/client';
 export class FinanceController {
   constructor(private readonly financeService: FinanceService) {}
 
+  @Get('dashboard/stats')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE', 'FINANCE_MANAGER', 'CUSTOMER')
+  @ApiOperation({ summary: 'Get finance dashboard metrics and aggregate KPIs' })
+  @ApiQuery({ name: 'branchId', required: false })
+  @ApiQuery({ name: 'franchiseId', required: false })
+  getDashboardStats(
+    @Query('branchId') branchId?: string,
+    @Query('franchiseId') franchiseId?: string,
+    @CurrentUser() user?: any,
+  ) {
+    return this.financeService.getDashboardStats(user, branchId, franchiseId);
+  }
+
   @Post('applications')
   @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE', 'FINANCE_MANAGER')
   @ApiOperation({ summary: 'Submit finance application' })
-  create(@Body() dto: CreateFinanceApplicationDto, @CurrentUser('id') actorUserId: string) {
-    return this.financeService.create(dto, actorUserId);
+  create(
+    @Body() dto: CreateFinanceApplicationDto,
+    @CurrentUser('id') actorUserId: string,
+    @CurrentUser() user?: any,
+  ) {
+    return this.financeService.create(dto, actorUserId, user);
   }
 
   @Get('applications')
@@ -40,6 +57,7 @@ export class FinanceController {
   @ApiQuery({ name: 'branchId', required: false })
   @ApiQuery({ name: 'franchiseId', required: false })
   @ApiQuery({ name: 'customerId', required: false })
+  @ApiQuery({ name: 'vehicleId', required: false })
   @ApiQuery({ name: 'status', required: false, enum: FinanceStatus })
   @ApiQuery({ name: 'limit', required: false })
   @ApiQuery({ name: 'offset', required: false })
@@ -47,6 +65,7 @@ export class FinanceController {
     @Query('branchId') branchId?: string,
     @Query('franchiseId') franchiseId?: string,
     @Query('customerId') customerId?: string,
+    @Query('vehicleId') vehicleId?: string,
     @Query('status') status?: FinanceStatus,
     @Query('limit') limit?: number,
     @Query('offset') offset?: number,
@@ -60,6 +79,7 @@ export class FinanceController {
       user,
       branchId,
       franchiseId,
+      vehicleId,
     );
   }
 
@@ -87,14 +107,15 @@ export class FinanceController {
 
   @Patch('applications/:id/status')
   @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'FINANCE_MANAGER')
-  @ApiOperation({ summary: 'Update finance application status' })
+  @ApiOperation({ summary: 'Update finance application status with validation' })
   updateStatus(
     @Param('id') id: string,
     @Body('status') status: FinanceStatus,
     @Body('remarks') remarks: string,
     @CurrentUser('id') actorUserId: string,
+    @CurrentUser() user?: any,
   ) {
-    return this.financeService.updateStatus(id, status, remarks, actorUserId);
+    return this.financeService.updateStatus(id, status, remarks, actorUserId, user);
   }
 
   @Post('applications/:id/emi-schedule')
@@ -117,5 +138,24 @@ export class FinanceController {
     @CurrentUser() user: any,
   ) {
     return this.financeService.recordEmiPayment(scheduleId, dto, user);
+  }
+
+  @Get('applications/:id/history')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE', 'FINANCE_MANAGER', 'CUSTOMER')
+  @ApiOperation({ summary: 'Get finance application audit history' })
+  getHistory(@Param('id') id: string, @CurrentUser() user?: any) {
+    return this.financeService.getHistory(id, user);
+  }
+
+  @Post('applications/:id/documents')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE', 'FINANCE_MANAGER')
+  @ApiOperation({ summary: 'Attach supporting loan agreement or proof' })
+  attachDocument(
+    @Param('id') id: string,
+    @Body() fileDto: any,
+    @CurrentUser('id') actorUserId: string,
+    @CurrentUser() user?: any,
+  ) {
+    return this.financeService.attachDocument(id, fileDto, actorUserId, user);
   }
 }

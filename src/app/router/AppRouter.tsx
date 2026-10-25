@@ -78,6 +78,9 @@ const CustomersListPage = lazy(() =>
 const Customer360Page = lazy(() =>
   import('@/features/customers/Customer360Page').then((m) => ({ default: m.Customer360Page }))
 );
+const CustomerOnboardingPage = lazy(() =>
+  import('@/features/auth/CustomerOnboardingPage').then((m) => ({ default: m.CustomerOnboardingPage }))
+);
 
 // CRM & Visual Sales Pipeline
 const LeadsListPage = lazy(() => import('@/features/crm/LeadsListPage').then((m) => ({ default: m.LeadsListPage })));
@@ -227,6 +230,8 @@ export const AppRouter: React.FC = () => {
               }
             >
               <Route path="/customer/dashboard" element={<CustomerDashboard />} />
+              <Route path="/customer/onboarding" element={<CustomerOnboardingPage />} />
+              <Route path="/onboarding" element={<CustomerOnboardingPage />} />
             </Route>
 
             <Route

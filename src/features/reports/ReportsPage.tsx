@@ -42,9 +42,10 @@ export const ReportsPage: React.FC = () => {
   const canViewFinance = isSuperAdmin || ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER', 'BRANCH_OWNER', 'BRANCH_MANAGER', 'ACCOUNTANT'].includes(activeRole);
 
   const getDefaultCategory = (): 'sales' | 'crm' | 'inventory' | 'service' | 'compliance' | 'finance' => {
-    if (activeRole === 'MECHANIC' || activeRole === 'SERVICE_ADVISOR') return 'service';
-    if (activeRole === 'INVENTORY_MANAGER') return 'inventory';
-    if (activeRole === 'ACCOUNTANT') return 'finance';
+    const roleStr = activeRole as string;
+    if (roleStr === 'MECHANIC' || roleStr === 'SERVICE_ADVISOR') return 'service';
+    if (roleStr === 'INVENTORY_MANAGER') return 'inventory';
+    if (roleStr === 'ACCOUNTANT') return 'finance';
     return 'sales';
   };
 

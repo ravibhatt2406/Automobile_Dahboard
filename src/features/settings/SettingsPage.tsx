@@ -89,24 +89,47 @@ export const SettingsPage: React.FC = () => {
       )}
 
       {activeTab === 'account' && (
-        <div className="cockpit-card p-6 rounded-xl border border-slate-800 max-w-2xl space-y-4">
-          <h3 className="text-sm font-semibold text-slate-200 flex items-center gap-2 border-b border-slate-800 pb-3">
-            <Shield className="w-4 h-4 text-cyan-400" /> Account & Role Scope
-          </h3>
-          <div className="space-y-3 text-xs">
-            <div>
-              <span className="text-slate-500 block">Active UX Role</span>
-              <span className="font-mono text-blue-400 font-semibold">{ROLE_LABELS[activeRole]}</span>
-            </div>
-            <div>
-              <span className="text-slate-500 block">Assigned Franchise</span>
-              <span className="text-slate-200">{user?.assignedFranchiseName || 'Titan Commercial NA'}</span>
-            </div>
-            <div>
-              <span className="text-slate-500 block">Assigned Branch Location</span>
-              <span className="text-slate-200">{user?.assignedBranchName || 'Detroit Flagship Hub'}</span>
+        <div className="space-y-6 max-w-2xl">
+          <div className="cockpit-card p-6 rounded-xl border border-slate-800 space-y-4">
+            <h3 className="text-sm font-semibold text-slate-200 flex items-center gap-2 border-b border-slate-800 pb-3">
+              <Shield className="w-4 h-4 text-cyan-400" /> Account & Identity Overview
+            </h3>
+            <div className="space-y-3 text-xs">
+              <div>
+                <span className="text-slate-500 block">Active Portal Role</span>
+                <span className="font-mono text-blue-400 font-semibold">{ROLE_LABELS[activeRole]}</span>
+              </div>
+              {activeRole === 'CUSTOMER' ? (
+                <>
+                  <div>
+                    <span className="text-slate-500 block">Customer ID</span>
+                    <span className="font-mono text-slate-300">{user?.customerId || 'Linked Online Account'}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block">Registered Email</span>
+                    <span className="font-mono text-slate-300">{user?.email}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block">Verified Phone</span>
+                    <span className="font-mono text-slate-300">{user?.phone || 'Not provided'}</span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <span className="text-slate-500 block">Assigned Franchise</span>
+                    <span className="text-slate-200">{user?.assignedFranchiseName || 'Titan Commercial NA'}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block">Assigned Branch Location</span>
+                    <span className="text-slate-200">{user?.assignedBranchName || 'Detroit Flagship Hub'}</span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
+
+          {activeRole === 'CUSTOMER' && <CustomerPreferredBranchSettings />}
         </div>
       )}
 
@@ -180,6 +203,7 @@ export const SettingsPage: React.FC = () => {
 };
 
 const CustomerPreferredBranchSettings: React.FC = () => {
+  const { user, refreshUser } = useAuth();
   const [branches, setBranches] = React.useState<any[]>([]);
   const [cities, setCities] = React.useState<string[]>([]);
   const [selectedCity, setSelectedCity] = React.useState<string>('');
@@ -188,7 +212,7 @@ const CustomerPreferredBranchSettings: React.FC = () => {
   const [customerId, setCustomerId] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState<boolean>(true);
   const [saving, setSaving] = React.useState<boolean>(false);
-  const [msg, setMsg] = React.useState<string | null>(null);
+  const [msg, setMsg] = React.useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   React.useEffect(() => {
     async function loadData() {
@@ -201,11 +225,14 @@ const CustomerPreferredBranchSettings: React.FC = () => {
         const uniqueCities = Array.from(new Set(bList.map((b) => b.city).filter(Boolean))).sort();
         setCities(uniqueCities);
 
-        if (dash?.id) setCustomerId(dash.id);
-        if (dash?.preferredBranch) {
-          setCurrentBranch(dash.preferredBranch);
-          setSelectedBranchId(dash.preferredBranch.id);
-          if (dash.preferredBranch.city) setSelectedCity(dash.preferredBranch.city);
+        const cust = dash?.customer;
+        const cid = cust?.id || user?.customerId;
+        if (cid) setCustomerId(cid);
+        const pb = cust?.preferredBranch || user?.customerProfile?.preferredBranch;
+        if (pb) {
+          setCurrentBranch(pb);
+          setSelectedBranchId(pb.id);
+          if (pb.city) setSelectedCity(pb.city);
         }
       } catch (err) {
         console.error('Failed to load customer settings:', err);
@@ -214,7 +241,7 @@ const CustomerPreferredBranchSettings: React.FC = () => {
       }
     }
     loadData();
-  }, []);
+  }, [user]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -225,9 +252,16 @@ const CustomerPreferredBranchSettings: React.FC = () => {
       const { customerService } = await import('@/services/customer.service');
       const updated = await customerService.updatePreferredBranch(customerId, selectedBranchId || null);
       setCurrentBranch(updated.preferredBranch || null);
-      setMsg(selectedBranchId ? 'Preferred branch saved successfully!' : 'Preferred branch cleared.');
+      await refreshUser();
+      setMsg({
+        type: 'success',
+        text: selectedBranchId ? 'Preferred branch saved successfully!' : 'Preferred branch preference cleared.',
+      });
     } catch (err: any) {
-      setMsg(err.message || 'Failed to update preferred branch.');
+      setMsg({
+        type: 'error',
+        text: err.message || 'Failed to update preferred branch.',
+      });
     } finally {
       setSaving(false);
     }
@@ -262,8 +296,14 @@ const CustomerPreferredBranchSettings: React.FC = () => {
       )}
 
       {msg && (
-        <div className="p-3 rounded-lg bg-blue-900/30 border border-blue-700 text-blue-200 font-semibold">
-          {msg}
+        <div
+          className={`p-3 rounded-lg border font-semibold ${
+            msg.type === 'success'
+              ? 'bg-emerald-950/60 border-emerald-700 text-emerald-200'
+              : 'bg-rose-950/60 border-rose-700 text-rose-200'
+          }`}
+        >
+          {msg.text}
         </div>
       )}
 

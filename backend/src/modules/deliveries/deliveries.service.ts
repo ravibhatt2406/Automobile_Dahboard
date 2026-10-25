@@ -172,29 +172,23 @@ export class DeliveriesService {
     const where: any = {};
     if (status) where.status = status;
 
-    const scope = user?.effectiveScope || (user ? await resolveUserScope(this.prisma, user, branchId, franchiseId) : null);
+    const scope = await resolveUserScope(this.prisma, user, branchId, franchiseId);
 
     if (user && scope?.isCustomer) {
       const customerId = user.customerId || user.customerProfile?.id;
       if (!customerId) return { items: [], total: 0, limit, offset };
       where.customerId = customerId;
-    } else if (scope && !scope.isActingSuperAdmin) {
-      if (scope.isActingFranchiseLevel) {
-        where.vehicle = { branch: { franchiseId: scope.effectiveFranchiseId } };
-        if (scope.effectiveBranchId) {
-          where.vehicle = { branchId: scope.effectiveBranchId };
-        }
-      } else {
-        where.vehicle = { branchId: scope.effectiveBranchId };
-      }
-    } else if (scope?.isActingSuperAdmin) {
-      if (scope.effectiveFranchiseId) {
-        where.vehicle = { branch: { franchiseId: scope.effectiveFranchiseId } };
-        if (scope.effectiveBranchId) {
-          where.vehicle = { branchId: scope.effectiveBranchId };
-        }
-      } else if (scope.effectiveBranchId) {
-        where.vehicle = { branchId: scope.effectiveBranchId };
+    } else if (scope) {
+      if (scope.effectiveBranchId) {
+        where.OR = [
+          { vehicle: { branchId: scope.effectiveBranchId } },
+          { booking: { branchId: scope.effectiveBranchId } },
+        ];
+      } else if (scope.effectiveFranchiseId) {
+        where.OR = [
+          { vehicle: { branch: { franchiseId: scope.effectiveFranchiseId } } },
+          { booking: { branch: { franchiseId: scope.effectiveFranchiseId } } },
+        ];
       }
     }
 

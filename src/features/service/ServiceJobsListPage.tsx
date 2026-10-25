@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { PageHeader } from '@/components/data-display/PageHeader';
 import { DataTable, Column } from '@/components/data-display/DataTable';
 import { ServiceJob } from '@/types/domain';
@@ -6,7 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { serviceManagementService } from '@/services/service.service';
 import { branchService } from '@/services/branch.service';
 import { vehicleService } from '@/services/vehicle.service';
-import { Plus, Search, Wrench, Clock, CheckCircle2, AlertCircle, X, ShieldAlert, Loader2 } from 'lucide-react';
+import { Plus, Search, Wrench, Clock, CheckCircle2, AlertCircle, X, ShieldAlert, Loader2, Building, Store, Lock, Check } from 'lucide-react';
 import { StatusBadge } from '@/components/data-display/StatusBadge';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/app/providers/AuthContext';
@@ -16,15 +16,31 @@ import { BranchFilterBar } from '@/components/data-display/BranchFilterBar';
 export const ServiceJobsListPage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { activeRole } = useAuth();
+  const { user, activeRole } = useAuth();
   const {
     selectedBranchId,
     selectedFranchiseId,
     activeBranchName,
     activeFranchiseName,
+    isBranchLocked,
   } = useScope();
 
   const isCustomer = activeRole === 'CUSTOMER';
+  const isSuperAdmin = user?.accountType === 'SUPER_ADMIN' || user?.roles?.includes('SUPER_ADMIN');
+
+  // Derive effective authorized branch from global scope or user assigned scope
+  const isBranchScopedRole = !isSuperAdmin && [
+    'BRANCH_OWNER',
+    'BRANCH_MANAGER',
+    'DEPARTMENT_MANAGER',
+    'SALES_EMPLOYEE',
+    'SERVICE_ADVISOR',
+    'MECHANIC',
+  ].includes(activeRole);
+
+  const effectiveBranchId = isBranchScopedRole
+    ? (user?.assignedBranchId || (selectedBranchId !== 'ALL' ? selectedBranchId : ''))
+    : (selectedBranchId !== 'ALL' ? selectedBranchId : '');
 
   const [search, setSearch] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('ALL');
@@ -34,7 +50,6 @@ export const ServiceJobsListPage: React.FC = () => {
   const [createError, setCreateError] = useState<string | null>(null);
 
   // Form State for New Job Card
-  const [newJobBranchId, setNewJobBranchId] = useState('');
   const [newJobCustomerId, setNewJobCustomerId] = useState('');
   const [newJobVehicleId, setNewJobVehicleId] = useState('');
   const [newJobAdvisorId, setNewJobAdvisorId] = useState('');
@@ -43,6 +58,18 @@ export const ServiceJobsListPage: React.FC = () => {
   const [newJobOdometer, setNewJobOdometer] = useState('');
   const [newJobFuelLevel, setNewJobFuelLevel] = useState('50%');
   const [newJobNotes, setNewJobNotes] = useState('');
+
+  // Track global branch changes to clear incompatible form selections while preserving inputs
+  const prevBranchIdRef = useRef<string>(effectiveBranchId);
+  useEffect(() => {
+    if (prevBranchIdRef.current !== effectiveBranchId) {
+      prevBranchIdRef.current = effectiveBranchId;
+      setNewJobVehicleId('');
+      setNewJobCustomerId('');
+      setNewJobAdvisorId('');
+      setCreateError(null);
+    }
+  }, [effectiveBranchId]);
 
   // Queries
   const { data: jobsData, isLoading, error: queryError } = useQuery({
@@ -72,36 +99,86 @@ export const ServiceJobsListPage: React.FC = () => {
   });
   const branches = branchesData?.data || [];
 
-  const { data: customers = [] } = useQuery({
-    queryKey: ['customers-list'],
-    queryFn: () => serviceManagementService.getCustomers(),
-    enabled: isCreateModalOpen,
-  });
+  const activeBranch = useMemo(() => {
+    if (!effectiveBranchId) return null;
+    return branches.find((b: any) => b.id === effectiveBranchId || b.code === effectiveBranchId) || null;
+  }, [branches, effectiveBranchId]);
 
-  const { data: vehiclesData } = useQuery({
-    queryKey: ['vehicles-list', newJobBranchId],
-    queryFn: () => vehicleService.getVehicles({ branchId: newJobBranchId || undefined, pageSize: 100 }),
-    enabled: isCreateModalOpen,
+  // Vehicles for effective branch scope
+  const {
+    data: vehiclesData,
+    isLoading: isLoadingVehicles,
+    isError: isVehiclesError,
+    error: vehiclesQueryError,
+  } = useQuery({
+    queryKey: ['vehicles-list', effectiveBranchId],
+    queryFn: () => vehicleService.getVehicles({ branchId: effectiveBranchId, pageSize: 100 }),
+    enabled: isCreateModalOpen && !!effectiveBranchId,
   });
   const vehicles = vehiclesData?.data || [];
 
-  const { data: employees = [] } = useQuery({
-    queryKey: ['employees-advisors', newJobBranchId],
-    queryFn: () => serviceManagementService.getEmployees({ branchId: newJobBranchId || undefined }),
-    enabled: isCreateModalOpen && !!newJobBranchId,
+  // Exclude vehicles that cannot validly be assigned to a new service job
+  const eligibleVehicles = useMemo(() => {
+    return vehicles.filter((v: any) => {
+      const status = (v.status || '').toUpperCase();
+      const belongsToBranch = !effectiveBranchId || v.branchId === effectiveBranchId;
+      const isEligibleStatus = status !== 'SERVICE' && status !== 'BLOCKED' && status !== 'TRANSFERRED';
+      return belongsToBranch && isEligibleStatus;
+    });
+  }, [vehicles, effectiveBranchId]);
+
+  // Currently selected vehicle object
+  const selectedVehicle = useMemo(() => {
+    return eligibleVehicles.find((v: any) => v.id === newJobVehicleId) || null;
+  }, [eligibleVehicles, newJobVehicleId]);
+
+  // Customers scoped to effective branch
+  const {
+    data: branchCustomers = [],
+    isLoading: isLoadingCustomers,
+    isError: isCustomersError,
+  } = useQuery({
+    queryKey: ['customers-list', effectiveBranchId],
+    queryFn: () => serviceManagementService.getCustomers({ branchId: effectiveBranchId }),
+    enabled: isCreateModalOpen && !!effectiveBranchId,
   });
 
-  // Filter employees for Service Advisors
-  const serviceAdvisors = employees.filter((emp: any) =>
-    emp.designation?.toLowerCase().includes('advisor') ||
-    emp.roleAssignments?.some((ra: any) => ra.role?.name === 'SERVICE_ADVISOR') ||
-    emp.status === 'ACTIVE'
-  );
+  // Combine available customers, ensuring vehicle owner is present if linked
+  const availableCustomers = useMemo(() => {
+    const list = [...branchCustomers];
+    if (selectedVehicle?.customer && !list.some((c: any) => c.id === selectedVehicle.customer.id)) {
+      list.unshift(selectedVehicle.customer);
+    }
+    return list;
+  }, [branchCustomers, selectedVehicle]);
+
+  // Employees / Service Advisors for effective branch
+  const {
+    data: employees = [],
+    isLoading: isLoadingEmployees,
+    isError: isEmployeesError,
+  } = useQuery({
+    queryKey: ['employees-advisors', effectiveBranchId],
+    queryFn: () => serviceManagementService.getEmployees({ branchId: effectiveBranchId }),
+    enabled: isCreateModalOpen && !!effectiveBranchId,
+  });
+
+  // Filter employees for active Service Advisors
+  const serviceAdvisors = useMemo(() => {
+    return employees.filter((emp: any) =>
+      emp.status === 'ACTIVE' &&
+      (emp.designation?.toLowerCase().includes('advisor') ||
+       emp.roleAssignments?.some((ra: any) => ra.role?.name === 'SERVICE_ADVISOR') ||
+       emp.roleAssignments?.some((ra: any) => ['BRANCH_MANAGER', 'SUPER_ADMIN'].includes(ra.role?.name)) ||
+       emp.designation?.toLowerCase().includes('manager'))
+    );
+  }, [employees]);
 
   const createJobMutation = useMutation({
     mutationFn: (data: any) => serviceManagementService.createServiceJob(data),
     onSuccess: (newJob) => {
       queryClient.invalidateQueries({ queryKey: ['serviceJobs'] });
+      queryClient.invalidateQueries({ queryKey: ['vehicles-list'] });
       setIsCreateModalOpen(false);
       resetForm();
       navigate(`/service/jobs/${newJob.id}`);
@@ -112,7 +189,6 @@ export const ServiceJobsListPage: React.FC = () => {
   });
 
   const resetForm = () => {
-    setNewJobBranchId('');
     setNewJobCustomerId('');
     setNewJobVehicleId('');
     setNewJobAdvisorId('');
@@ -124,31 +200,65 @@ export const ServiceJobsListPage: React.FC = () => {
     setCreateError(null);
   };
 
+  const handleVehicleChange = (vehicleId: string) => {
+    setNewJobVehicleId(vehicleId);
+    setCreateError(null);
+    const v = eligibleVehicles.find((veh: any) => veh.id === vehicleId);
+    if (v?.customerId) {
+      setNewJobCustomerId(v.customerId);
+    } else {
+      if (!branchCustomers.some((c: any) => c.id === newJobCustomerId)) {
+        setNewJobCustomerId('');
+      }
+    }
+    if (v?.mileage && !newJobOdometer) {
+      setNewJobOdometer(String(v.mileage));
+    }
+  };
+
   const handleCreateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newJobBranchId) {
-      setCreateError('Please select a workshop branch');
-      return;
-    }
-    if (!newJobCustomerId) {
-      setCreateError('Please select a customer');
+    if (!effectiveBranchId) {
+      setCreateError('Please select a specific workshop branch in the application header');
       return;
     }
     if (!newJobVehicleId) {
-      setCreateError('Please select a vehicle asset');
+      setCreateError('Please select an eligible vehicle asset');
       return;
     }
+
+    const selVehicle = eligibleVehicles.find((v: any) => v.id === newJobVehicleId);
+    if (!selVehicle || selVehicle.branchId !== effectiveBranchId) {
+      setCreateError('Selected vehicle does not belong to the active workshop branch');
+      return;
+    }
+
+    if (!newJobCustomerId) {
+      setCreateError('Please select a customer / fleet owner');
+      return;
+    }
+    if (selVehicle.customerId && selVehicle.customerId !== newJobCustomerId) {
+      setCreateError('Selected customer does not match the vehicle registered owner');
+      return;
+    }
+
     if (!newJobAdvisorId) {
       setCreateError('Please select an active service advisor');
       return;
     }
+    const selAdvisor = serviceAdvisors.find((sa: any) => sa.id === newJobAdvisorId);
+    if (!selAdvisor || selAdvisor.branchId !== effectiveBranchId) {
+      setCreateError('Selected service advisor is not authorized for this workshop branch');
+      return;
+    }
+
     if (!newJobComplaint.trim()) {
       setCreateError('Customer complaint / service scope is required');
       return;
     }
 
     createJobMutation.mutate({
-      branchId: newJobBranchId,
+      branchId: effectiveBranchId,
       customerId: newJobCustomerId,
       vehicleId: newJobVehicleId,
       serviceAdvisorId: newJobAdvisorId,
@@ -464,30 +574,36 @@ export const ServiceJobsListPage: React.FC = () => {
               </div>
             )}
 
+            {!effectiveBranchId && (
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 space-y-2">
+                <div className="flex items-center gap-2 font-semibold text-amber-800">
+                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>Specific Workshop Branch Required</span>
+                </div>
+                <p className="text-zinc-600 leading-relaxed">
+                  The application is currently scoped to all authorized branches. To create a workshop job card, please select a specific authorized workshop branch from the header scope selector above (e.g., Udaipur or Jaipur).
+                </p>
+              </div>
+            )}
+
             <form onSubmit={handleCreateSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Branch */}
-                <div>
+                {/* Branch Context (Read-only, sourced from global scope) */}
+                <div className="sm:col-span-2">
                   <label className="text-xs font-semibold text-zinc-700 block mb-1">
-                    Workshop Branch <span className="text-rose-500">*</span>
+                    Workshop Branch Context
                   </label>
-                  <select
-                    value={newJobBranchId}
-                    onChange={(e) => {
-                      setNewJobBranchId(e.target.value);
-                      setNewJobVehicleId('');
-                      setNewJobAdvisorId('');
-                    }}
-                    className="w-full text-xs p-2.5 bg-zinc-50 border border-zinc-200 rounded-lg focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#F5A800]"
-                    required
-                  >
-                    <option value="">-- Select Workshop Branch --</option>
-                    {branches.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.name} ({b.city})
-                      </option>
-                    ))}
-                  </select>
+                  <div className="w-full text-xs p-2.5 bg-zinc-50 border border-zinc-200 rounded-lg text-zinc-900 font-medium flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Store className="w-4 h-4 text-amber-500 shrink-0" />
+                      <span>
+                        {activeBranch ? `${activeBranch.name} (${activeBranch.city || activeBranch.code})` : activeBranchName || 'Selected Workshop Branch'}
+                      </span>
+                    </div>
+                    <span className="text-[10px] bg-zinc-200 text-zinc-700 px-2 py-0.5 rounded font-mono uppercase tracking-wider font-semibold">
+                      Global Scope
+                    </span>
+                  </div>
                 </div>
 
                 {/* Service Advisor */}
@@ -498,58 +614,116 @@ export const ServiceJobsListPage: React.FC = () => {
                   <select
                     value={newJobAdvisorId}
                     onChange={(e) => setNewJobAdvisorId(e.target.value)}
-                    disabled={!newJobBranchId}
+                    disabled={!effectiveBranchId || isLoadingEmployees || serviceAdvisors.length === 0}
                     className="w-full text-xs p-2.5 bg-zinc-50 border border-zinc-200 rounded-lg focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#F5A800] disabled:opacity-50"
                     required
                   >
-                    <option value="">-- Select Service Advisor --</option>
-                    {serviceAdvisors.map((sa: any) => (
-                      <option key={sa.id} value={sa.id}>
-                        {sa.firstName} {sa.lastName} ({sa.designation || 'Advisor'})
-                      </option>
-                    ))}
+                    {isLoadingEmployees ? (
+                      <option value="">Loading service advisors...</option>
+                    ) : serviceAdvisors.length === 0 ? (
+                      <option value="">-- No active advisors in this branch --</option>
+                    ) : (
+                      <>
+                        <option value="">-- Select Service Advisor --</option>
+                        {serviceAdvisors.map((sa: any) => (
+                          <option key={sa.id} value={sa.id}>
+                            {sa.firstName} {sa.lastName} ({sa.designation || 'Advisor'})
+                          </option>
+                        ))}
+                      </>
+                    )}
                   </select>
+                  {!isLoadingEmployees && serviceAdvisors.length === 0 && effectiveBranchId && (
+                    <p className="text-[11px] text-amber-600 mt-1">
+                      No active service advisor is assigned to this workshop branch.
+                    </p>
+                  )}
                 </div>
 
-                {/* Customer */}
-                <div>
-                  <label className="text-xs font-semibold text-zinc-700 block mb-1">
-                    Customer / Fleet Owner <span className="text-rose-500">*</span>
-                  </label>
-                  <select
-                    value={newJobCustomerId}
-                    onChange={(e) => setNewJobCustomerId(e.target.value)}
-                    className="w-full text-xs p-2.5 bg-zinc-50 border border-zinc-200 rounded-lg focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#F5A800]"
-                    required
-                  >
-                    <option value="">-- Select Customer --</option>
-                    {customers.map((c: any) => (
-                      <option key={c.id} value={c.id}>
-                        {c.companyName || `${c.firstName || ''} ${c.lastName || ''}`.trim()} ({c.city || 'Commercial'})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Vehicle */}
+                {/* Vehicle Asset (VIN) */}
                 <div>
                   <label className="text-xs font-semibold text-zinc-700 block mb-1">
                     Vehicle Asset (VIN) <span className="text-rose-500">*</span>
                   </label>
                   <select
                     value={newJobVehicleId}
-                    onChange={(e) => setNewJobVehicleId(e.target.value)}
-                    disabled={!newJobBranchId}
+                    onChange={(e) => handleVehicleChange(e.target.value)}
+                    disabled={!effectiveBranchId || isLoadingVehicles || eligibleVehicles.length === 0}
                     className="w-full text-xs p-2.5 bg-zinc-50 border border-zinc-200 rounded-lg focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#F5A800] disabled:opacity-50"
                     required
                   >
-                    <option value="">-- Select Vehicle in Branch --</option>
-                    {vehicles.map((v) => (
-                      <option key={v.id} value={v.id}>
-                        {v.vin} — {v.model} ({v.status})
-                      </option>
-                    ))}
+                    {isLoadingVehicles ? (
+                      <option value="">Loading branch vehicles...</option>
+                    ) : eligibleVehicles.length === 0 ? (
+                      <option value="">-- No eligible vehicles available in branch --</option>
+                    ) : (
+                      <>
+                        <option value="">-- Select Vehicle in Branch ({eligibleVehicles.length} available) --</option>
+                        {eligibleVehicles.map((v: any) => {
+                          const reg = v.registrationNumber ? `${v.registrationNumber} • ` : '';
+                          const makeModel = [v.make, v.model].filter(Boolean).join(' ');
+                          return (
+                            <option key={v.id} value={v.id}>
+                              {reg}{v.vin} — {makeModel} ({v.status})
+                            </option>
+                          );
+                        })}
+                      </>
+                    )}
                   </select>
+                  {!isLoadingVehicles && eligibleVehicles.length === 0 && effectiveBranchId && (
+                    <p className="text-[11px] text-amber-600 mt-1">
+                      {vehicles.length > 0
+                        ? `All ${vehicles.length} vehicle(s) in this branch are currently undergoing service, blocked, or transferred.`
+                        : 'No physical vehicles are registered to this workshop branch.'}
+                    </p>
+                  )}
+                  {isVehiclesError && (
+                    <p className="text-[11px] text-rose-600 mt-1">
+                      Failed to load vehicles: {(vehiclesQueryError as any)?.message || 'Query error'}
+                    </p>
+                  )}
+                </div>
+
+                {/* Customer / Fleet Owner */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-semibold text-zinc-700 block">
+                      Customer / Fleet Owner <span className="text-rose-500">*</span>
+                    </label>
+                    {selectedVehicle?.customerId && (
+                      <span className="text-[10px] text-emerald-700 font-semibold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                        Registered Vehicle Owner
+                      </span>
+                    )}
+                  </div>
+                  <select
+                    value={newJobCustomerId}
+                    onChange={(e) => setNewJobCustomerId(e.target.value)}
+                    disabled={!effectiveBranchId || isLoadingCustomers || !!selectedVehicle?.customerId || availableCustomers.length === 0}
+                    className="w-full text-xs p-2.5 bg-zinc-50 border border-zinc-200 rounded-lg focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#F5A800] disabled:opacity-75"
+                    required
+                  >
+                    {isLoadingCustomers ? (
+                      <option value="">Loading customers...</option>
+                    ) : availableCustomers.length === 0 ? (
+                      <option value="">-- No eligible customers found for branch --</option>
+                    ) : (
+                      <>
+                        <option value="">-- Select Customer --</option>
+                        {availableCustomers.map((c: any) => (
+                          <option key={c.id} value={c.id}>
+                            {c.companyName || `${c.firstName || ''} ${c.lastName || ''}`.trim() || c.name} ({c.city || 'Commercial'})
+                          </option>
+                        ))}
+                      </>
+                    )}
+                  </select>
+                  {!isLoadingCustomers && availableCustomers.length === 0 && effectiveBranchId && (
+                    <p className="text-[11px] text-amber-600 mt-1">
+                      No eligible customers linked to this branch or franchise.
+                    </p>
+                  )}
                 </div>
 
                 {/* Odometer */}
@@ -560,19 +734,21 @@ export const ServiceJobsListPage: React.FC = () => {
                     placeholder="e.g. 45000"
                     value={newJobOdometer}
                     onChange={(e) => setNewJobOdometer(e.target.value)}
-                    className="w-full text-xs p-2.5 bg-zinc-50 border border-zinc-200 rounded-lg focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#F5A800]"
+                    disabled={!effectiveBranchId}
+                    className="w-full text-xs p-2.5 bg-zinc-50 border border-zinc-200 rounded-lg focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#F5A800] disabled:opacity-50"
                   />
                 </div>
 
                 {/* Estimated Cost */}
-                <div>
+                <div className="sm:col-span-2">
                   <label className="text-xs font-semibold text-zinc-700 block mb-1">Estimated Cost (₹)</label>
                   <input
                     type="number"
                     placeholder="e.g. 15000"
                     value={newJobEstimatedCost}
                     onChange={(e) => setNewJobEstimatedCost(e.target.value)}
-                    className="w-full text-xs p-2.5 bg-zinc-50 border border-zinc-200 rounded-lg focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#F5A800]"
+                    disabled={!effectiveBranchId}
+                    className="w-full text-xs p-2.5 bg-zinc-50 border border-zinc-200 rounded-lg focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#F5A800] disabled:opacity-50"
                   />
                 </div>
               </div>
@@ -587,7 +763,8 @@ export const ServiceJobsListPage: React.FC = () => {
                   placeholder="Detail primary defect or regular maintenance schedule requested by client..."
                   value={newJobComplaint}
                   onChange={(e) => setNewJobComplaint(e.target.value)}
-                  className="w-full text-xs p-2.5 bg-zinc-50 border border-zinc-200 rounded-lg focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#F5A800]"
+                  disabled={!effectiveBranchId}
+                  className="w-full text-xs p-2.5 bg-zinc-50 border border-zinc-200 rounded-lg focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#F5A800] disabled:opacity-50"
                   required
                 />
               </div>
@@ -600,7 +777,8 @@ export const ServiceJobsListPage: React.FC = () => {
                   placeholder="Optional internal intake remarks or urgency notes..."
                   value={newJobNotes}
                   onChange={(e) => setNewJobNotes(e.target.value)}
-                  className="w-full text-xs p-2.5 bg-zinc-50 border border-zinc-200 rounded-lg focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#F5A800]"
+                  disabled={!effectiveBranchId}
+                  className="w-full text-xs p-2.5 bg-zinc-50 border border-zinc-200 rounded-lg focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#F5A800] disabled:opacity-50"
                 />
               </div>
 
@@ -614,7 +792,14 @@ export const ServiceJobsListPage: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={createJobMutation.isPending}
+                  disabled={
+                    createJobMutation.isPending ||
+                    !effectiveBranchId ||
+                    eligibleVehicles.length === 0 ||
+                    !newJobVehicleId ||
+                    !newJobCustomerId ||
+                    !newJobAdvisorId
+                  }
                   className="px-4 py-2 bg-[#111111] hover:bg-black text-[#F5A800] text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors disabled:opacity-50"
                 >
                   {createJobMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}

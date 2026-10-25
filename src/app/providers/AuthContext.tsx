@@ -55,9 +55,40 @@ interface AuthContextType {
   registerCustomer: (payload: { name: string; email: string; phone?: string; password: string; termsAccepted: boolean }) => Promise<UserProfile>;
   loginWithGoogle: (credential: string) => Promise<UserProfile>;
   logout: () => Promise<void>;
+  refreshUser: () => Promise<UserProfile | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export function mapBackendUserToProfile(me: any): UserProfile {
+  const rawRoles: string[] = (me.roles as any[])?.map((r: any) => typeof r === 'string' ? r : r.name || r.role?.name) || [];
+  if (me.accountType === 'CUSTOMER' || me.role === 'CUSTOMER') {
+    if (!rawRoles.includes('CUSTOMER')) rawRoles.push('CUSTOMER');
+  }
+  const isCustomer = me.accountType === 'CUSTOMER' || me.role === 'CUSTOMER' || rawRoles.includes('CUSTOMER');
+  const roles: UserRole[] = rawRoles.length > 0 
+    ? (rawRoles as UserRole[]) 
+    : (isCustomer ? ['CUSTOMER'] : me.accountType === 'SUPER_ADMIN' ? ['SUPER_ADMIN'] : ['CUSTOMER']);
+  const activeRole: UserRole = isCustomer ? 'CUSTOMER' : (me.activeRole || roles[0] || 'SUPER_ADMIN');
+
+  return {
+    id: me.id,
+    email: me.email,
+    phone: me.phone,
+    firstName: me.firstName || me.name?.split(' ')[0] || me.email?.split('@')[0] || 'User',
+    lastName: me.lastName || me.name?.split(' ').slice(1).join(' ') || '',
+    roles,
+    activeRole,
+    assignedBranchId: me.assignedBranchId || me.scope?.branchId || me.employeeProfile?.branchId || me.employee?.branch?.id || me.branch?.id,
+    assignedBranchName: me.assignedBranchName || me.employeeProfile?.branch?.name || me.employee?.branch?.name || me.branch?.name,
+    assignedFranchiseId: me.assignedFranchiseId || me.scope?.franchiseId || me.employeeProfile?.branch?.franchiseId || me.franchise?.id,
+    assignedFranchiseName: me.assignedFranchiseName || me.employeeProfile?.branch?.franchise?.name || me.franchise?.name,
+    accountType: me.accountType,
+    customerId: me.customerId || me.customerProfile?.id || me.customer?.id || null,
+    customerProfile: me.customerProfile || me.customer || null,
+    preferredBranchId: me.customerProfile?.preferredBranchId || me.customer?.preferredBranchId || null,
+  };
+}
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(() => {
@@ -81,30 +112,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (token) {
       authService.getCurrentUser().then((me: any) => {
         if (me) {
-          const rawRoles: string[] = (me.roles as any[])?.map((r: any) => typeof r === 'string' ? r : r.name || r.role?.name) || [];
-          if (me.accountType === 'CUSTOMER' || me.role === 'CUSTOMER') {
-            if (!rawRoles.includes('CUSTOMER')) rawRoles.push('CUSTOMER');
-          }
-          const isCustomer = me.accountType === 'CUSTOMER' || me.role === 'CUSTOMER' || rawRoles.includes('CUSTOMER');
-          const roles: UserRole[] = rawRoles.length > 0 
-            ? (rawRoles as UserRole[]) 
-            : (isCustomer ? ['CUSTOMER'] : me.accountType === 'SUPER_ADMIN' ? ['SUPER_ADMIN'] : ['CUSTOMER']);
-          const activeRole: UserRole = isCustomer ? 'CUSTOMER' : (me.activeRole || roles[0] || 'SUPER_ADMIN');
-
-          const authenticatedUser: UserProfile = {
-            id: me.id,
-            email: me.email,
-            phone: me.phone,
-            firstName: me.firstName || me.name?.split(' ')[0] || me.email?.split('@')[0] || 'User',
-            lastName: me.lastName || me.name?.split(' ').slice(1).join(' ') || '',
-            roles,
-            activeRole,
-            assignedBranchId: me.assignedBranchId || me.scope?.branchId || me.employeeProfile?.branchId || me.employee?.branch?.id || me.branch?.id,
-            assignedBranchName: me.assignedBranchName || me.employeeProfile?.branch?.name || me.employee?.branch?.name || me.branch?.name,
-            assignedFranchiseId: me.assignedFranchiseId || me.scope?.franchiseId || me.employeeProfile?.branch?.franchiseId || me.franchise?.id,
-            assignedFranchiseName: me.assignedFranchiseName || me.employeeProfile?.branch?.franchise?.name || me.franchise?.name,
-            accountType: me.accountType,
-          };
+          const authenticatedUser = mapBackendUserToProfile(me);
           setUser(authenticatedUser);
           localStorage.setItem('titan_is_authenticated', 'true');
           localStorage.setItem('titan_user_profile', JSON.stringify(authenticatedUser));
@@ -158,35 +166,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error('Authentication failed. User profile could not be loaded.');
       }
 
-      const rawRoles: string[] = (backendUser.roles as any[])?.map((r: any) => typeof r === 'string' ? r : r.name || r.role?.name) || [];
-      if (backendUser.accountType === 'CUSTOMER' || backendUser.role === 'CUSTOMER') {
-        if (!rawRoles.includes('CUSTOMER')) rawRoles.push('CUSTOMER');
-      }
-      const isCustomer = backendUser.accountType === 'CUSTOMER' || backendUser.role === 'CUSTOMER' || rawRoles.includes('CUSTOMER');
-      const roles: UserRole[] = rawRoles.length > 0 
-        ? (rawRoles as UserRole[]) 
-        : (isCustomer ? ['CUSTOMER'] : backendUser.accountType === 'SUPER_ADMIN' ? ['SUPER_ADMIN'] : ['CUSTOMER']);
-      const activeRole: UserRole = isCustomer ? 'CUSTOMER' : (backendUser.activeRole || roles[0] || 'SUPER_ADMIN');
-
-      const authenticatedUser: UserProfile = {
-        id: backendUser.id,
-        email: backendUser.email,
-        phone: backendUser.phone,
-        firstName: backendUser.firstName || backendUser.name?.split(' ')[0] || backendUser.email?.split('@')[0] || 'User',
-        lastName: backendUser.lastName || backendUser.name?.split(' ').slice(1).join(' ') || '',
-        roles,
-        activeRole,
-        assignedBranchId: backendUser.assignedBranchId || backendUser.scope?.branchId || backendUser.employeeProfile?.branchId || backendUser.employee?.branch?.id || backendUser.branch?.id,
-        assignedBranchName: backendUser.assignedBranchName || backendUser.employeeProfile?.branch?.name || backendUser.employee?.branch?.name || backendUser.branch?.name,
-        assignedFranchiseId: backendUser.assignedFranchiseId || backendUser.scope?.franchiseId || backendUser.employeeProfile?.branch?.franchiseId || backendUser.franchise?.id,
-        assignedFranchiseName: backendUser.assignedFranchiseName || backendUser.employeeProfile?.branch?.franchise?.name || backendUser.franchise?.name,
-        accountType: backendUser.accountType,
-      };
+      const authenticatedUser = mapBackendUserToProfile(backendUser);
 
       setUser(authenticatedUser);
       localStorage.setItem('titan_is_authenticated', 'true');
       localStorage.setItem('titan_user_profile', JSON.stringify(authenticatedUser));
-      localStorage.setItem('titan_active_role', activeRole);
+      localStorage.setItem('titan_active_role', authenticatedUser.activeRole);
       return authenticatedUser;
     } catch (err: any) {
       console.warn('Backend authentication failed:', err?.message || err);
@@ -210,18 +195,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!backendUser) {
         throw new Error('Registration completed but profile not returned.');
       }
-      const authenticatedUser: UserProfile = {
-        id: backendUser.id,
-        email: backendUser.email,
-        phone: backendUser.phone,
-        firstName: backendUser.name?.split(' ')[0] || backendUser.firstName || 'Customer',
-        lastName: backendUser.name?.split(' ').slice(1).join(' ') || backendUser.lastName || '',
-        roles: ['CUSTOMER'],
-        activeRole: 'CUSTOMER',
-      };
+      const authenticatedUser = mapBackendUserToProfile(backendUser);
       setUser(authenticatedUser);
       localStorage.setItem('titan_is_authenticated', 'true');
       localStorage.setItem('titan_user_profile', JSON.stringify(authenticatedUser));
+      localStorage.setItem('titan_active_role', 'CUSTOMER');
       return authenticatedUser;
     } finally {
       setIsLoading(false);
@@ -235,15 +213,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!res.user) {
         throw new Error('Google authentication succeeded but profile could not be loaded.');
       }
-      setUser(res.user);
+      const authenticatedUser = mapBackendUserToProfile(res.user);
+      setUser(authenticatedUser);
       localStorage.setItem('titan_is_authenticated', 'true');
-      localStorage.setItem('titan_user_profile', JSON.stringify(res.user));
-      return res.user;
+      localStorage.setItem('titan_user_profile', JSON.stringify(authenticatedUser));
+      localStorage.setItem('titan_active_role', authenticatedUser.activeRole);
+      return authenticatedUser;
     } finally {
       setIsLoading(false);
     }
   };
 
+  const refreshUser = async (): Promise<UserProfile | null> => {
+    try {
+      const me: any = await authService.getCurrentUser();
+      if (me) {
+        const authenticatedUser = mapBackendUserToProfile(me);
+        setUser(authenticatedUser);
+        localStorage.setItem('titan_is_authenticated', 'true');
+        localStorage.setItem('titan_user_profile', JSON.stringify(authenticatedUser));
+        return authenticatedUser;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  };
 
   const logout = async () => {
     localStorage.removeItem('titan_active_role');
@@ -267,6 +262,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         registerCustomer,
         loginWithGoogle,
         logout,
+        refreshUser,
       }}
     >
       {children}

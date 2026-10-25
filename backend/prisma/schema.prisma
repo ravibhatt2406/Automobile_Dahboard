@@ -596,6 +596,8 @@ model Vehicle {
   serviceJobs        ServiceJob[]
   complianceDocuments VehicleComplianceDocument[]
   reminders          CustomerReminder[]
+  insurancePolicies  InsurancePolicy[]
+  financeApplications FinanceApplication[]
 
   @@map("vehicles")
 }
@@ -713,45 +715,63 @@ model FinanceApplication {
   applicationNumber String        @unique @map("application_number")
   customerId        String        @map("customer_id")
   bookingId         String        @unique @map("booking_id")
+  vehicleId         String?       @map("vehicle_id")
   financeProvider   String        @map("finance_provider")
   loanAmount        Decimal       @map("loan_amount")
   downPayment       Decimal       @map("down_payment")
+  vehiclePrice      Decimal?      @map("vehicle_price")
   tenureMonths      Int           @map("tenure_months")
   interestRate      Decimal?      @map("interest_rate")
+  interestMethod    String?       @default("REDUCING_BALANCE") @map("interest_method")
   loanReference     String?       @map("loan_reference")
   emiAmount         Decimal?      @map("emi_amount")
   firstEmiDate      DateTime?     @map("first_emi_date")
   disbursedAt       DateTime?     @map("disbursed_at")
+  approvedAt        DateTime?     @map("approved_at")
+  disbursedAmount   Decimal?      @map("disbursed_amount")
+  documentKey       String?       @map("document_key")
+  isManual          Boolean       @default(true) @map("is_manual")
   status            FinanceStatus @default(DRAFT)
   remarks           String?
   createdAt         DateTime      @default(now()) @map("created_at")
   updatedAt         DateTime      @updatedAt @map("updated_at")
 
-  customer Customer @relation(fields: [customerId], references: [id])
-  booking  Booking  @relation(fields: [bookingId], references: [id])
+  customer     Customer             @relation(fields: [customerId], references: [id])
+  booking      Booking              @relation(fields: [bookingId], references: [id])
+  vehicle      Vehicle?             @relation(fields: [vehicleId], references: [id])
   emiSchedules FinanceEmiSchedule[]
 
+  @@index([vehicleId])
+  @@index([status])
   @@map("finance_applications")
 }
 
 model InsurancePolicy {
-  id            String          @id @default(uuid())
-  policyNumber  String          @unique @map("policy_number")
-  customerId    String          @map("customer_id")
-  bookingId     String          @unique @map("booking_id")
-  insurer       String
-  policyType    String          @map("policy_type")
-  premium       Decimal        
-  startDate     DateTime        @map("start_date")
-  expiryDate    DateTime        @map("expiry_date")
-  status        InsuranceStatus @default(PENDING)
-  documentKey   String?         @map("document_key")
-  createdAt     DateTime        @default(now()) @map("created_at")
-  updatedAt     DateTime        @updatedAt @map("updated_at")
+  id              String          @id @default(uuid())
+  policyNumber    String          @unique @map("policy_number")
+  customerId      String          @map("customer_id")
+  bookingId       String          @unique @map("booking_id")
+  vehicleId       String?         @map("vehicle_id")
+  insurer         String
+  policyType      String          @map("policy_type")
+  premium         Decimal        
+  startDate       DateTime        @map("start_date")
+  expiryDate      DateTime        @map("expiry_date")
+  status          InsuranceStatus @default(PENDING)
+  documentKey     String?         @map("document_key")
+  notes           String?
+  coverageDetails String?         @map("coverage_details")
+  isManual        Boolean         @default(true) @map("is_manual")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
 
   customer Customer @relation(fields: [customerId], references: [id])
   booking  Booking  @relation(fields: [bookingId], references: [id])
+  vehicle  Vehicle? @relation(fields: [vehicleId], references: [id])
 
+  @@index([vehicleId])
+  @@index([expiryDate])
+  @@index([status])
   @@map("insurance_policies")
 }
 

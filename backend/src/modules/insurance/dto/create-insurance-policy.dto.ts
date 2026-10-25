@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsDateString, IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { IsDateString, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { InsuranceStatus } from '@prisma/client';
 
 export class CreateInsurancePolicyDto {
   @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' })
@@ -7,10 +8,15 @@ export class CreateInsurancePolicyDto {
   @IsNotEmpty()
   customerId: string;
 
-  @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' })
+  @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', required: false })
   @IsString()
-  @IsNotEmpty()
-  bookingId: string;
+  @IsOptional()
+  bookingId?: string;
+
+  @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', required: false })
+  @IsString()
+  @IsOptional()
+  vehicleId?: string;
 
   @ApiProperty({ example: 'ICICI Lombard' })
   @IsString()
@@ -46,4 +52,19 @@ export class CreateInsurancePolicyDto {
   @IsString()
   @IsOptional()
   policyNumber?: string;
+
+  @ApiProperty({ example: 'Zero Depreciation, Engine Protect', required: false })
+  @IsString()
+  @IsOptional()
+  coverageDetails?: string;
+
+  @ApiProperty({ example: 'Verified with commercial insurer ledger', required: false })
+  @IsString()
+  @IsOptional()
+  notes?: string;
+
+  @ApiProperty({ enum: InsuranceStatus, required: false, default: InsuranceStatus.ACTIVE })
+  @IsEnum(InsuranceStatus)
+  @IsOptional()
+  status?: InsuranceStatus;
 }

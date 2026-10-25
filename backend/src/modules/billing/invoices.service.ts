@@ -31,28 +31,46 @@ export class InvoicesService {
 
     let branchId = dto.branchId;
     let franchiseId = dto.franchiseId;
+    let finalBookingId: string | null = null;
+    let finalVehicleId: string | null = dto.vehicleId ? dto.vehicleId.trim() : null;
 
     if (dto.bookingId) {
+      const trimmedBookingId = dto.bookingId.trim();
+      const booking = await this.prisma.booking.findUnique({
+        where: { id: trimmedBookingId },
+        include: { branch: true, vehicle: true, allocations: { take: 1, orderBy: { allocatedAt: 'desc' } } },
+      });
+      if (!booking) {
+        throw new NotFoundException(`Booking with ID '${trimmedBookingId}' not found`);
+      }
+
       const existingInvoice = await this.prisma.invoice.findFirst({
-        where: { bookingId: dto.bookingId, status: { not: 'CANCELLED' } },
+        where: { bookingId: trimmedBookingId, status: { not: 'CANCELLED' } },
       });
       if (existingInvoice) {
         throw new BadRequestException(
-          `An active invoice (${existingInvoice.invoiceNumber}) already exists for booking '${dto.bookingId}'`,
+          `An active invoice (${existingInvoice.invoiceNumber}) already exists for booking '${trimmedBookingId}'`,
         );
       }
 
-      const booking = await this.prisma.booking.findUnique({
-        where: { id: dto.bookingId },
-        include: { branch: true },
-      });
-      if (booking) {
-        if (dto.branchId && dto.branchId !== booking.branchId) {
-          throw new BadRequestException('Invoice branch must match booking branch');
-        }
-        branchId = booking.branchId;
-        franchiseId = booking.branch?.franchiseId;
+      if (dto.branchId && dto.branchId !== booking.branchId) {
+        throw new BadRequestException('Invoice branch must match booking branch');
       }
+      branchId = booking.branchId;
+      franchiseId = booking.branch?.franchiseId;
+
+      if (dto.customerId && dto.customerId !== booking.customerId) {
+        throw new BadRequestException('Invoice customer must match booking customer');
+      }
+
+      finalBookingId = booking.id;
+      const bookingVehicleId = booking.vehicleId || booking.allocations?.[0]?.vehicleId || null;
+      if (finalVehicleId && bookingVehicleId && finalVehicleId !== bookingVehicleId) {
+        throw new BadRequestException(
+          `Submitted vehicle ID '${finalVehicleId}' does not match the allocated vehicle '${bookingVehicleId}' for booking '${trimmedBookingId}'`,
+        );
+      }
+      finalVehicleId = bookingVehicleId || finalVehicleId || null;
     }
 
     if (dto.serviceJobId) {
@@ -95,6 +113,28 @@ export class InvoicesService {
       }
       if (allowedFranchiseId && allowedFranchiseId !== branch.franchiseId) {
         throw new ForbiddenException('Cannot generate invoice for another franchise');
+      }
+    }
+
+    if (finalVehicleId) {
+      const vehicle = await this.prisma.vehicle.findUnique({
+        where: { id: finalVehicleId },
+        include: { branch: true },
+      });
+      if (!vehicle) {
+        throw new BadRequestException(`Referenced vehicle with ID '${finalVehicleId}' does not exist`);
+      }
+
+      if (vehicle.branchId !== branch.id) {
+        throw new BadRequestException(
+          `Cross-branch violation: Vehicle '${vehicle.vin}' belongs to branch '${vehicle.branch?.name || vehicle.branchId}', not to invoice branch '${branch.name}'`,
+        );
+      }
+
+      if (vehicle.customerId && vehicle.customerId !== dto.customerId) {
+        throw new BadRequestException(
+          `Vehicle '${vehicle.vin}' is registered to another customer in the system`,
+        );
       }
     }
 
@@ -141,8 +181,8 @@ export class InvoicesService {
       data: {
         invoiceNumber,
         customerId: dto.customerId,
-        bookingId: dto.bookingId || null,
-        vehicleId: dto.vehicleId || null,
+        bookingId: finalBookingId,
+        vehicleId: finalVehicleId,
         franchiseId,
         branchId,
         billingAddress: dto.billingAddress,

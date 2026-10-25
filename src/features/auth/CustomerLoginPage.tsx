@@ -20,8 +20,12 @@ export const CustomerLoginPage: React.FC = () => {
     }
     setErrorMsg(null);
     try {
-      await login(emailOrPhone, password, 'customer');
-      navigate('/customer/dashboard');
+      const authed = await login(emailOrPhone, password, 'customer');
+      if (authed.customerId || authed.customerProfile) {
+        navigate('/customer/dashboard');
+      } else {
+        navigate('/customer/onboarding');
+      }
     } catch (err: any) {
       setErrorMsg(err?.message || 'Customer authentication failed.');
     }

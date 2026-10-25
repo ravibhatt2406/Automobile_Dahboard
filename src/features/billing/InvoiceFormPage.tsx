@@ -19,8 +19,10 @@ import {
 import { billingService } from '@/services/billing.service';
 import { customerService } from '@/services/customer.service';
 import { branchService } from '@/services/branch.service';
+import { vehicleService } from '@/services/vehicle.service';
+import { salesService } from '@/services/sales.service';
 import { useScope } from '@/app/providers/ScopeContext';
-import { Customer, Branch } from '@/types/domain';
+import { Customer, Branch, Vehicle, Booking } from '@/types/domain';
 
 export interface InvoiceItemFormData {
   description: string;
@@ -66,7 +68,10 @@ export const InvoiceFormPage: React.FC = () => {
 
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoadingMeta, setIsLoadingMeta] = useState<boolean>(true);
+  const [isLoadingVehicles, setIsLoadingVehicles] = useState<boolean>(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const {
@@ -83,6 +88,8 @@ export const InvoiceFormPage: React.FC = () => {
       customerId: '',
       billingAddress: '',
       gstin: '',
+      bookingId: '',
+      vehicleId: '',
       isInterState: false,
       discount: 0,
       items: [
@@ -132,9 +139,46 @@ export const InvoiceFormPage: React.FC = () => {
 
   const watchedCustomerId = watch('customerId');
   const watchedBranchId = watch('branchId');
+  const watchedBookingId = watch('bookingId');
+  const watchedVehicleId = watch('vehicleId');
   const watchedItems = watch('items') || [];
   const watchedDiscount = watch('discount') || 0;
   const watchedIsInterState = watch('isInterState');
+
+  // Load branch-specific vehicles and bookings when branch changes
+  useEffect(() => {
+    async function loadBranchEntities() {
+      if (!watchedBranchId) {
+        setVehicles([]);
+        setBookings([]);
+        return;
+      }
+      setIsLoadingVehicles(true);
+      try {
+        const [vehRes, bookRes] = await Promise.all([
+          vehicleService.getVehicles({ branchId: watchedBranchId, pageSize: 100 }),
+          salesService.getBookings({ branchId: watchedBranchId, pageSize: 100 }),
+        ]);
+        const branchVehicles = vehRes.data || [];
+        const branchBookings = bookRes.data || [];
+        setVehicles(branchVehicles);
+        setBookings(branchBookings);
+
+        // Reset vehicleId or bookingId if they don't belong to new branch
+        if (watchedVehicleId && !branchVehicles.some((v) => v.id === watchedVehicleId)) {
+          setValue('vehicleId', '');
+        }
+        if (watchedBookingId && !branchBookings.some((b) => b.id === watchedBookingId)) {
+          setValue('bookingId', '');
+        }
+      } catch (err) {
+        console.error('Failed to load branch vehicles or bookings:', err);
+      } finally {
+        setIsLoadingVehicles(false);
+      }
+    }
+    loadBranchEntities();
+  }, [watchedBranchId, setValue]);
 
   // When customer changes, autofill billing address & gstin
   useEffect(() => {
@@ -324,25 +368,75 @@ export const InvoiceFormPage: React.FC = () => {
 
             {/* Optional Source References */}
             <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-xs space-y-4">
-              <h3 className="text-sm font-bold text-zinc-900 flex items-center gap-2 border-b border-zinc-100 pb-3">
-                <FileText className="w-4 h-4 text-zinc-600" /> Optional Transaction Link
-              </h3>
+              <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+                <h3 className="text-sm font-bold text-zinc-900 flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-zinc-600" /> Optional Transaction Link
+                </h3>
+                {isLoadingVehicles && (
+                  <span className="text-[11px] text-zinc-400 flex items-center gap-1">
+                    <Loader2 className="w-3 h-3 animate-spin" /> Loading assets...
+                  </span>
+                )}
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                 <div>
-                  <label className="block text-zinc-600 mb-1">Booking ID / Reference</label>
-                  <input
-                    {...register('bookingId')}
-                    placeholder="Optional UUID of associated booking"
-                    className="w-full h-10 px-3 rounded-xl bg-zinc-50 border border-zinc-200 text-zinc-900 font-mono text-xs focus:outline-hidden focus:border-[#F5A800]"
-                  />
+                  <label className="block text-zinc-600 mb-1 font-semibold">
+                    Customer Booking (Optional)
+                  </label>
+                  <select
+                    value={watchedBookingId || ''}
+                    onChange={(e) => {
+                      const bookId = e.target.value;
+                      setValue('bookingId', bookId);
+                      if (bookId) {
+                        const b = bookings.find((bk) => bk.id === bookId);
+                        if (b) {
+                          if (b.customerId) setValue('customerId', b.customerId);
+                          if (b.vehicleId) setValue('vehicleId', b.vehicleId);
+                        }
+                      }
+                    }}
+                    className="w-full h-10 px-3 rounded-xl bg-zinc-50 border border-zinc-200 text-zinc-900 text-xs focus:outline-hidden focus:border-[#F5A800] transition-colors"
+                  >
+                    <option value="">None (Standalone / Direct Billing)</option>
+                    {bookings.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.bookingNumber} — {b.customer?.name || b.customerName || 'Customer'} (₹{Number(b.totalAmount || b.totalPrice || 0).toLocaleString('en-IN')})
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[10px] text-zinc-400 mt-1">
+                    Selecting a booking auto-populates the customer and allocated vehicle.
+                  </p>
                 </div>
                 <div>
-                  <label className="block text-zinc-600 mb-1">Vehicle ID</label>
-                  <input
-                    {...register('vehicleId')}
-                    placeholder="Optional UUID of commercial vehicle"
-                    className="w-full h-10 px-3 rounded-xl bg-zinc-50 border border-zinc-200 text-zinc-900 font-mono text-xs focus:outline-hidden focus:border-[#F5A800]"
-                  />
+                  <label className="block text-zinc-600 mb-1 font-semibold">
+                    Commercial Vehicle Asset (Optional)
+                  </label>
+                  <select
+                    value={watchedVehicleId || ''}
+                    onChange={(e) => {
+                      const vehId = e.target.value;
+                      setValue('vehicleId', vehId);
+                      if (vehId) {
+                        const v = vehicles.find((veh) => veh.id === vehId);
+                        if (v && v.customerId && !watchedCustomerId) {
+                          setValue('customerId', v.customerId);
+                        }
+                      }
+                    }}
+                    className="w-full h-10 px-3 rounded-xl bg-zinc-50 border border-zinc-200 text-zinc-900 text-xs focus:outline-hidden focus:border-[#F5A800] transition-colors"
+                  >
+                    <option value="">None (Spare Parts / Service Labor Only)</option>
+                    {vehicles.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.registrationNumber ? `${v.registrationNumber} • ` : ''}{v.vin} — {v.make} {v.model} ({v.status})
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[10px] text-zinc-400 mt-1">
+                    Select a vehicle belonging to this branch or leave blank for parts/service.
+                  </p>
                 </div>
               </div>
             </div>

@@ -25,7 +25,205 @@ export class CustomersService {
     const isCustomer = user?.accountType === 'CUSTOMER' || (roles.includes('CUSTOMER') && !user?.employeeProfile);
 
     if (user && isCustomer) {
-      throw new ForbiddenException('Customers cannot create other customer records.');
+      // 1. Validation for Customer Onboarding
+      const name = dto.name?.trim();
+      if (!name || name.length < 2) {
+        throw new BadRequestException('Customer name is required and must be at least 2 characters');
+      }
+
+      const rawPhone = (dto.phone || user.phone)?.trim();
+      if (!rawPhone) {
+        throw new BadRequestException('Customer phone number is required');
+      }
+      const cleanPhone = rawPhone.replace(/\s+/g, '');
+      if (!/^[+]?[\d-]{7,16}$/.test(cleanPhone)) {
+        throw new BadRequestException('Invalid phone number format. Must be 7-16 digits.');
+      }
+
+      const cleanEmail = (dto.email || user.email)?.trim().toLowerCase();
+      if (cleanEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+        throw new BadRequestException('Invalid email address format');
+      }
+
+      const cleanGstin = dto.gstin?.trim() ? dto.gstin.trim().toUpperCase() : undefined;
+      if (cleanGstin && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(cleanGstin)) {
+        throw new BadRequestException('Invalid GSTIN format (must be 15 alphanumeric characters)');
+      }
+
+      const cleanPan = dto.pan?.trim() ? dto.pan.trim().toUpperCase() : undefined;
+      if (cleanPan && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(cleanPan)) {
+        throw new BadRequestException('Invalid PAN format (must be 10 characters: 5 letters, 4 digits, 1 letter)');
+      }
+
+      const customerType = dto.customerType || 'INDIVIDUAL';
+      if (customerType === 'BUSINESS' && !dto.companyName?.trim()) {
+        throw new BadRequestException('Company or Corporate name is required for Business customer type');
+      }
+      const companyName = customerType === 'BUSINESS' ? (dto.companyName?.trim() || name) : undefined;
+
+      // Validate preferred branch
+      const preferredBranchId = dto.preferredBranchId || dto.branchId;
+      let preferredBranch: any = null;
+      if (preferredBranchId) {
+        preferredBranch = await this.prisma.branch.findUnique({
+          where: { id: preferredBranchId },
+          include: { franchise: true },
+        });
+        if (!preferredBranch) {
+          throw new NotFoundException(`Specified branch '${preferredBranchId}' does not exist`);
+        }
+        if (preferredBranch.status !== 'ACTIVE') {
+          throw new BadRequestException(`Cannot select inactive branch '${preferredBranch.name}' as preferred branch`);
+        }
+        if (dto.franchiseId && preferredBranch.franchiseId !== dto.franchiseId) {
+          throw new BadRequestException('Selected branch does not belong to the selected franchise');
+        }
+      }
+
+      // 2. Safe idempotent handling:
+      // If customer already has a profile linked to user.id, update and return it (no duplicate on retry)
+      const existingForUser = await this.prisma.customer.findFirst({
+        where: { userId: user.id },
+      });
+
+      if (existingForUser) {
+        const updated = await this.prisma.customer.update({
+          where: { id: existingForUser.id },
+          data: {
+            name,
+            phone: cleanPhone,
+            email: cleanEmail || existingForUser.email,
+            customerType,
+            companyName: companyName || existingForUser.companyName,
+            gstin: cleanGstin || existingForUser.gstin,
+            pan: cleanPan || existingForUser.pan,
+            ...(preferredBranch ? { preferredBranchId: preferredBranch.id } : {}),
+            address: dto.address?.trim() || existingForUser.address,
+            city: dto.city?.trim() || existingForUser.city,
+            state: dto.state?.trim() || existingForUser.state,
+            pincode: dto.pincode?.trim() || existingForUser.pincode,
+          },
+          include: {
+            preferredBranch: { include: { franchise: true } },
+            franchiseLinks: { include: { franchise: true } },
+          },
+        });
+
+        if (preferredBranch) {
+          await this.prisma.customerFranchise.upsert({
+            where: {
+              customerId_franchiseId: {
+                customerId: updated.id,
+                franchiseId: preferredBranch.franchiseId,
+              },
+            },
+            create: { customerId: updated.id, franchiseId: preferredBranch.franchiseId },
+            update: {},
+          }).catch(() => {});
+        }
+
+        return updated;
+      }
+
+      // 3. Check for unlinked customer profile matching verified phone & email (offline customer account linking)
+      const phoneDigits = cleanPhone.replace(/\D/g, '').slice(-10);
+      const unlinked = await this.prisma.customer.findMany({
+        where: {
+          email: { equals: cleanEmail, mode: 'insensitive' },
+          userId: null,
+        },
+      });
+      const matching = unlinked.filter((c) => {
+        const cDigits = (c.phone || '').replace(/\D/g, '').slice(-10);
+        return phoneDigits.length >= 7 && cDigits === phoneDigits;
+      });
+
+      if (matching.length === 1 && matching[0].status !== 'INACTIVE') {
+        const linked = await this.prisma.customer.update({
+          where: { id: matching[0].id },
+          data: {
+            userId: user.id,
+            name,
+            phone: cleanPhone,
+            customerType,
+            companyName: companyName || matching[0].companyName,
+            gstin: cleanGstin || matching[0].gstin,
+            pan: cleanPan || matching[0].pan,
+            ...(preferredBranch ? { preferredBranchId: preferredBranch.id } : {}),
+            address: dto.address?.trim() || matching[0].address,
+            city: dto.city?.trim() || matching[0].city,
+            state: dto.state?.trim() || matching[0].state,
+            pincode: dto.pincode?.trim() || matching[0].pincode,
+          },
+          include: {
+            preferredBranch: { include: { franchise: true } },
+            franchiseLinks: { include: { franchise: true } },
+          },
+        });
+
+        if (preferredBranch) {
+          await this.prisma.customerFranchise.upsert({
+            where: {
+              customerId_franchiseId: {
+                customerId: linked.id,
+                franchiseId: preferredBranch.franchiseId,
+              },
+            },
+            create: { customerId: linked.id, franchiseId: preferredBranch.franchiseId },
+            update: {},
+          }).catch(() => {});
+        }
+
+        return linked;
+      }
+
+      // Check if phone number is already owned by another active user
+      const dupPhone = await this.prisma.customer.findFirst({
+        where: { phone: cleanPhone, NOT: { userId: null } },
+      });
+      if (dupPhone && dupPhone.userId !== user.id) {
+        throw new ConflictException(`Phone number '${cleanPhone}' is already associated with another customer account.`);
+      }
+
+      // Create new customer profile linked to user.id
+      const created = await this.prisma.customer.create({
+        data: {
+          userId: user.id,
+          name,
+          phone: cleanPhone,
+          email: cleanEmail,
+          customerType,
+          companyName,
+          gstin: cleanGstin,
+          pan: cleanPan,
+          preferredBranchId: preferredBranch ? preferredBranch.id : undefined,
+          address: dto.address?.trim() || undefined,
+          city: dto.city?.trim() || undefined,
+          state: dto.state?.trim() || undefined,
+          pincode: dto.pincode?.trim() || undefined,
+          status: 'ACTIVE',
+        },
+        include: {
+          preferredBranch: { include: { franchise: true } },
+          franchiseLinks: { include: { franchise: true } },
+        },
+      });
+
+      if (preferredBranch) {
+        await this.prisma.customerFranchise.create({
+          data: { customerId: created.id, franchiseId: preferredBranch.franchiseId },
+        }).catch(() => {});
+      }
+
+      await this.auditService.log({
+        actorUserId: user.id,
+        action: 'CUSTOMER_ONBOARDING_COMPLETED',
+        entityType: 'Customer',
+        entityId: created.id,
+        metadata: { customerId: created.id, preferredBranchId: preferredBranch?.id },
+      }).catch(() => {});
+
+      return created;
     }
 
     // 1. Field validation
@@ -486,9 +684,8 @@ export class CustomersService {
         if (isCustomer) {
           const userCustId = user.customerProfile?.id || user.customerId;
           const isOwner =
-            customer.id === userCustId ||
             customer.userId === user.id ||
-            (user.email && customer.email && customer.email.toLowerCase() === user.email.toLowerCase());
+            (userCustId && customer.id === userCustId && (!customer.userId || customer.userId === user.id));
           if (!isOwner) {
             throw new ForbiddenException('Multi-tenant scope violation: Unauthorized customer access attempt');
           }
@@ -560,6 +757,19 @@ export class CustomersService {
           throw new BadRequestException(`Cannot select inactive branch '${branch.name}' as preferred branch`);
         }
         preferredBranchIdUpdate = branch.id;
+
+        if (branch.franchiseId) {
+          await this.prisma.customerFranchise.upsert({
+            where: {
+              customerId_franchiseId: {
+                customerId: existing.id,
+                franchiseId: branch.franchiseId,
+              },
+            },
+            create: { customerId: existing.id, franchiseId: branch.franchiseId },
+            update: {},
+          }).catch(() => {});
+        }
       } else {
         preferredBranchIdUpdate = null;
       }

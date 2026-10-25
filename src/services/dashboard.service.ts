@@ -147,6 +147,9 @@ export interface SalesDashboardData {
   availableStockCount: number;
   activeLeadsCount: number;
   overdueFollowUpsCount?: number;
+  deliveredVehiclesCount?: number;
+  totalSalesVolume?: number;
+  monthlySales?: Array<{ month: string; value: number }>;
   recentQuotations: Array<{
     id: string;
     quotationNumber: string;
@@ -306,8 +309,16 @@ export const dashboardService = {
     return unwrapData<BranchDashboardData>(res);
   },
 
-  async getSales(): Promise<SalesDashboardData> {
-    const res = await apiFetch<any>('/dashboards/sales');
+  async getSales(params?: { branchId?: string; franchiseId?: string }): Promise<SalesDashboardData> {
+    const queryParams = new URLSearchParams();
+    if (params?.branchId && params.branchId !== 'ALL') {
+      queryParams.set('branchId', params.branchId);
+    }
+    if (params?.franchiseId && params.franchiseId !== 'ALL') {
+      queryParams.set('franchiseId', params.franchiseId);
+    }
+    const qs = queryParams.toString() ? `?${queryParams.toString()}` : '';
+    const res = await apiFetch<any>(`/dashboards/sales${qs}`);
     return unwrapData<SalesDashboardData>(res);
   },
 

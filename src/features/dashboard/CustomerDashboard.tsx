@@ -26,15 +26,17 @@ import {
   Download,
   Calendar,
   AlertCircle,
+  Store,
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { dashboardService, CustomerDashboardData } from '@/services/dashboard.service';
-import { branchService } from '@/services/branch.service';
-import { customerService } from '@/services/customer.service';
 import { ApiError } from '@/services/apiClient';
-import { Branch } from '@/types/domain';
+import { useAuth } from '@/app/providers/AuthContext';
 
 export const CustomerDashboard: React.FC = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
   const [data, setData] = useState<CustomerDashboardData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<{ title: string; message: string; statusCode?: number } | null>(
@@ -44,47 +46,20 @@ export const CustomerDashboard: React.FC = () => {
   // Active Tab for Confirmed Owners & Returning Prospects
   const [activeTab, setActiveTab] = useState<'overview' | 'vehicles' | 'quotations' | 'service' | 'invoices' | 'compliance'>('overview');
 
-  // Preferred Branch State
-  const [branches, setBranches] = useState<Branch[]>([]);
-  const [cities, setCities] = useState<string[]>([]);
-  const [prefCity, setPrefCity] = useState<string>('');
-  const [prefBranchId, setPrefBranchId] = useState<string>('');
-  const [savingBranch, setSavingBranch] = useState<boolean>(false);
-  const [branchFeedback, setBranchFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(
-    null,
-  );
-
   useEffect(() => {
     loadDashboardData();
-    loadBranches();
   }, []);
-
-  const loadBranches = async () => {
-    try {
-      const activeBranches = await branchService.getPublicActiveBranches();
-      setBranches(activeBranches);
-
-      const uniqueCities = Array.from(
-        new Set(activeBranches.map((b) => b.city).filter(Boolean)),
-      ).sort();
-      setCities(uniqueCities);
-    } catch (err) {
-      console.error('Failed to load branches:', err);
-    }
-  };
 
   const loadDashboardData = async () => {
     setLoading(true);
     setError(null);
     try {
       const res = await dashboardService.getCustomer();
-      setData(res);
-      if (res?.customer?.preferredBranch?.id) {
-        setPrefBranchId(res.customer.preferredBranch.id);
-        if (res.customer.preferredBranch.city) {
-          setPrefCity(res.customer.preferredBranch.city);
-        }
+      if (!res?.customer && !user?.customerId) {
+        navigate('/customer/onboarding', { replace: true });
+        return;
       }
+      setData(res);
     } catch (err: any) {
       if (err instanceof ApiError) {
         if (err.statusCode === 401) {
@@ -117,57 +92,6 @@ export const CustomerDashboard: React.FC = () => {
     }
   };
 
-  const handleSavePreferredBranch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!data?.customer?.id) return;
-
-    setSavingBranch(true);
-    setBranchFeedback(null);
-    try {
-      const updated = await customerService.updatePreferredBranch(
-        data.customer.id,
-        prefBranchId || null,
-      );
-      setBranchFeedback({
-        type: 'success',
-        message: prefBranchId
-          ? `Preferred branch successfully updated to ${updated.preferredBranch?.name || 'selected branch'}!`
-          : 'Preferred branch preference cleared. Defaulting to all branches nationwide.',
-      });
-      await loadDashboardData();
-    } catch (err: any) {
-      setBranchFeedback({
-        type: 'error',
-        message: err.message || 'Failed to update preferred branch.',
-      });
-    } finally {
-      setSavingBranch(false);
-    }
-  };
-
-  const handleClearPreferredBranch = async () => {
-    if (!data?.customer?.id) return;
-    setSavingBranch(true);
-    setBranchFeedback(null);
-    try {
-      await customerService.updatePreferredBranch(data.customer.id, null);
-      setPrefBranchId('');
-      setPrefCity('');
-      setBranchFeedback({
-        type: 'success',
-        message: 'Preferred branch cleared. You are browsing trucks from all branches nationwide.',
-      });
-      await loadDashboardData();
-    } catch (err: any) {
-      setBranchFeedback({
-        type: 'error',
-        message: err.message || 'Failed to clear preferred branch.',
-      });
-    } finally {
-      setSavingBranch(false);
-    }
-  };
-
   const vehicles = data?.vehicles || [];
   const leads = data?.leads || [];
   const quotations = data?.quotations || [];
@@ -190,10 +114,6 @@ export const CustomerDashboard: React.FC = () => {
     (b: any) => b.status === 'PENDING' || b.status === 'CONFIRMED',
   );
 
-  const filteredPrefBranches = prefCity
-    ? branches.filter((b) => b.city?.toLowerCase() === prefCity.toLowerCase())
-    : branches;
-
   return (
     <div className="space-y-6">
       {/* Header Banner */}
@@ -212,7 +132,27 @@ export const CustomerDashboard: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Preferred Branch Read-only Badge with Settings Link */}
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-100 border border-zinc-200 text-xs text-zinc-700">
+            <Store className="w-3.5 h-3.5 text-[#F5A800]" />
+            <span>
+              Preferred Branch:{' '}
+              <strong className="text-zinc-900">
+                {data?.customer?.preferredBranch?.name || 'Not set'}
+              </strong>
+              {data?.customer?.preferredBranch?.city
+                ? ` (${data.customer.preferredBranch.city})`
+                : ''}
+            </span>
+            <Link
+              to="/settings"
+              className="ml-1 text-xs text-amber-700 hover:text-amber-900 font-semibold underline"
+            >
+              Change in Settings →
+            </Link>
+          </div>
+
           {/* Customer Prospect Stage Badge */}
           <span
             className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold border ${
@@ -645,86 +585,22 @@ export const CustomerDashboard: React.FC = () => {
                           <div className="p-3 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-600">
                             <p className="font-semibold text-zinc-800">No Preferred Branch Selected</p>
                             <p className="text-[11px] text-zinc-500 mt-0.5">
-                              Select your local branch for priority booking allocations and service dispatch.
+                              You have not selected a preferred branch yet.
                             </p>
                           </div>
                         )}
                       </div>
 
-                      {branchFeedback && (
-                        <div
-                          className={`p-3 rounded-lg text-xs font-semibold flex items-center justify-between ${
-                            branchFeedback.type === 'success'
-                              ? 'bg-emerald-50 border border-emerald-200 text-emerald-900'
-                              : 'bg-rose-50 border border-rose-200 text-rose-900'
-                          }`}
+                      <div className="pt-2 border-t border-zinc-100 flex items-center justify-between">
+                        <span className="text-[11px] text-zinc-500">Need to change branch?</span>
+                        <Link
+                          to="/settings"
+                          className="text-xs font-semibold text-amber-600 hover:text-amber-700 underline flex items-center gap-1"
                         >
-                          <span>{branchFeedback.message}</span>
-                          <button onClick={() => setBranchFeedback(null)} className="text-zinc-500 hover:text-zinc-800">
-                            <X className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      )}
-
-                      <form onSubmit={handleSavePreferredBranch} className="space-y-3 text-xs">
-                        <div>
-                          <label className="block text-zinc-600 font-medium mb-1">Select City</label>
-                          <select
-                            value={prefCity}
-                            onChange={(e) => {
-                              setPrefCity(e.target.value);
-                              setPrefBranchId('');
-                            }}
-                            className="w-full h-9 px-3 rounded-lg border border-zinc-300 text-xs text-zinc-900 bg-zinc-50"
-                          >
-                            <option value="">All Cities / Select City</option>
-                            {cities.map((c) => (
-                              <option key={c} value={c}>
-                                {c}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-
-                        <div>
-                          <label className="block text-zinc-600 font-medium mb-1">Select Branch</label>
-                          <select
-                            value={prefBranchId}
-                            onChange={(e) => setPrefBranchId(e.target.value)}
-                            className="w-full h-9 px-3 rounded-lg border border-zinc-300 text-xs text-zinc-900 bg-zinc-50"
-                          >
-                            <option value="">None / Clear Selection</option>
-                            {filteredPrefBranches.map((b) => (
-                              <option key={b.id} value={b.id}>
-                                {b.name} ({b.city})
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-
-                        <div className="flex items-center gap-2 pt-1">
-                          <button
-                            type="submit"
-                            disabled={savingBranch}
-                            className="flex-1 py-2 px-3 bg-[#111111] hover:bg-black text-[#F5A800] font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-colors shadow-xs"
-                          >
-                            <Save className="w-3.5 h-3.5" />
-                            <span>{savingBranch ? 'Saving...' : 'Save Preference'}</span>
-                          </button>
-                          {data?.customer?.preferredBranch?.id && (
-                            <button
-                              type="button"
-                              onClick={handleClearPreferredBranch}
-                              disabled={savingBranch}
-                              className="py-2 px-3 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-semibold rounded-lg flex items-center gap-1 border border-zinc-200"
-                              title="Clear preferred branch"
-                            >
-                              <RotateCcw className="w-3.5 h-3.5 text-zinc-500" />
-                              <span>Clear</span>
-                            </button>
-                          )}
-                        </div>
-                      </form>
+                          <span>Edit in Settings</span>
+                          <span>→</span>
+                        </Link>
+                      </div>
                     </div>
 
                     {/* Dealership Chat Desk */}

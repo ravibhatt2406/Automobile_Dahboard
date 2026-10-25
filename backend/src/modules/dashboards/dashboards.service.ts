@@ -564,12 +564,18 @@ export class DashboardsService {
   }
 
   async getSalesDashboard(user: any, requestedBranchId?: string) {
+    const userRole =
+      user?.effectiveScope?.activeRole ||
+      user?.activeRole ||
+      (Array.isArray(user?.roles) ? user.roles[0] : null) ||
+      'SALES_EMPLOYEE';
+
     const scope = await resolveUserScope(
       this.prisma,
       user,
       requestedBranchId,
       undefined,
-      user?.effectiveScope?.activeRole || 'SALES_EMPLOYEE',
+      userRole,
     );
 
     const isSalesEmployee = scope.activeRole === 'SALES_EMPLOYEE';
@@ -579,6 +585,11 @@ export class DashboardsService {
     const quotationWhere: any = {};
     const bookingWhere: any = {};
     const leadWhere: any = {};
+    const vehicleWhere: any = branchId
+      ? { branchId }
+      : scope.effectiveFranchiseId
+      ? { branch: { franchiseId: scope.effectiveFranchiseId } }
+      : {};
 
     if (isSalesEmployee && employeeId) {
       quotationWhere.salespersonEmployeeId = employeeId;
@@ -594,6 +605,11 @@ export class DashboardsService {
       leadWhere.franchiseId = scope.effectiveFranchiseId;
     }
 
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
+    sixMonthsAgo.setDate(1);
+    sixMonthsAgo.setHours(0, 0, 0, 0);
+
     const [
       openQuotations,
       confirmedBookings,
@@ -601,6 +617,9 @@ export class DashboardsService {
       availableStock,
       activeLeads,
       overdueFollowUps,
+      deliveredVehicles,
+      salesVolumeAgg,
+      pastBookings,
       recentQuotations,
       recentBookings,
     ] = await Promise.all([
@@ -621,11 +640,7 @@ export class DashboardsService {
       }),
       this.prisma.vehicle.count({
         where: {
-          ...(branchId
-            ? { branchId }
-            : scope.effectiveFranchiseId
-            ? { branch: { franchiseId: scope.effectiveFranchiseId } }
-            : {}),
+          ...vehicleWhere,
           status: 'IN_STOCK',
         },
       }),
@@ -637,6 +652,30 @@ export class DashboardsService {
           status: 'PENDING',
           scheduledAt: { lt: new Date() },
           lead: leadWhere,
+        },
+      }),
+      this.prisma.vehicle.count({
+        where: {
+          ...vehicleWhere,
+          status: { in: ['DELIVERED', 'SOLD'] },
+        },
+      }),
+      this.prisma.booking.aggregate({
+        where: {
+          ...bookingWhere,
+          status: { in: ['CONFIRMED', 'CONVERTED_TO_DELIVERY'] },
+        },
+        _sum: { totalAmount: true },
+      }),
+      this.prisma.booking.findMany({
+        where: {
+          ...bookingWhere,
+          status: { in: ['CONFIRMED', 'CONVERTED_TO_DELIVERY'] },
+          createdAt: { gte: sixMonthsAgo },
+        },
+        select: {
+          totalAmount: true,
+          createdAt: true,
         },
       }),
       this.prisma.quotation.findMany({
@@ -659,6 +698,28 @@ export class DashboardsService {
       }),
     ]);
 
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthlyMap = new Map<string, number>();
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${monthNames[d.getMonth()]} '${d.getFullYear().toString().slice(-2)}`;
+      monthlyMap.set(key, 0);
+    }
+
+    for (const b of pastBookings) {
+      const d = new Date(b.createdAt);
+      const key = `${monthNames[d.getMonth()]} '${d.getFullYear().toString().slice(-2)}`;
+      if (monthlyMap.has(key)) {
+        monthlyMap.set(key, (monthlyMap.get(key) || 0) + Number(b.totalAmount || 0));
+      }
+    }
+
+    const monthlySales = Array.from(monthlyMap.entries()).map(([month, value]) => ({
+      month,
+      value,
+    }));
+
     return {
       openQuotationsCount: openQuotations,
       confirmedBookingsCount: confirmedBookings,
@@ -666,6 +727,9 @@ export class DashboardsService {
       availableStockCount: availableStock,
       activeLeadsCount: activeLeads,
       overdueFollowUpsCount: overdueFollowUps,
+      deliveredVehiclesCount: deliveredVehicles,
+      totalSalesVolume: Number(salesVolumeAgg._sum.totalAmount || 0),
+      monthlySales,
       recentQuotations,
       recentBookings,
     };
@@ -804,14 +868,12 @@ export class DashboardsService {
 
   async getCustomerDashboard(userId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    const customer = await this.prisma.customer.findFirst({
-      where: {
-        OR: [
-          { userId },
-          ...(user?.email ? [{ email: user.email }] : []),
-          ...(user?.phone ? [{ phone: user.phone }] : []),
-        ],
-      },
+    if (!user) {
+      return null;
+    }
+
+    let customer = await this.prisma.customer.findFirst({
+      where: { userId },
       include: {
         vehicles: {
           include: {
@@ -865,6 +927,81 @@ export class DashboardsService {
         },
       },
     });
+
+    if (!customer && user.email && user.phone) {
+      const cleanDigits = user.phone.replace(/\D/g, '').slice(-10);
+      const candidates = await this.prisma.customer.findMany({
+        where: {
+          email: { equals: user.email.trim(), mode: 'insensitive' },
+          userId: null,
+        },
+      });
+      const matching = candidates.filter((c) => {
+        const cDigits = (c.phone || '').replace(/\D/g, '').slice(-10);
+        return cleanDigits.length >= 7 && cDigits === cleanDigits;
+      });
+      if (matching.length === 1 && matching[0].status !== 'INACTIVE') {
+        await this.prisma.customer.update({
+          where: { id: matching[0].id },
+          data: { userId: user.id },
+        });
+        customer = await this.prisma.customer.findFirst({
+          where: { id: matching[0].id },
+          include: {
+            vehicles: {
+              include: {
+                variant: { include: { model: { include: { manufacturer: true } } } },
+                branch: true,
+                complianceDocuments: true,
+              },
+              orderBy: { createdAt: 'desc' },
+            },
+            leads: {
+              include: { branch: true },
+              orderBy: { createdAt: 'desc' },
+            },
+            bookings: {
+              include: {
+                vehicle: { include: { variant: true } },
+                payments: true,
+                invoices: true,
+                branch: true,
+                deliveries: true,
+              },
+              orderBy: { createdAt: 'desc' },
+            },
+            quotations: {
+              include: { variant: true, branch: true },
+              orderBy: { createdAt: 'desc' },
+            },
+            serviceAppointments: {
+              include: { vehicle: true, branch: true },
+              orderBy: { preferredDate: 'desc' },
+            },
+            serviceJobs: {
+              include: { vehicle: true, branch: true, diagnoses: true, qcInspections: true },
+              orderBy: { createdAt: 'desc' },
+            },
+            insurancePolicies: {
+              include: { booking: { include: { vehicle: true } } },
+              orderBy: { createdAt: 'desc' },
+            },
+            invoices: {
+              include: { branch: true, payments: true },
+              orderBy: { createdAt: 'desc' },
+            },
+            conversations: {
+              include: { branch: true },
+              orderBy: { updatedAt: 'desc' },
+              take: 5,
+            },
+            preferredBranch: {
+              include: { franchise: true },
+            },
+          },
+        });
+      }
+    }
 
     if (!customer) {
       return {

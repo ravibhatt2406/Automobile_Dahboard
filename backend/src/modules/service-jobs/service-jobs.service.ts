@@ -32,23 +32,16 @@ export class ServiceJobsService {
 
   async create(dto: CreateJobCardDto, user: any) {
     const actorUserId = user?.id;
-    const userRoles = Array.isArray(user?.roles) ? user.roles : [];
-    const isSuperAdmin = userRoles.includes('SUPER_ADMIN');
-
     const jobNumber = `JOB-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
 
-    const customer = await this.prisma.customer.findUnique({ where: { id: dto.customerId } });
-    if (!customer) throw new NotFoundException(`Customer ID '${dto.customerId}' not found`);
-
-    const vehicle = await this.prisma.vehicle.findUnique({ where: { id: dto.vehicleId } });
-    if (!vehicle) throw new NotFoundException(`Vehicle ID '${dto.vehicleId}' not found`);
-
-    if (vehicle.customerId && vehicle.customerId !== dto.customerId) {
-      throw new BadRequestException('Vehicle is not owned by the specified customer');
+    // 1. Authorize Workshop Branch Scope
+    const branch = await this.prisma.branch.findUnique({
+      where: { id: dto.branchId },
+      include: { franchise: true },
+    });
+    if (!branch) {
+      throw new NotFoundException(`Workshop Branch ID '${dto.branchId}' not found`);
     }
-
-    const branch = await this.prisma.branch.findUnique({ where: { id: dto.branchId } });
-    if (!branch) throw new NotFoundException(`Branch ID '${dto.branchId}' not found`);
 
     if (dto.franchiseId && branch.franchiseId !== dto.franchiseId) {
       throw new BadRequestException(
@@ -56,16 +49,101 @@ export class ServiceJobsService {
       );
     }
 
-    if (!isSuperAdmin) {
-      if (user?.branchId && user.branchId !== branch.id) {
-        throw new ForbiddenException('Cannot create service job for another branch');
-      }
-      if (user?.franchiseId && user.franchiseId !== branch.franchiseId) {
-        throw new ForbiddenException('Cannot create service job for another franchise');
+    if (user) {
+      const scope = user?.effectiveScope || (await resolveUserScope(this.prisma, user));
+      if (!scope.isActingSuperAdmin) {
+        if (scope.isActingFranchiseLevel) {
+          if (branch.franchiseId !== scope.effectiveFranchiseId) {
+            throw new ForbiddenException('Multi-tenant scope violation: Cannot create service job for another franchise');
+          }
+        } else {
+          const authorizedBranchId = scope.effectiveBranchId || user.assignedBranchId || user.branchId;
+          if (authorizedBranchId && branch.id !== authorizedBranchId && branch.code !== authorizedBranchId) {
+            throw new ForbiddenException('Multi-tenant scope violation: Cannot create service job for another branch');
+          }
+        }
       }
     }
 
-    // Validate service advisor exists and belongs to branch
+    // 2. Validate Vehicle and Branch Relationship
+    const vehicle = await this.prisma.vehicle.findUnique({
+      where: { id: dto.vehicleId },
+      include: { branch: true, customer: true },
+    });
+    if (!vehicle) {
+      throw new NotFoundException(`Vehicle ID '${dto.vehicleId}' not found`);
+    }
+
+    if (vehicle.branchId !== branch.id) {
+      throw new BadRequestException(
+        `Cross-branch violation: Vehicle '${vehicle.vin}' belongs to branch '${vehicle.branch?.name || vehicle.branchId}', not to the selected workshop branch '${branch.name}'`,
+      );
+    }
+
+    // 3. Validate Vehicle Service Eligibility
+    if (['BLOCKED', 'TRANSFERRED', 'SERVICE'].includes(vehicle.status)) {
+      throw new BadRequestException(
+        `Vehicle '${vehicle.vin}' with status '${vehicle.status}' is not eligible for a new workshop service job`,
+      );
+    }
+
+    const existingActiveJob = await this.prisma.serviceJob.findFirst({
+      where: {
+        vehicleId: dto.vehicleId,
+        status: { notIn: ['COMPLETED', 'CANCELLED'] },
+      },
+    });
+    if (existingActiveJob) {
+      throw new BadRequestException(
+        `Vehicle '${vehicle.vin}' already has an active service job (${existingActiveJob.jobNumber}) with status '${existingActiveJob.status}'`,
+      );
+    }
+
+    // 4. Validate Customer and Ownership / Branch Relationship
+    const customer = await this.prisma.customer.findUnique({
+      where: { id: dto.customerId },
+      include: {
+        franchiseLinks: true,
+        preferredBranch: true,
+      },
+    });
+    if (!customer) {
+      throw new NotFoundException(`Customer ID '${dto.customerId}' not found`);
+    }
+    if (customer.status !== 'ACTIVE') {
+      throw new BadRequestException(`Customer '${customer.name}' is inactive`);
+    }
+
+    if (vehicle.customerId && vehicle.customerId !== customer.id) {
+      throw new BadRequestException(
+        `Vehicle ownership mismatch: Vehicle '${vehicle.vin}' is registered to customer '${vehicle.customer?.name || vehicle.customerId}', not '${customer.name}'`,
+      );
+    }
+
+    const hasDirectBranchPref = customer.preferredBranchId === branch.id;
+    const hasFranchiseLink = customer.franchiseLinks.some((fl) => fl.franchiseId === branch.franchiseId);
+    const hasVehiclesInBranch =
+      (await this.prisma.vehicle.count({ where: { customerId: customer.id, branchId: branch.id } })) > 0;
+    const hasBookingsInBranch =
+      (await this.prisma.booking.count({ where: { customerId: customer.id, branchId: branch.id } })) > 0;
+    const hasQuotationsInBranch =
+      (await this.prisma.quotation.count({ where: { customerId: customer.id, branchId: branch.id } })) > 0;
+
+    const isCustomerBranchValid =
+      hasDirectBranchPref ||
+      hasFranchiseLink ||
+      hasVehiclesInBranch ||
+      hasBookingsInBranch ||
+      hasQuotationsInBranch ||
+      customer.franchiseLinks.length === 0;
+
+    if (!isCustomerBranchValid) {
+      throw new BadRequestException(
+        `Customer '${customer.name}' is not authorized or linked to branch '${branch.name}' or franchise '${branch.franchiseId}'`,
+      );
+    }
+
+    // 5. Validate Service Advisor
     const advisor = await this.prisma.employee.findUnique({
       where: { id: dto.serviceAdvisorId },
       include: { branch: true },
@@ -74,13 +152,15 @@ export class ServiceJobsService {
       throw new NotFoundException(`Service advisor employee ID '${dto.serviceAdvisorId}' not found`);
     }
     if (advisor.status !== 'ACTIVE') {
-      throw new BadRequestException(`Service advisor is not ACTIVE (current status: ${advisor.status})`);
+      throw new BadRequestException(`Service advisor '${advisor.firstName} ${advisor.lastName}' is not ACTIVE (current status: ${advisor.status})`);
     }
-    if (advisor.branchId !== dto.branchId) {
-      throw new BadRequestException('Service advisor belongs to another branch');
+    if (advisor.branchId !== branch.id) {
+      throw new BadRequestException(
+        `Cross-branch violation: Service advisor '${advisor.firstName} ${advisor.lastName}' belongs to branch '${advisor.branch?.name || advisor.branchId}', not to '${branch.name}'`,
+      );
     }
 
-    // Validate assigned mechanic if provided
+    // 6. Validate Assigned Mechanic if provided
     if (dto.assignedMechanicId) {
       const mechanic = await this.prisma.employee.findUnique({
         where: { id: dto.assignedMechanicId },
@@ -90,10 +170,12 @@ export class ServiceJobsService {
         throw new NotFoundException(`Mechanic employee ID '${dto.assignedMechanicId}' not found`);
       }
       if (mechanic.status !== 'ACTIVE') {
-        throw new BadRequestException(`Mechanic is not ACTIVE (current status: ${mechanic.status})`);
+        throw new BadRequestException(`Mechanic '${mechanic.firstName} ${mechanic.lastName}' is not ACTIVE (current status: ${mechanic.status})`);
       }
-      if (mechanic.branchId !== dto.branchId) {
-        throw new BadRequestException('Mechanic belongs to another branch');
+      if (mechanic.branchId !== branch.id) {
+        throw new BadRequestException(
+          `Cross-branch violation: Mechanic '${mechanic.firstName} ${mechanic.lastName}' belongs to branch '${mechanic.branch?.name || mechanic.branchId}', not to '${branch.name}'`,
+        );
       }
     }
 

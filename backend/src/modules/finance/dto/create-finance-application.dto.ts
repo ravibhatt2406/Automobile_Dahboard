@@ -7,10 +7,15 @@ export class CreateFinanceApplicationDto {
   @IsNotEmpty()
   customerId: string;
 
-  @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' })
+  @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', required: false })
   @IsString()
-  @IsNotEmpty()
-  bookingId: string;
+  @IsOptional()
+  bookingId?: string;
+
+  @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', required: false })
+  @IsString()
+  @IsOptional()
+  vehicleId?: string;
 
   @ApiProperty({ example: 'HDFC Bank Commercial Vehicle Finance' })
   @IsString()
@@ -22,12 +27,17 @@ export class CreateFinanceApplicationDto {
   @IsOptional()
   loanReference?: string;
 
+  @ApiProperty({ example: 4800000, required: false })
+  @IsNumber()
+  @IsOptional()
+  vehiclePrice?: number;
+
   @ApiProperty({ example: 4000000 })
   @IsNumber()
   @Min(1)
   loanAmount: number;
 
-  @ApiProperty({ example: 1000000 })
+  @ApiProperty({ example: 800000 })
   @IsNumber()
   @Min(0)
   downPayment: number;
@@ -42,6 +52,11 @@ export class CreateFinanceApplicationDto {
   @IsOptional()
   interestRate?: number;
 
+  @ApiProperty({ example: 'REDUCING_BALANCE', required: false, enum: ['REDUCING_BALANCE', 'FLAT_RATE'] })
+  @IsString()
+  @IsOptional()
+  interestMethod?: string;
+
   @ApiProperty({ example: 83950, required: false })
   @IsNumber()
   @IsOptional()
@@ -51,6 +66,11 @@ export class CreateFinanceApplicationDto {
   @IsDateString()
   @IsOptional()
   firstEmiDate?: string;
+
+  @ApiProperty({ example: 'docs/finance/agreement_01.pdf', required: false })
+  @IsString()
+  @IsOptional()
+  documentKey?: string;
 
   @ApiProperty({ example: 'Subject to financier approval and verification', required: false })
   @IsString()

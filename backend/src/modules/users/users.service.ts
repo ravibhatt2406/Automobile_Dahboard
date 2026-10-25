@@ -48,19 +48,28 @@ export class UsersService {
     let customerProfile = user.customerProfile;
     if (!customerProfile && (user.accountType === 'CUSTOMER' || roles.includes('CUSTOMER'))) {
       customerProfile = await this.prisma.customer.findFirst({
-        where: {
-          OR: [
-            { userId: user.id },
-            ...(user.email ? [{ email: user.email }] : []),
-            ...(user.phone ? [{ phone: user.phone }] : []),
-          ],
-        },
+        where: { userId: user.id },
       });
-      if (customerProfile && !customerProfile.userId) {
-        await this.prisma.customer.update({
-          where: { id: customerProfile.id },
-          data: { userId: user.id },
-        }).catch(() => {});
+
+      if (!customerProfile && user.email && user.phone) {
+        const cleanDigits = user.phone.replace(/\D/g, '').slice(-10);
+        const candidates = await this.prisma.customer.findMany({
+          where: {
+            email: { equals: user.email.trim(), mode: 'insensitive' },
+            userId: null,
+          },
+        });
+        const matched = candidates.filter((c) => {
+          const cDigits = (c.phone || '').replace(/\D/g, '').slice(-10);
+          return cleanDigits.length >= 7 && cDigits === cleanDigits;
+        });
+
+        if (matched.length === 1 && matched[0].status !== 'INACTIVE') {
+          customerProfile = await this.prisma.customer.update({
+            where: { id: matched[0].id },
+            data: { userId: user.id },
+          }).catch(() => null);
+        }
       }
     }
 
@@ -97,6 +106,7 @@ export class UsersService {
             email: customerProfile.email,
             phone: customerProfile.phone,
             status: customerProfile.status,
+            preferredBranchId: customerProfile.preferredBranchId,
           }
         : null,
       branch: user.employeeProfile?.branch || null,

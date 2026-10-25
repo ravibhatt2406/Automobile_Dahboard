@@ -15,6 +15,9 @@ export interface UserProfile {
   assignedBranchName?: string;
   accountType?: string;
   createdAt?: string;
+  customerId?: string | null;
+  customerProfile?: any;
+  preferredBranchId?: string | null;
 }
 
 export interface ScopeContextState {

@@ -72,13 +72,26 @@ export class AuthService {
 
     // 3. Check for existing unlinked customer profile (e.g. from offline branch sales or bookings)
     // Never link accounts using unverified name or email match alone; require matching phone and email
-    const unlinkedCustomer = await this.prisma.customer.findFirst({
+    const phoneDigits = normalizedPhone.replace(/\D/g, '').slice(-10);
+    const unlinkedCandidates = await this.prisma.customer.findMany({
       where: {
         email: { equals: normalizedEmail, mode: 'insensitive' },
-        phone: normalizedPhone,
         userId: null,
       },
     });
+
+    const matchingCandidates = unlinkedCandidates.filter((c) => {
+      const cDigits = (c.phone || '').replace(/\D/g, '').slice(-10);
+      return phoneDigits.length >= 7 && cDigits === phoneDigits;
+    });
+
+    if (matchingCandidates.length > 1) {
+      throw new ConflictException(
+        'Multiple customer records match your details. Please contact customer support for account verification.',
+      );
+    }
+
+    const unlinkedCustomer = matchingCandidates.length === 1 ? matchingCandidates[0] : null;
 
     if (unlinkedCustomer && unlinkedCustomer.status === 'INACTIVE') {
       throw new ForbiddenException('Customer profile is currently inactive. Please contact support.');
@@ -87,7 +100,7 @@ export class AuthService {
     // 4. Hash password using bcrypt (10 salt rounds) - never plaintext
     const passwordHash = await bcrypt.hash(dto.password, 10);
 
-    // 5. Create User and link to existing Customer profile or create new Customer profile atomically
+    // 5. Create User and link to existing Customer profile (if matched); otherwise new customer will complete onboarding
     const result = await this.prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
         data: {
@@ -99,7 +112,7 @@ export class AuthService {
         },
       });
 
-      let customer;
+      let customer: any = null;
       if (unlinkedCustomer) {
         // Link existing customer profile, preserving historical purchases, vehicles, and bookings
         customer = await tx.customer.update({
@@ -107,18 +120,6 @@ export class AuthService {
           data: {
             userId: user.id,
             ...(unlinkedCustomer.phone ? {} : { phone: normalizedPhone }),
-          },
-        });
-      } else {
-        // Create new customer profile
-        customer = await tx.customer.create({
-          data: {
-            userId: user.id,
-            name: dto.name.trim(),
-            phone: normalizedPhone,
-            email: normalizedEmail,
-            customerType: 'INDIVIDUAL',
-            status: 'ACTIVE',
           },
         });
       }
@@ -130,13 +131,13 @@ export class AuthService {
     await this.auditService.log({
       actorUserId: result.user.id,
       action: unlinkedCustomer ? 'CUSTOMER_ACCOUNT_LINKED' : 'CUSTOMER_REGISTERED',
-      entityType: 'Customer',
-      entityId: result.customer.id,
+      entityType: unlinkedCustomer ? 'Customer' : 'User',
+      entityId: result.customer ? result.customer.id : result.user.id,
       ipAddress,
       userAgent,
       metadata: {
         email: normalizedEmail,
-        customerId: result.customer.id,
+        customerId: result.customer?.id,
         linkedExisting: !!unlinkedCustomer,
       },
     }).catch(() => {});
@@ -427,7 +428,7 @@ export class AuthService {
         },
       });
 
-      let customer;
+      let customer: any = null;
       if (unlinkedCust) {
         customer = await tx.customer.update({
           where: { id: unlinkedCust.id },
@@ -436,31 +437,19 @@ export class AuthService {
             ...(unlinkedCust.phone ? {} : { phone: payload.phone_number || payload.phone || '' }),
           },
         });
-      } else {
-        customer = await tx.customer.create({
-          data: {
-            userId: newUser.id,
-            name: fullName,
-            email,
-            phone: payload.phone_number || payload.phone || '',
-            customerType: 'INDIVIDUAL',
-            status: 'ACTIVE',
-          },
-        });
       }
 
       return { user: newUser, customer };
     });
 
-
     await this.auditService.log({
       actorUserId: created.user.id,
-      action: 'CUSTOMER_REGISTERED_GOOGLE',
-      entityType: 'Customer',
-      entityId: created.customer.id,
+      action: unlinkedCust ? 'CUSTOMER_ACCOUNT_LINKED_GOOGLE' : 'CUSTOMER_REGISTERED_GOOGLE',
+      entityType: unlinkedCust ? 'Customer' : 'User',
+      entityId: created.customer ? created.customer.id : created.user.id,
       ipAddress,
       userAgent,
-      metadata: { email, googleSub, customerId: created.customer.id },
+      metadata: { email, googleSub, customerId: created.customer?.id },
     }).catch(() => {});
 
     const tokens = await this.generateTokens(created.user.id, created.user.email, created.user.accountType);

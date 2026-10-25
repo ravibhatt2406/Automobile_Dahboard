@@ -270,6 +270,9 @@ export interface Vehicle {
   branchName?: string;
   branch?: { id: string; name: string; franchiseId?: string };
   variant_details?: { id: string; name: string; model?: { name: string; manufacturer?: { name: string } } };
+  customerId?: string | null;
+  customer?: any;
+  mileage?: number;
   stockLocation?: string;
   purchasePrice?: number;
   baseCost?: number; // backend invoice cost field
@@ -321,11 +324,13 @@ export interface Booking {
   bookingNumber: string;
   customerId: string;
   customerName: string;
+  customer?: any;
   quotationId?: string;
   vehicleId: string;
   vehicleModel: string;
   bookingAmount: number;
   totalPrice: number;
+  totalAmount?: number | string;
   paymentStatus: 'pending' | 'partial' | 'paid';
   financeStatus: 'not_applied' | 'pending' | 'approved' | 'disbursed';
   insuranceStatus: 'pending' | 'active' | 'expired';
@@ -365,16 +370,43 @@ export interface FinanceApplication {
 export interface InsurancePolicy {
   id: string;
   policyNumber: string;
-  provider: string;
-  vehicleId?: string;
-  vehicleVin: string;
-  customerId: string;
-  customerName: string;
-  type: 'comprehensive' | 'third_party' | 'zero_depth' | 'commercial_carrier';
-  premiumAmount: number;
+  insurer?: string;
+  provider?: string;
+  policyType?: string;
+  type?: string;
+  premium?: number;
+  premiumAmount?: number;
   startDate: string;
   expiryDate: string;
-  status: 'active' | 'pending_renewal' | 'expired';
+  status: string;
+  documentKey?: string;
+  notes?: string;
+  coverageDetails?: string;
+  customerId: string;
+  bookingId?: string;
+  vehicleId?: string;
+  vehicleVin?: string;
+  customerName?: string;
+  customer?: { id: string; name: string; phone?: string; email?: string };
+  booking?: {
+    id: string;
+    bookingNumber: string;
+    branchId?: string;
+    branch?: { id: string; name: string };
+    quotation?: { variant?: { name: string } };
+    vehicle?: { id: string; vin?: string; registrationNumber?: string; variant?: { name: string } };
+  };
+  vehicle?: {
+    id: string;
+    vin?: string;
+    registrationNumber?: string;
+    variant?: { name: string };
+    branch?: { id: string; name: string };
+  };
+  isExpiringSoon?: boolean;
+  isExpired?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface InvoiceItem {

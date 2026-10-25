@@ -24,8 +24,9 @@ export class CustomersController {
     'BRANCH_MANAGER',
     'SALES_EMPLOYEE',
     'SERVICE_ADVISOR',
+    'CUSTOMER',
   )
-  @ApiOperation({ summary: 'Create new customer record (Organisation staff & Super Admin)' })
+  @ApiOperation({ summary: 'Create new customer record (Organisation staff, Super Admin, or Customer onboarding)' })
   async create(@Body() dto: CreateCustomerDto, @CurrentUser() user: any) {
     return this.customersService.create(dto, user);
   }

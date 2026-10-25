@@ -254,8 +254,13 @@ export const serviceManagementService = {
     return Array.isArray(unwrapped) ? unwrapped : unwrapped?.items || unwrapped?.data || [];
   },
 
-  async getCustomers(): Promise<any[]> {
-    const res = await apiFetch<any>('/customers');
+  async getCustomers(params?: { branchId?: string; franchiseId?: string; search?: string }): Promise<any[]> {
+    const cleanParams: Record<string, string> = {};
+    if (params?.branchId && params.branchId !== 'ALL') cleanParams.branchId = params.branchId;
+    if (params?.franchiseId && params.franchiseId !== 'ALL') cleanParams.franchiseId = params.franchiseId;
+    if (params?.search) cleanParams.search = params.search;
+    const query = new URLSearchParams(cleanParams).toString();
+    const res = await apiFetch<any>(`/customers${query ? `?${query}` : ''}`);
     const unwrapped = unwrapData<any>(res);
     return Array.isArray(unwrapped) ? unwrapped : unwrapped?.items || unwrapped?.data || [];
   },

@@ -82,7 +82,7 @@ export const FranchiseDetailPage: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center p-16 space-y-4">
         <RefreshCw className="w-8 h-8 text-amber-500 animate-spin" />
-        <p className="text-sm text-slate-400">Loading franchise entity records...</p>
+        <p className="text-sm text-zinc-500 font-medium">Loading franchise entity records...</p>
       </div>
     );
   }
@@ -92,7 +92,7 @@ export const FranchiseDetailPage: React.FC = () => {
       <div className="space-y-6">
         <button
           onClick={() => navigate('/organization/franchises')}
-          className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200"
+          className="inline-flex items-center gap-1.5 text-xs text-zinc-600 hover:text-zinc-900 font-semibold"
         >
           <ArrowLeft className="w-4 h-4" /> Back to Franchises
         </button>
@@ -113,7 +113,7 @@ export const FranchiseDetailPage: React.FC = () => {
       <div className="flex items-center justify-between">
         <button
           onClick={() => navigate('/organization/franchises')}
-          className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 font-medium transition-colors"
+          className="inline-flex items-center gap-1.5 text-xs text-zinc-600 hover:text-zinc-900 font-semibold transition-colors"
         >
           <ArrowLeft className="w-4 h-4" /> Back to Franchises
         </button>
@@ -125,9 +125,9 @@ export const FranchiseDetailPage: React.FC = () => {
                 setFeedback(null);
                 setIsEditModalOpen(true);
               }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-zinc-50 text-zinc-800 text-xs font-semibold border border-zinc-300 shadow-2xs transition-colors"
             >
-              <Edit className="w-3.5 h-3.5 text-blue-400" /> Edit Franchise
+              <Edit className="w-3.5 h-3.5 text-zinc-600" /> Edit Franchise
             </button>
           )}
           {isSuperAdmin && (
@@ -136,7 +136,7 @@ export const FranchiseDetailPage: React.FC = () => {
                 setFeedback(null);
                 setIsBranchModalOpen(true);
               }}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black text-xs font-semibold shadow-lg shadow-amber-500/20 transition-colors"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold shadow-xs transition-colors"
             >
               <Plus className="w-3.5 h-3.5" /> Add Branch Location
             </button>
@@ -158,15 +158,15 @@ export const FranchiseDetailPage: React.FC = () => {
         <div
           className={`p-3 rounded-lg text-xs flex items-center justify-between ${
             feedback.type === 'success'
-              ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
-              : 'bg-rose-500/10 border border-rose-500/20 text-rose-400'
+              ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
+              : 'bg-rose-50 border border-rose-200 text-rose-800'
           }`}
         >
           <div className="flex items-center gap-2">
             {feedback.type === 'success' ? (
-              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
             ) : (
-              <AlertCircle className="w-4 h-4 shrink-0" />
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
             )}
             <span>{feedback.message}</span>
           </div>
@@ -178,100 +178,102 @@ export const FranchiseDetailPage: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column: Franchise Overview Details */}
-        <div className="cockpit-card p-6 rounded-xl border border-slate-800 space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-            <h3 className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-              <Building className="w-4 h-4 text-blue-400" /> Franchise Overview
+        <div className="cockpit-card p-6 rounded-xl border border-zinc-200 bg-white space-y-4 shadow-xs">
+          <div className="flex items-center justify-between border-b border-zinc-200 pb-3">
+            <h3 className="text-sm font-bold text-zinc-900 flex items-center gap-2">
+              <Building className="w-4 h-4 text-amber-500" /> Franchise Overview
             </h3>
             <StatusBadge status={franchise.status} />
           </div>
 
           <div className="space-y-3.5 text-xs">
             <div>
-              <span className="text-slate-500 block mb-0.5">Franchise Code</span>
-              <span className="font-mono text-sm font-bold text-blue-400">{franchise.code}</span>
-            </div>
-
-            <div>
-              <span className="text-slate-500 block mb-0.5 flex items-center gap-1">
-                <Shield className="w-3.5 h-3.5 text-amber-400" /> Brand License
-              </span>
-              <span className="font-semibold text-slate-200">{franchise.brand || 'Commercial Fleet'}</span>
-            </div>
-
-            <div>
-              <span className="text-slate-500 block mb-0.5 flex items-center gap-1">
-                <FileText className="w-3.5 h-3.5 text-slate-400" /> Corporate Legal Name
-              </span>
-              <span className="font-medium text-slate-200">
-                {franchise.legalName || <span className="text-slate-500 italic">Not configured</span>}
+              <span className="text-zinc-500 block mb-1 font-medium">Franchise Code</span>
+              <span className="font-mono text-xs font-bold text-zinc-900 bg-zinc-100 px-2.5 py-1 rounded border border-zinc-200 inline-block">
+                {franchise.code}
               </span>
             </div>
 
             <div>
-              <span className="text-slate-500 block mb-0.5 flex items-center gap-1">
-                <CreditCard className="w-3.5 h-3.5 text-slate-400" /> GSTIN / Tax ID
+              <span className="text-zinc-500 block mb-0.5 flex items-center gap-1 font-medium">
+                <Shield className="w-3.5 h-3.5 text-amber-500" /> Brand License
               </span>
-              <span className="font-mono text-slate-300">
-                {franchise.taxId || <span className="text-slate-500 italic">Not configured</span>}
-              </span>
+              <span className="font-semibold text-zinc-900">{franchise.brand || 'Commercial Fleet'}</span>
             </div>
 
-            <div className="pt-2 border-t border-slate-800">
-              <span className="text-slate-500 block mb-0.5 flex items-center gap-1">
-                <Users className="w-3.5 h-3.5 text-cyan-400" /> Principal Owner / Partner
+            <div>
+              <span className="text-zinc-500 block mb-0.5 flex items-center gap-1 font-medium">
+                <FileText className="w-3.5 h-3.5 text-zinc-400" /> Corporate Legal Name
               </span>
-              <span className="font-semibold text-slate-200">
-                {franchise.ownerName || <span className="text-slate-500 italic">Unassigned</span>}
+              <span className="font-semibold text-zinc-900">
+                {franchise.legalName || <span className="text-zinc-400 italic">Not configured</span>}
               </span>
             </div>
 
             <div>
-              <span className="text-slate-500 block mb-0.5 flex items-center gap-1">
-                <Mail className="w-3.5 h-3.5 text-slate-400" /> Contact Email
+              <span className="text-zinc-500 block mb-0.5 flex items-center gap-1 font-medium">
+                <CreditCard className="w-3.5 h-3.5 text-zinc-400" /> GSTIN / Tax ID
               </span>
-              <span className="font-mono text-slate-300">
-                {franchise.contactEmail || <span className="text-slate-500 italic">Not configured</span>}
+              <span className="font-mono text-zinc-800">
+                {franchise.taxId || <span className="text-zinc-400 italic">Not configured</span>}
+              </span>
+            </div>
+
+            <div className="pt-2 border-t border-zinc-200">
+              <span className="text-zinc-500 block mb-0.5 flex items-center gap-1 font-medium">
+                <Users className="w-3.5 h-3.5 text-blue-500" /> Principal Owner / Partner
+              </span>
+              <span className="font-semibold text-zinc-900">
+                {franchise.ownerName || <span className="text-zinc-400 italic">Unassigned</span>}
               </span>
             </div>
 
             <div>
-              <span className="text-slate-500 block mb-0.5 flex items-center gap-1">
-                <Phone className="w-3.5 h-3.5 text-slate-400" /> Contact Phone
+              <span className="text-zinc-500 block mb-0.5 flex items-center gap-1 font-medium">
+                <Mail className="w-3.5 h-3.5 text-zinc-400" /> Contact Email
               </span>
-              <span className="font-mono text-slate-300">
-                {franchise.contactPhone || <span className="text-slate-500 italic">Not configured</span>}
+              <span className="font-mono text-zinc-700">
+                {franchise.contactEmail || <span className="text-zinc-400 italic">Not configured</span>}
               </span>
             </div>
 
             <div>
-              <span className="text-slate-500 block mb-0.5 flex items-center gap-1">
-                <MapPin className="w-3.5 h-3.5 text-slate-400" /> Registered Headquarters
+              <span className="text-zinc-500 block mb-0.5 flex items-center gap-1 font-medium">
+                <Phone className="w-3.5 h-3.5 text-zinc-400" /> Contact Phone
               </span>
-              <span className="text-slate-200 leading-relaxed">
-                {franchise.address || <span className="text-slate-500 italic">Not configured</span>}
+              <span className="font-mono text-zinc-700">
+                {franchise.contactPhone || <span className="text-zinc-400 italic">Not configured</span>}
               </span>
             </div>
 
-            <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-slate-400 text-[11px]">
+            <div>
+              <span className="text-zinc-500 block mb-0.5 flex items-center gap-1 font-medium">
+                <MapPin className="w-3.5 h-3.5 text-zinc-400" /> Registered Headquarters
+              </span>
+              <span className="text-zinc-800 leading-relaxed">
+                {franchise.address || <span className="text-zinc-400 italic">Not configured</span>}
+              </span>
+            </div>
+
+            <div className="pt-2 border-t border-zinc-200 flex items-center justify-between text-zinc-500 text-[11px]">
               <span className="flex items-center gap-1">
                 <Calendar className="w-3 h-3" /> Registered
               </span>
-              <span>{new Date(franchise.createdAt).toLocaleDateString()}</span>
+              <span className="font-mono">{new Date(franchise.createdAt).toLocaleDateString()}</span>
             </div>
           </div>
         </div>
 
         {/* Right Column: Dealership Branches in Franchise */}
         <div className="lg:col-span-2 space-y-4">
-          <div className="cockpit-card p-6 rounded-xl border border-slate-800 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div className="cockpit-card p-6 rounded-xl border border-zinc-200 bg-white space-y-4 shadow-xs">
+            <div className="flex items-center justify-between border-b border-zinc-200 pb-3">
               <div className="flex items-center gap-2">
-                <Store className="w-5 h-5 text-cyan-400" />
-                <h3 className="text-sm font-semibold text-slate-200">
+                <Store className="w-5 h-5 text-amber-500" />
+                <h3 className="text-sm font-bold text-zinc-900">
                   Dealership Branches in Franchise
                 </h3>
-                <span className="ml-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                <span className="ml-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-800 border border-blue-200">
                   {branches.length} {branches.length === 1 ? 'Location' : 'Locations'}
                 </span>
               </div>
@@ -282,7 +284,7 @@ export const FranchiseDetailPage: React.FC = () => {
                     setFeedback(null);
                     setIsBranchModalOpen(true);
                   }}
-                  className="inline-flex items-center gap-1 text-xs text-amber-400 hover:text-amber-300 font-semibold"
+                  className="inline-flex items-center gap-1 text-xs text-amber-600 hover:text-amber-700 font-bold"
                 >
                   <Plus className="w-3.5 h-3.5" /> Add Location
                 </button>
@@ -294,33 +296,35 @@ export const FranchiseDetailPage: React.FC = () => {
                 {branches.map((b: any) => (
                   <div
                     key={b.id}
-                    className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 transition-all space-y-3 flex flex-col justify-between"
+                    className="p-4 rounded-xl bg-zinc-50/70 border border-zinc-200 hover:border-zinc-300 transition-all space-y-3 flex flex-col justify-between shadow-2xs"
                   >
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between">
-                        <span className="font-mono text-xs font-bold text-blue-400">{b.code}</span>
+                        <span className="font-mono text-xs font-bold text-zinc-900 bg-white px-2 py-0.5 rounded border border-zinc-200">
+                          {b.code}
+                        </span>
                         <StatusBadge status={b.status} />
                       </div>
-                      <h4 className="font-semibold text-sm text-slate-100">{b.name}</h4>
-                      <p className="text-xs text-slate-400 flex items-center gap-1">
-                        <MapPin className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                      <h4 className="font-bold text-sm text-zinc-900">{b.name}</h4>
+                      <p className="text-xs text-zinc-600 flex items-center gap-1">
+                        <MapPin className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
                         <span>
                           {[b.address, b.city, b.state].filter(Boolean).join(', ') || 'Address unlisted'}
                         </span>
                       </p>
                       {(b.phone || b.email) && (
-                        <div className="text-[11px] text-slate-400 pt-1 space-y-0.5 font-mono">
+                        <div className="text-[11px] text-zinc-600 pt-1 space-y-0.5 font-mono">
                           {b.phone && <div>Phone: {b.phone}</div>}
                           {b.email && <div>Email: {b.email}</div>}
                         </div>
                       )}
                     </div>
 
-                    <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-xs">
-                      <span className="text-[11px] text-slate-500">Dealership Branch</span>
+                    <div className="pt-2 border-t border-zinc-200 flex items-center justify-between text-xs">
+                      <span className="text-[11px] text-zinc-500 font-medium">Dealership Branch</span>
                       <button
                         onClick={() => navigate(`/organization/branches/${b.id}`)}
-                        className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300 font-semibold transition-colors"
+                        className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-bold transition-colors"
                       >
                         View Branch <ChevronRight className="w-3.5 h-3.5" />
                       </button>
@@ -339,6 +343,7 @@ export const FranchiseDetailPage: React.FC = () => {
           </div>
         </div>
       </div>
+
 
       <FranchiseFormModal
         isOpen={isEditModalOpen}

@@ -83,11 +83,32 @@ export const BranchesListPage: React.FC = () => {
   };
 
   const columns: Column<Branch>[] = [
-    { header: 'Branch Code', accessorKey: 'code', className: 'font-mono text-xs font-semibold text-cyan-400' },
-    { header: 'Branch Name', accessorKey: 'name' },
-    { header: 'Franchise', accessorKey: 'franchiseName' },
-    { header: 'City', accessorKey: 'city' },
-    { header: 'State', accessorKey: 'state' },
+    {
+      header: 'Branch Code',
+      accessorKey: 'code',
+      className: 'font-mono text-xs font-bold text-zinc-900',
+      cell: (row) => (
+        <span className="font-mono text-xs font-bold text-zinc-900 bg-zinc-100 px-2 py-0.5 rounded border border-zinc-200">
+          {row.code}
+        </span>
+      ),
+    },
+    {
+      header: 'Branch Name',
+      cell: (row) => <span className="font-semibold text-zinc-900">{row.name}</span>,
+    },
+    {
+      header: 'Franchise',
+      cell: (row) => <span className="text-zinc-700 font-medium">{row.franchiseName || '--'}</span>,
+    },
+    {
+      header: 'City',
+      cell: (row) => <span className="text-zinc-700">{row.city || '--'}</span>,
+    },
+    {
+      header: 'State',
+      cell: (row) => <span className="text-zinc-700">{row.state || '--'}</span>,
+    },
     {
       header: 'Status',
       cell: (row) => <StatusBadge status={row.status} />,
@@ -98,14 +119,14 @@ export const BranchesListPage: React.FC = () => {
         <div className="flex items-center gap-2 text-xs">
           <button
             onClick={() => navigate(`/organization/branches/${row.id}`)}
-            className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300 font-medium"
+            className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-semibold transition-colors"
           >
             <Eye className="w-3.5 h-3.5" /> Details
           </button>
           {canManage && (
             <button
               onClick={() => handleEdit(row)}
-              className="inline-flex items-center gap-1 text-slate-400 hover:text-slate-200 font-medium"
+              className="inline-flex items-center gap-1 text-zinc-600 hover:text-zinc-900 font-semibold transition-colors"
             >
               <Edit className="w-3.5 h-3.5" /> Edit
             </button>
@@ -114,7 +135,7 @@ export const BranchesListPage: React.FC = () => {
             <button
               onClick={() => handleDeactivate(row)}
               disabled={deactivateMutation.isPending}
-              className="inline-flex items-center gap-1 text-rose-400 hover:text-rose-300 font-medium disabled:opacity-50"
+              className="inline-flex items-center gap-1 text-rose-600 hover:text-rose-800 font-semibold disabled:opacity-50 transition-colors"
             >
               <PowerOff className="w-3.5 h-3.5" /> Deactivate
             </button>
@@ -136,12 +157,12 @@ export const BranchesListPage: React.FC = () => {
               id="btn-export-csv"
               onClick={handleExport}
               disabled={exporting}
-              className="inline-flex items-center gap-1.5 px-3 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 hover:text-white text-xs font-semibold rounded-lg border border-zinc-700 transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-zinc-50 text-zinc-800 hover:text-zinc-900 text-xs font-semibold rounded-lg border border-zinc-300 shadow-2xs transition-colors"
             >
               {exporting ? (
                 <RefreshCw className="w-3.5 h-3.5 animate-spin" />
               ) : (
-                <Download className="w-3.5 h-3.5 text-amber-400" />
+                <Download className="w-3.5 h-3.5 text-amber-600" />
               )}
               Export CSV
             </button>
@@ -149,16 +170,16 @@ export const BranchesListPage: React.FC = () => {
               <button
                 id="btn-import-csv"
                 onClick={() => setIsImportModalOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 hover:text-white text-xs font-semibold rounded-lg border border-zinc-700 transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-zinc-50 text-zinc-800 hover:text-zinc-900 text-xs font-semibold rounded-lg border border-zinc-300 shadow-2xs transition-colors"
               >
-                <Upload className="w-3.5 h-3.5 text-amber-400" />
+                <Upload className="w-3.5 h-3.5 text-amber-600" />
                 Import CSV
               </button>
             )}
             {canManage && (
               <button
                 onClick={handleCreate}
-                className="inline-flex items-center gap-2 px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-black text-xs font-semibold rounded-lg transition-colors shadow-lg shadow-amber-500/20"
+                className="inline-flex items-center gap-2 px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold rounded-lg transition-colors shadow-xs"
               >
                 <Plus className="w-4 h-4" /> Add Branch Location
               </button>
@@ -168,9 +189,9 @@ export const BranchesListPage: React.FC = () => {
       />
 
       {actionError && (
-        <div className="p-3 rounded-lg bg-rose-950/80 border border-rose-800 text-rose-300 text-xs">
-          {actionError}
-          <button onClick={() => setActionError(null)} className="ml-2 underline">Dismiss</button>
+        <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center justify-between">
+          <span>{actionError}</span>
+          <button onClick={() => setActionError(null)} className="ml-2 font-bold hover:opacity-75">×</button>
         </div>
       )}
 

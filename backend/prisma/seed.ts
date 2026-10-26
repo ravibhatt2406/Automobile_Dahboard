@@ -10,8 +10,8 @@ async function main() {
   // ==========================================
   console.log('🧹 Safely purging obsolete test run artifacts in dependency order...');
 
-  const targetBranchCodes = ['BR-JAI-01', 'BR-JAI-02', 'BR-UDR-01', 'BR-UDR-02', 'BR-JDH-01', 'BR-JDH-02'];
-  const targetFranchiseCodes = ['FR-RAJ-01', 'FR-MEW-02', 'FR-MAR-03'];
+  const targetBranchCodes = ['BR-UDR-01', 'BR-JAI-01'];
+  const targetFranchiseCodes = ['FR-TATA-01', 'FR-AL-01'];
 
   const testUsers = await prisma.user.findMany({
     where: {
@@ -443,30 +443,23 @@ async function main() {
   });
 
   // ==========================================
-  // 5. SEED EXACTLY 3 FRANCHISES
+  // 5. SEED EXACTLY 2 FRANCHISES
   // ==========================================
-  console.log('🏢 Seeding exactly 3 Franchises...');
+  console.log('🏢 Seeding exactly 2 Franchises...');
   const franchiseConfigs = [
     {
-      code: 'FR-RAJ-01',
-      name: 'Titan Commercial Motors (Rajasthan)',
-      legalName: 'Titan Rajasthan Commercial Fleet Dealerships Pvt Ltd',
-      taxId: 'GSTIN08TITAN01',
-      city: 'Jaipur',
-    },
-    {
-      code: 'FR-MEW-02',
-      name: 'Mewar Heavy Trucks & Fleet Network',
-      legalName: 'Mewar Commercial Vehicles & Logistics Ltd',
-      taxId: 'GSTIN08MEWAR02',
+      code: 'FR-TATA-01',
+      name: 'Tata Motors',
+      legalName: 'Tata Motors Commercial Vehicles Dealership Ltd',
+      taxId: '08AABCT2345M1Z1',
       city: 'Udaipur',
     },
     {
-      code: 'FR-MAR-03',
-      name: 'Marwar Commercial Logistics Franchise',
-      legalName: 'Marwar Heavy Haulage Dealerships Ltd',
-      taxId: 'GSTIN08MARWAR03',
-      city: 'Jodhpur',
+      code: 'FR-AL-01',
+      name: 'Ashok Leyland Commercial Vehicles',
+      legalName: 'Ashok Leyland Dealership Network Ltd',
+      taxId: '08AABCA1234F1Z5',
+      city: 'Jaipur',
     },
   ];
 
@@ -481,60 +474,25 @@ async function main() {
   }
 
   // ==========================================
-  // 6. SEED EXACTLY 6 BRANCHES (2 PER CITY)
+  // 6. SEED EXACTLY 2 BRANCHES (1 PER FRANCHISE)
   // ==========================================
-  console.log('📍 Seeding exactly 6 Branches (2 in Udaipur, 2 in Jaipur, 2 in Jodhpur)...');
+  console.log('📍 Seeding exactly 2 Branches (Udaipur and Jaipur)...');
   const branchConfigs = [
-    // Jaipur Branches -> FR-RAJ-01
-    {
-      code: 'BR-JAI-01',
-      name: 'Jaipur Central',
-      city: 'Jaipur',
-      state: 'Rajasthan',
-      address: 'Plot 42, Sitapura Industrial Area, Tonk Road',
-      franchiseCode: 'FR-RAJ-01',
-    },
-    {
-      code: 'BR-JAI-02',
-      name: 'Jaipur Industrial',
-      city: 'Jaipur',
-      state: 'Rajasthan',
-      address: 'Road No. 9, Vishwakarma Industrial Area (VKIA)',
-      franchiseCode: 'FR-RAJ-01',
-    },
-    // Udaipur Branches -> FR-MEW-02
     {
       code: 'BR-UDR-01',
-      name: 'Udaipur Central',
+      name: 'Udaipur',
       city: 'Udaipur',
       state: 'Rajasthan',
-      address: 'Plot 105, Mewar Industrial Complex, Madri Industrial Area',
-      franchiseCode: 'FR-MEW-02',
+      address: 'Plot 22-25, NH-8, Sukher Industrial Area',
+      franchiseCode: 'FR-TATA-01',
     },
     {
-      code: 'BR-UDR-02',
-      name: 'Udaipur Industrial',
-      city: 'Udaipur',
+      code: 'BR-JAI-01',
+      name: 'Jaipur',
+      city: 'Jaipur',
       state: 'Rajasthan',
-      address: 'NH-8 Highway Hub, Sukher Industrial Zone',
-      franchiseCode: 'FR-MEW-02',
-    },
-    // Jodhpur Branches -> FR-MAR-03
-    {
-      code: 'BR-JDH-01',
-      name: 'Jodhpur Central',
-      city: 'Jodhpur',
-      state: 'Rajasthan',
-      address: 'Plot 28, Industrial Estate Phase 2, Basni',
-      franchiseCode: 'FR-MAR-03',
-    },
-    {
-      code: 'BR-JDH-02',
-      name: 'Jodhpur Industrial',
-      city: 'Jodhpur',
-      state: 'Rajasthan',
-      address: 'Sector 5, Boranada Special Economic Zone (SEZ)',
-      franchiseCode: 'FR-MAR-03',
+      address: 'Transport Nagar, Agra Road',
+      franchiseCode: 'FR-AL-01',
     },
   ];
 

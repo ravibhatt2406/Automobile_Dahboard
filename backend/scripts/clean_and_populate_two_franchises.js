@@ -74,9 +74,14 @@ async function main() {
   await prisma.customerFranchise.deleteMany({});
   await prisma.customer.deleteMany({});
 
-  // Purge test users except Super Admin
+  // Purge test users except Super Admin and developer accounts
+  const preservedEmails = [
+    'admin@titanauto.com',
+    'ravibhatt2406@gmail.com',
+    'ravibhatt.ai29@jecrc.ac.in',
+  ];
   await prisma.user.deleteMany({
-    where: { id: { not: superAdmin.id } },
+    where: { email: { notIn: preservedEmails } },
   });
 
   // Purge branches and franchises
@@ -110,7 +115,7 @@ async function main() {
     data: {
       franchiseId: franchiseTata.id,
       code: 'BR-UDR-01',
-      name: 'Tata Motors — Udaipur',
+      name: 'Udaipur',
       address: 'Plot 22-25, NH-8, Sukher Industrial Area',
       city: 'Udaipur',
       state: 'Rajasthan',
@@ -133,13 +138,80 @@ async function main() {
     data: {
       franchiseId: franchiseAshok.id,
       code: 'BR-JAI-01',
-      name: 'Ashok Leyland — Jaipur',
+      name: 'Jaipur',
       address: 'Transport Nagar, Agra Road',
       city: 'Jaipur',
       state: 'Rajasthan',
       status: 'ACTIVE',
     },
   });
+
+  // Link Primary Super Admin (Alexander Vance)
+  const adminEmp = await prisma.employee.create({
+    data: {
+      userId: superAdmin.id,
+      branchId: branchJaipur.id,
+      employeeCode: 'EMP-ADM-001',
+      firstName: 'Alexander',
+      lastName: 'Vance',
+      designation: 'Global Platform Admin',
+      status: 'ACTIVE',
+    },
+  });
+  if (roleMap['SUPER_ADMIN']) {
+    await prisma.employeeRoleAssignment.create({
+      data: {
+        employeeId: adminEmp.id,
+        roleId: roleMap['SUPER_ADMIN'],
+      },
+    });
+  }
+
+  // Link Developer Super Admin (Ravi Bhatt) if present
+  const raviUser = await prisma.user.findFirst({ where: { email: 'ravibhatt2406@gmail.com' } });
+  if (raviUser) {
+    const raviEmp = await prisma.employee.create({
+      data: {
+        userId: raviUser.id,
+        branchId: branchUdaipur.id,
+        employeeCode: 'EMP-8673',
+        firstName: 'Ravi',
+        lastName: 'Bhatt',
+        designation: 'Staff',
+        status: 'ACTIVE',
+      },
+    });
+    if (roleMap['SUPER_ADMIN']) {
+      await prisma.employeeRoleAssignment.create({
+        data: {
+          employeeId: raviEmp.id,
+          roleId: roleMap['SUPER_ADMIN'],
+        },
+      });
+    }
+  }
+
+  // Link Developer Customer if present
+  const raviCustUser = await prisma.user.findFirst({ where: { email: 'ravibhatt.ai29@jecrc.ac.in' } });
+  if (raviCustUser) {
+    const cust = await prisma.customer.create({
+      data: {
+        userId: raviCustUser.id,
+        name: 'Ravi Bhatt',
+        email: 'ravibhatt.ai29@jecrc.ac.in',
+        phone: raviCustUser.phone || '+919057496989',
+        customerType: 'INDIVIDUAL',
+        status: 'ACTIVE',
+        preferredBranchId: branchJaipur.id,
+      },
+    });
+    await prisma.customerFranchise.create({
+      data: {
+        customerId: cust.id,
+        franchiseId: franchiseAshok.id,
+      },
+    });
+  }
 
   console.log(`✅ Created Franchise 1: ${franchiseTata.name} -> Branch: ${branchUdaipur.name} (${branchUdaipur.city})`);
   console.log(`✅ Created Franchise 2: ${franchiseAshok.name} -> Branch: ${branchJaipur.name} (${branchJaipur.city})`);
@@ -616,6 +688,70 @@ async function main() {
       paymentMethod: 'CHEQUE_CLEARING',
       paidAt: new Date(),
     },
+  });
+
+  // Insurance & Vehicle Finance (Udaipur)
+  await prisma.insurancePolicy.create({
+    data: {
+      policyNumber: 'POL-UDR-2026-001',
+      customerId: udrCustomer1.customer.id,
+      bookingId: udrBooking1.id,
+      vehicleId: udrVeh2.id,
+      insurer: 'Tata AIG General Insurance',
+      policyType: 'Comprehensive Commercial Fleet',
+      premium: 85000,
+      startDate: new Date(),
+      expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+      status: 'ACTIVE',
+      coverageDetails: 'Zero depreciation, engine protect, 3rd party liability up to 50 Lakhs',
+      isManual: false,
+    },
+  });
+
+  const udrFinApp = await prisma.financeApplication.create({
+    data: {
+      applicationNumber: 'FIN-UDR-2026-001',
+      customerId: udrCustomer1.customer.id,
+      bookingId: udrBooking1.id,
+      vehicleId: udrVeh2.id,
+      financeProvider: 'Tata Motors Finance Limited',
+      loanAmount: 4000000,
+      downPayment: 1350000,
+      vehiclePrice: 5350000,
+      tenureMonths: 48,
+      interestRate: 9.25,
+      interestMethod: 'REDUCING_BALANCE',
+      emiAmount: 99980,
+      status: 'APPROVED',
+      firstEmiDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      isManual: false,
+      remarks: 'Sanctioned against fleet operator GST turnover evaluation',
+    },
+  });
+
+  await prisma.financeEmiSchedule.createMany({
+    data: [
+      {
+        financeApplicationId: udrFinApp.id,
+        installmentNumber: 1,
+        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        emiAmount: 99980,
+        principalComponent: 69147,
+        interestComponent: 30833,
+        paidAmount: 0,
+        status: 'UPCOMING',
+      },
+      {
+        financeApplicationId: udrFinApp.id,
+        installmentNumber: 2,
+        dueDate: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
+        emiAmount: 99980,
+        principalComponent: 69680,
+        interestComponent: 30300,
+        paidAmount: 0,
+        status: 'UPCOMING',
+      },
+    ],
   });
 
   // 2 Service Appointments & Service Jobs
@@ -1156,6 +1292,70 @@ async function main() {
       paymentMethod: 'CHEQUE_CLEARING',
       paidAt: new Date(),
     },
+  });
+
+  // Insurance & Vehicle Finance (Jaipur)
+  await prisma.insurancePolicy.create({
+    data: {
+      policyNumber: 'POL-JAI-2026-001',
+      customerId: jaiCustomer1.customer.id,
+      bookingId: jaiBooking1.id,
+      vehicleId: jaiVeh2.id,
+      insurer: 'ICICI Lombard Commercial',
+      policyType: 'Commercial Goods Carrier Comprehensive',
+      premium: 62000,
+      startDate: new Date(),
+      expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+      status: 'ACTIVE',
+      coverageDetails: 'Bumper-to-bumper commercial cover, towing assistance up to 100km',
+      isManual: false,
+    },
+  });
+
+  const jaiFinApp = await prisma.financeApplication.create({
+    data: {
+      applicationNumber: 'FIN-JAI-2026-001',
+      customerId: jaiCustomer1.customer.id,
+      bookingId: jaiBooking1.id,
+      vehicleId: jaiVeh2.id,
+      financeProvider: 'Cholamandalam Investment and Finance',
+      loanAmount: 3000000,
+      downPayment: 950000,
+      vehiclePrice: 3950000,
+      tenureMonths: 36,
+      interestRate: 9.5,
+      interestMethod: 'REDUCING_BALANCE',
+      emiAmount: 96115,
+      status: 'DISBURSED',
+      firstEmiDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      isManual: false,
+      remarks: 'Disbursed directly to dealership commercial escrow account',
+    },
+  });
+
+  await prisma.financeEmiSchedule.createMany({
+    data: [
+      {
+        financeApplicationId: jaiFinApp.id,
+        installmentNumber: 1,
+        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        emiAmount: 96115,
+        principalComponent: 72365,
+        interestComponent: 23750,
+        paidAmount: 0,
+        status: 'UPCOMING',
+      },
+      {
+        financeApplicationId: jaiFinApp.id,
+        installmentNumber: 2,
+        dueDate: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
+        emiAmount: 96115,
+        principalComponent: 72938,
+        interestComponent: 23177,
+        paidAmount: 0,
+        status: 'UPCOMING',
+      },
+    ],
   });
 
   // 2 Service Appointments & Service Jobs

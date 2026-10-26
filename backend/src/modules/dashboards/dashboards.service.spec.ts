@@ -339,13 +339,14 @@ describe('DashboardsService Unit & Scope Enforcement Tests', () => {
 
       const result = await service.getCustomerDashboard(userId);
 
-      expect(result.id).toBe('cust-99');
-      expect(result.name).toBe('Falcon Logistics Fleet');
-      expect(result.summary.vehiclesCount).toBe(2);
-      expect(result.summary.activeQuotationsCount).toBe(1); // Excludes REJECTED
-      expect(result.summary.bookingsCount).toBe(1);
-      expect(result.summary.serviceDueCount).toBe(1); // Excludes COMPLETED
-      expect(result.summary.totalSpent).toBe(2400000); // Only PAID invoice
+      expect(result).toBeDefined();
+      expect(result!.id).toBe('cust-99');
+      expect(result!.name).toBe('Falcon Logistics Fleet');
+      expect(result!.summary.vehiclesCount).toBe(2);
+      expect(result!.summary.activeQuotationsCount).toBe(1); // Excludes REJECTED
+      expect(result!.summary.bookingsCount).toBe(1);
+      expect(result!.summary.serviceDueCount).toBe(1); // Excludes COMPLETED
+      expect(result!.summary.totalSpent).toBe(2400000); // Only PAID invoice
     });
   });
 });

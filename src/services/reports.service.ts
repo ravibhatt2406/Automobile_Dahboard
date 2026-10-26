@@ -1,5 +1,56 @@
 import { apiFetch, unwrapData } from './apiClient';
 
+export interface SalesOverviewReport {
+  summary: {
+    grossSales: number;
+    netSales: number;
+    discountsTotal: number;
+    paymentsReceived: number;
+    outstandingReceivables: number;
+    vehiclesSold: number;
+    confirmedBookingsCount: number;
+  };
+  salesTrend: Array<{
+    period: string;
+    grossSales: number;
+    netSales: number;
+    count: number;
+  }>;
+  branchComparison: Array<{
+    branchId: string;
+    branchName: string;
+    branchCode: string;
+    franchiseName: string;
+    city?: string;
+    grossSales: number;
+    netSales: number;
+    paymentsReceived: number;
+    outstandingReceivables: number;
+    vehiclesSold: number;
+    invoicesCount: number;
+  }>;
+  salesVsPayments: Array<{
+    period: string;
+    invoicedSales: number;
+    paymentsReceived: number;
+  }>;
+  salesDistribution: Array<{
+    branchId: string;
+    branchName: string;
+    branchCode: string;
+    value: number;
+    percentage: number;
+  }>;
+  scopedFranchiseId?: string | null;
+  scopedBranchId?: string | null;
+  totalBranchesInScope: number;
+  dateRange: {
+    startDate: string;
+    endDate: string;
+    groupBy: string;
+  };
+}
+
 export interface SalesReport {
   totalLeads: number;
   totalQuotations: number;
@@ -394,5 +445,23 @@ export const reportsService = {
     a.click();
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
+  },
+
+  async getSalesOverview(params?: {
+    branchId?: string;
+    franchiseId?: string;
+    startDate?: string;
+    endDate?: string;
+    groupBy?: 'day' | 'week' | 'month';
+  }): Promise<SalesOverviewReport> {
+    const cleanParams: Record<string, string> = {};
+    if (params?.branchId && params.branchId !== 'ALL') cleanParams.branchId = params.branchId;
+    if (params?.franchiseId && params.franchiseId !== 'ALL') cleanParams.franchiseId = params.franchiseId;
+    if (params?.startDate) cleanParams.startDate = params.startDate;
+    if (params?.endDate) cleanParams.endDate = params.endDate;
+    if (params?.groupBy) cleanParams.groupBy = params.groupBy;
+    const query = new URLSearchParams(cleanParams).toString();
+    const res = await apiFetch<any>(`/reports/sales-overview${query ? `?${query}` : ''}`);
+    return unwrapData<SalesOverviewReport>(res);
   },
 };

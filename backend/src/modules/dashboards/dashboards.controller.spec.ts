@@ -76,7 +76,7 @@ describe('DashboardsController Unit Tests', () => {
     const user = { id: 'u5', roles: ['MECHANIC'], employeeId: 'mech-1' };
     const result = await controller.getMechanicDashboard(user);
     expect(result).toEqual({ totalAssigned: 6 });
-    expect(service.getMechanicDashboard).toHaveBeenCalledWith('mech-1');
+    expect(service.getMechanicDashboard).toHaveBeenCalledWith('mech-1', user);
   });
 
   it('should call getCustomerDashboard with current customer user id', async () => {

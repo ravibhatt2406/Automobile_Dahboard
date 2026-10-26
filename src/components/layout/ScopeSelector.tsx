@@ -92,7 +92,7 @@ export const ScopeSelector: React.FC = () => {
             </option>
             {branches.map((b) => (
               <option key={b.id} value={b.id} className="bg-zinc-900 text-white">
-                {b.name} {b.city ? `(${b.city})` : ''}
+                {b.name}{b.city && b.city.toLowerCase() !== b.name.toLowerCase() ? ` (${b.city})` : ''}
               </option>
             ))}
           </select>
@@ -143,7 +143,7 @@ export const ScopeSelector: React.FC = () => {
               </option>
               {branches.map((b) => (
                 <option key={b.id} value={b.id} className="bg-zinc-900 text-white">
-                  {b.name} {b.city ? `(${b.city})` : ''}
+                  {b.name}{b.city && b.city.toLowerCase() !== b.name.toLowerCase() ? ` (${b.city})` : ''}
                 </option>
               ))}
             </select>

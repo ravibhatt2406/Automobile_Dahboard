@@ -99,38 +99,38 @@ export const Customer360Page: React.FC = () => {
       />
 
       {/* Signature 360 Header Banner */}
-      <div className="cockpit-card p-6 rounded-xl border border-slate-800 mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-slate-900/90 to-blue-950/40">
+      <div className="cockpit-card p-6 rounded-xl border border-zinc-200 mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white shadow-xs">
         <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-700 to-cyan-500 flex items-center justify-center text-white text-xl font-bold shadow-lg shadow-blue-600/30">
+          <div className="w-14 h-14 rounded-2xl bg-amber-500 flex items-center justify-center text-zinc-950 text-xl font-bold shadow-xs">
             {customer?.companyName?.[0] || 'C'}
           </div>
           <div>
             <div className="flex items-center gap-3">
-              <h2 className="text-xl font-bold text-slate-100">{customer?.companyName || 'Corporate Account'}</h2>
+              <h2 className="text-xl font-bold text-zinc-900">{customer?.companyName || 'Corporate Account'}</h2>
               <StatusBadge status={customer?.status || 'active'} />
             </div>
-            <p className="text-xs text-slate-400 mt-1 flex items-center gap-2">
-              <span>Contact: {customer?.contactPerson || '--'}</span>
+            <p className="text-xs text-zinc-500 mt-1 flex items-center gap-2">
+              <span>Contact: <strong className="text-zinc-800">{customer?.contactPerson || '--'}</strong></span>
               <span>•</span>
-              <span className="font-mono">{customer?.email || '--'}</span>
+              <span className="font-mono text-zinc-600">{customer?.email || '--'}</span>
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-4 text-xs font-mono border-t md:border-t-0 md:border-l border-slate-800 pt-3 md:pt-0 md:pl-6">
+        <div className="flex items-center gap-6 text-xs font-mono border-t md:border-t-0 md:border-l border-zinc-200 pt-3 md:pt-0 md:pl-6">
           <div>
-            <span className="text-slate-500 block">Fleet Size</span>
-            <span className="text-lg font-bold text-slate-100">{customer?.fleetSize ?? '--'}</span>
+            <span className="text-zinc-500 block text-[11px] uppercase font-sans">Fleet Size</span>
+            <span className="text-lg font-bold text-zinc-900">{customer?.fleetSize ?? '--'}</span>
           </div>
           <div>
-            <span className="text-slate-500 block">Account Type</span>
-            <span className="text-slate-200 capitalize">{customer?.customerType || 'Corporate'}</span>
+            <span className="text-zinc-500 block text-[11px] uppercase font-sans">Account Type</span>
+            <span className="text-zinc-800 font-semibold capitalize font-sans">{customer?.customerType || 'Corporate'}</span>
           </div>
         </div>
       </div>
 
       {/* 360 Navigation Tabs */}
-      <div className="flex items-center gap-1 overflow-x-auto pb-2 mb-6 border-b border-zinc-200">
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-2 mb-6 border-b border-zinc-200">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -138,10 +138,10 @@ export const Customer360Page: React.FC = () => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
                 isActive
-                  ? 'bg-blue-600 text-white font-semibold shadow-md shadow-blue-600/20'
-                  : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100'
+                  ? 'bg-zinc-900 text-white shadow-xs font-bold'
+                  : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100'
               }`}
             >
               <Icon className="w-3.5 h-3.5" />

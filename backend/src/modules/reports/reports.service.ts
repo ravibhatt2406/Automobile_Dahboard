@@ -237,6 +237,274 @@ export class ReportsService {
     };
   }
 
+  async getSalesOverview(
+    branchId?: string,
+    startDate?: string,
+    endDate?: string,
+    user?: any,
+    franchiseId?: string,
+    groupBy: 'day' | 'week' | 'month' = 'month',
+  ) {
+    const { effectiveBranchId, effectiveFranchiseId } = await this.resolveScope(
+      user,
+      branchId,
+      franchiseId,
+    );
+
+    // Build date filter
+    const now = new Date();
+    const defaultStart = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+    const start = startDate ? new Date(startDate) : defaultStart;
+    const end = endDate ? new Date(endDate) : new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+    const dateFilter = { gte: start, lte: end };
+
+    // Query authorized branches in scope
+    const branchWhere: any = {};
+    if (effectiveBranchId) {
+      branchWhere.id = effectiveBranchId;
+    } else if (effectiveFranchiseId) {
+      branchWhere.franchiseId = effectiveFranchiseId;
+    }
+    const authorizedBranches = await this.prisma.branch.findMany({
+      where: branchWhere,
+      include: { franchise: true },
+      orderBy: { name: 'asc' },
+    });
+    const authorizedBranchIds = authorizedBranches.map((b) => b.id);
+
+    // Invoice where filter
+    const invoiceWhere: any = {
+      status: { in: ['ISSUED', 'PAID'] },
+      branchId: { in: authorizedBranchIds },
+      createdAt: dateFilter,
+    };
+
+    // Payment where filter
+    const paymentWhere: any = {
+      status: 'SUCCESS',
+      createdAt: dateFilter,
+      OR: [
+        { invoice: { branchId: { in: authorizedBranchIds } } },
+        { booking: { branchId: { in: authorizedBranchIds } } },
+      ],
+    };
+
+    // Delivery where filter
+    const deliveryWhere: any = {
+      status: 'COMPLETED',
+      deliveryDate: dateFilter,
+      booking: { branchId: { in: authorizedBranchIds } },
+    };
+
+    // Fetch invoices, payments, deliveries, bookings in parallel
+    const [
+      invoices,
+      payments,
+      deliveries,
+      confirmedBookingsCount,
+    ] = await Promise.all([
+      this.prisma.invoice.findMany({
+        where: invoiceWhere,
+        include: {
+          branch: { include: { franchise: true } },
+          payments: { where: { status: 'SUCCESS' } },
+        },
+        orderBy: { createdAt: 'asc' },
+      }),
+      this.prisma.payment.findMany({
+        where: paymentWhere,
+        include: {
+          invoice: { select: { branchId: true } },
+          booking: { select: { branchId: true } },
+        },
+        orderBy: { createdAt: 'asc' },
+      }),
+      this.prisma.delivery.findMany({
+        where: deliveryWhere,
+        include: {
+          booking: { select: { branchId: true, vehicleId: true } },
+        },
+      }),
+      this.prisma.booking.count({
+        where: {
+          branchId: { in: authorizedBranchIds },
+          status: { in: ['CONFIRMED', 'CONVERTED_TO_DELIVERY'] },
+          createdAt: dateFilter,
+        },
+      }),
+    ]);
+
+    // 1. Overall Summary Calculations
+    let grossSales = 0;
+    let netSales = 0;
+    let discountsTotal = 0;
+    let outstandingReceivables = 0;
+
+    for (const inv of invoices) {
+      const invTotal = Number(inv.totalAmount || 0);
+      const invDiscount = Number(inv.discount || 0);
+      const invGross = invTotal + invDiscount;
+      grossSales += invGross;
+      netSales += invTotal;
+      discountsTotal += invDiscount;
+
+      // Outstanding balance on issued invoice
+      if (inv.paymentStatus === 'UNPAID' || inv.paymentStatus === 'PARTIALLY_PAID') {
+        const paidOnInvoice = inv.payments.reduce((acc, p) => acc + Number(p.amount || 0), 0);
+        outstandingReceivables += Math.max(0, invTotal - paidOnInvoice);
+      }
+    }
+
+    const paymentsReceived = payments.reduce((acc, p) => acc + Number(p.amount || 0), 0);
+    const vehiclesSold = deliveries.length;
+
+    // Helper for period keys
+    const getPeriodKey = (d: Date): string => {
+      if (groupBy === 'day') {
+        return d.toISOString().slice(0, 10);
+      }
+      if (groupBy === 'week') {
+        const oneJan = new Date(d.getFullYear(), 0, 1);
+        const numberOfDays = Math.floor((d.getTime() - oneJan.getTime()) / (24 * 60 * 60 * 1000));
+        const weekNum = Math.ceil((d.getDay() + 1 + numberOfDays) / 7);
+        return `${d.getFullYear()}-W${String(weekNum).padStart(2, '0')}`;
+      }
+      return d.toISOString().slice(0, 7);
+    };
+
+    // 2. Sales Trend Aggregation
+    const trendMap: Record<string, { period: string; grossSales: number; netSales: number; count: number }> = {};
+    for (const inv of invoices) {
+      const pKey = getPeriodKey(new Date(inv.createdAt));
+      if (!trendMap[pKey]) {
+        trendMap[pKey] = { period: pKey, grossSales: 0, netSales: 0, count: 0 };
+      }
+      const invTotal = Number(inv.totalAmount || 0);
+      const invDiscount = Number(inv.discount || 0);
+      trendMap[pKey].grossSales += (invTotal + invDiscount);
+      trendMap[pKey].netSales += invTotal;
+      trendMap[pKey].count += 1;
+    }
+
+    // 3. Sales vs Payments Aggregation by Period
+    const salesVsPaymentsMap: Record<string, { period: string; invoicedSales: number; paymentsReceived: number }> = {};
+    for (const inv of invoices) {
+      const pKey = getPeriodKey(new Date(inv.createdAt));
+      if (!salesVsPaymentsMap[pKey]) {
+        salesVsPaymentsMap[pKey] = { period: pKey, invoicedSales: 0, paymentsReceived: 0 };
+      }
+      salesVsPaymentsMap[pKey].invoicedSales += Number(inv.totalAmount || 0);
+    }
+    for (const pay of payments) {
+      const pKey = getPeriodKey(new Date(pay.createdAt));
+      if (!salesVsPaymentsMap[pKey]) {
+        salesVsPaymentsMap[pKey] = { period: pKey, invoicedSales: 0, paymentsReceived: 0 };
+      }
+      salesVsPaymentsMap[pKey].paymentsReceived += Number(pay.amount || 0);
+    }
+
+    const salesTrend = Object.values(trendMap).sort((a, b) => a.period.localeCompare(b.period));
+    const salesVsPayments = Object.values(salesVsPaymentsMap).sort((a, b) => a.period.localeCompare(b.period));
+
+    // 4. Branch Comparison Breakdown
+    const branchComparisonMap: Record<string, {
+      branchId: string;
+      branchName: string;
+      branchCode: string;
+      franchiseName: string;
+      city?: string;
+      grossSales: number;
+      netSales: number;
+      paymentsReceived: number;
+      outstandingReceivables: number;
+      vehiclesSold: number;
+      invoicesCount: number;
+    }> = {};
+
+    for (const b of authorizedBranches) {
+      branchComparisonMap[b.id] = {
+        branchId: b.id,
+        branchName: b.name,
+        branchCode: b.code,
+        franchiseName: b.franchise?.name || 'Commercial Network',
+        city: b.city || undefined,
+        grossSales: 0,
+        netSales: 0,
+        paymentsReceived: 0,
+        outstandingReceivables: 0,
+        vehiclesSold: 0,
+        invoicesCount: 0,
+      };
+    }
+
+    for (const inv of invoices) {
+      const bEntry = branchComparisonMap[inv.branchId];
+      if (bEntry) {
+        const invTotal = Number(inv.totalAmount || 0);
+        const invDiscount = Number(inv.discount || 0);
+        bEntry.grossSales += (invTotal + invDiscount);
+        bEntry.netSales += invTotal;
+        bEntry.invoicesCount += 1;
+        if (inv.paymentStatus === 'UNPAID' || inv.paymentStatus === 'PARTIALLY_PAID') {
+          const paidOnInvoice = inv.payments.reduce((acc, p) => acc + Number(p.amount || 0), 0);
+          bEntry.outstandingReceivables += Math.max(0, invTotal - paidOnInvoice);
+        }
+      }
+    }
+
+    for (const pay of payments) {
+      const bId = pay.invoice?.branchId || pay.booking?.branchId;
+      if (bId && branchComparisonMap[bId]) {
+        branchComparisonMap[bId].paymentsReceived += Number(pay.amount || 0);
+      }
+    }
+
+    for (const d of deliveries) {
+      const bId = d.booking?.branchId;
+      if (bId && branchComparisonMap[bId]) {
+        branchComparisonMap[bId].vehiclesSold += 1;
+      }
+    }
+
+    const branchComparison = Object.values(branchComparisonMap).sort((a, b) => b.netSales - a.netSales);
+
+    // 5. Sales Distribution (Market Share by Branch)
+    const salesDistribution = branchComparison
+      .filter((b) => b.netSales > 0)
+      .map((b) => ({
+        branchId: b.branchId,
+        branchName: b.branchName,
+        branchCode: b.branchCode,
+        value: b.netSales,
+        percentage: netSales > 0 ? Math.round((b.netSales / netSales) * 1000) / 10 : 0,
+      }));
+
+    return {
+      summary: {
+        grossSales,
+        netSales,
+        discountsTotal,
+        paymentsReceived,
+        outstandingReceivables,
+        vehiclesSold,
+        confirmedBookingsCount,
+      },
+      salesTrend,
+      branchComparison,
+      salesVsPayments,
+      salesDistribution,
+      scopedFranchiseId: effectiveFranchiseId || null,
+      scopedBranchId: effectiveBranchId || null,
+      totalBranchesInScope: authorizedBranches.length,
+      dateRange: {
+        startDate: start.toISOString(),
+        endDate: end.toISOString(),
+        groupBy,
+      },
+    };
+  }
+
   async getCRMReport(
     branchId?: string,
     startDate?: string,

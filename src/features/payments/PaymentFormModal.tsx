@@ -53,57 +53,57 @@ export const PaymentFormModal: React.FC<PaymentFormModalProps> = ({ isOpen, onCl
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="w-full max-w-md cockpit-card p-6 rounded-xl border border-slate-800 shadow-2xl space-y-4"
+            className="w-full max-w-md cockpit-card p-6 rounded-xl border border-zinc-200 bg-white shadow-2xl space-y-4"
           >
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-base font-semibold text-slate-100 flex items-center gap-2">
-                <CreditCard className="w-5 h-5 text-emerald-400" /> Record Client Payment
+            <div className="flex items-center justify-between border-b border-zinc-200 pb-3">
+              <h3 className="text-base font-bold text-zinc-900 flex items-center gap-2">
+                <CreditCard className="w-5 h-5 text-emerald-600" /> Record Client Payment
               </h3>
-              <button onClick={onClose} className="p-1 rounded text-slate-400 hover:text-slate-200">
+              <button onClick={onClose} className="p-1 rounded text-zinc-400 hover:text-zinc-700">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4 text-xs">
               <div>
-                <label className="block text-slate-400 mb-1 font-mono">Transaction / Bank Ref ID</label>
+                <label className="block text-zinc-700 font-semibold mb-1 font-mono">Transaction / Bank Ref ID</label>
                 <input
                   {...register('transactionId')}
-                  className="w-full h-9 px-3 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 font-mono focus:border-blue-500"
+                  className="w-full h-9 px-3 rounded-lg bg-white border border-zinc-300 text-zinc-900 font-mono placeholder-zinc-400 focus:outline-none focus:border-amber-500"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-400 mb-1">Customer Account</label>
+                <label className="block text-zinc-700 font-semibold mb-1">Customer Account</label>
                 <input
                   {...register('customerName')}
-                  className="w-full h-9 px-3 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 focus:border-blue-500"
+                  className="w-full h-9 px-3 rounded-lg bg-white border border-zinc-300 text-zinc-900 placeholder-zinc-400 focus:outline-none focus:border-amber-500"
                 />
                 {errors.customerName && (
-                  <p className="text-rose-400 text-[11px] mt-1">{errors.customerName.message}</p>
+                  <p className="text-rose-600 font-medium text-[11px] mt-1">{errors.customerName.message}</p>
                 )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-400 mb-1">Payment Amount ($)</label>
+                  <label className="block text-zinc-700 font-semibold mb-1">Payment Amount (₹)</label>
                   <input
                     type="number"
                     {...register('amount', { valueAsNumber: true })}
-                    className="w-full h-9 px-3 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 font-mono focus:border-blue-500"
+                    className="w-full h-9 px-3 rounded-lg bg-white border border-zinc-300 text-zinc-900 font-mono placeholder-zinc-400 focus:outline-none focus:border-amber-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-slate-400 mb-1">Payment Method</label>
+                  <label className="block text-zinc-700 font-semibold mb-1">Payment Method</label>
                   <select
                     {...register('method')}
-                    className="w-full h-9 px-3 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 focus:border-blue-500"
+                    className="w-full h-9 px-3 rounded-lg bg-white border border-zinc-300 text-zinc-900 focus:outline-none focus:border-amber-500"
                   >
-                    <option value="wire_transfer">Wire Transfer / ACH</option>
-                    <option value="credit_card">Credit Card</option>
-                    <option value="cheque">Bank Cheque</option>
-                    <option value="net_banking">Net Banking</option>
+                    <option value="wire_transfer">Wire Transfer / NEFT / RTGS</option>
+                    <option value="credit_card">Credit Card / Debit Card</option>
+                    <option value="cheque">Bank Cheque / DD</option>
+                    <option value="net_banking">Net Banking / UPI</option>
                     <option value="cash">Cash Counter</option>
                   </select>
                 </div>
@@ -111,10 +111,10 @@ export const PaymentFormModal: React.FC<PaymentFormModalProps> = ({ isOpen, onCl
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-400 mb-1">Transaction Status</label>
+                  <label className="block text-zinc-700 font-semibold mb-1">Transaction Status</label>
                   <select
                     {...register('status')}
-                    className="w-full h-9 px-3 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 focus:border-blue-500"
+                    className="w-full h-9 px-3 rounded-lg bg-white border border-zinc-300 text-zinc-900 focus:outline-none focus:border-amber-500"
                   >
                     <option value="success">Success</option>
                     <option value="pending">Pending Verification</option>
@@ -125,27 +125,27 @@ export const PaymentFormModal: React.FC<PaymentFormModalProps> = ({ isOpen, onCl
                 </div>
 
                 <div>
-                  <label className="block text-slate-400 mb-1">Date</label>
+                  <label className="block text-zinc-700 font-semibold mb-1">Date</label>
                   <input
                     type="date"
                     {...register('date')}
-                    className="w-full h-9 px-3 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 focus:border-blue-500"
+                    className="w-full h-9 px-3 rounded-lg bg-white border border-zinc-300 text-zinc-900 focus:outline-none focus:border-amber-500"
                   />
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-zinc-200">
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium"
+                  className="px-3.5 py-1.5 rounded-lg bg-white hover:bg-zinc-50 text-zinc-700 font-semibold border border-zinc-300 shadow-2xs transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-lg shadow-blue-600/20"
+                  className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold shadow-xs transition-colors"
                 >
                   <Save className="w-3.5 h-3.5" /> Record Transaction
                 </button>

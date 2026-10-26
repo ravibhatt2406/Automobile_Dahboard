@@ -85,24 +85,24 @@ export const BranchFormModal: React.FC<BranchFormModalProps> = ({
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="w-full max-w-lg cockpit-card p-6 rounded-xl border border-slate-800 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto"
+            className="w-full max-w-lg cockpit-card p-6 rounded-xl border border-zinc-200 bg-white shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto"
           >
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-base font-semibold text-slate-100 flex items-center gap-2">
-                <Store className="w-5 h-5 text-cyan-400" />
+            <div className="flex items-center justify-between border-b border-zinc-200 pb-3">
+              <h3 className="text-base font-bold text-zinc-900 flex items-center gap-2">
+                <Store className="w-5 h-5 text-amber-500" />
                 {isEditing ? 'Edit Dealership Branch' : 'Register Dealership Branch'}
               </h3>
-              <button onClick={onClose} className="p-1 rounded text-slate-400 hover:text-slate-200">
+              <button onClick={onClose} className="p-1 rounded text-zinc-400 hover:text-zinc-700">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4 text-xs">
               <div>
-                <label className="block text-slate-400 mb-1">Parent Franchise</label>
+                <label className="block text-zinc-700 font-semibold mb-1">Parent Franchise</label>
                 <select
                   {...register('franchiseId')}
-                  className="w-full h-9 px-3 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 focus:border-blue-500"
+                  className="w-full h-9 px-3 rounded-lg bg-white border border-zinc-300 text-zinc-900 focus:outline-none focus:border-amber-500"
                 >
                   {franchises.length === 0 ? (
                     <option value="">No franchise available</option>
@@ -114,84 +114,84 @@ export const BranchFormModal: React.FC<BranchFormModalProps> = ({
                     ))
                   )}
                 </select>
-                {errors.franchiseId && <p className="text-rose-400 text-[11px] mt-1">{errors.franchiseId.message}</p>}
+                {errors.franchiseId && <p className="text-rose-600 font-medium text-[11px] mt-1">{errors.franchiseId.message}</p>}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-400 mb-1">Branch Location Name</label>
+                  <label className="block text-zinc-700 font-semibold mb-1">Branch Location Name</label>
                   <input
                     {...register('name')}
                     placeholder="e.g. Detroit Flagship Hub"
-                    className="w-full h-9 px-3 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 focus:border-blue-500"
+                    className="w-full h-9 px-3 rounded-lg bg-white border border-zinc-300 text-zinc-900 placeholder-zinc-400 focus:outline-none focus:border-amber-500"
                   />
-                  {errors.name && <p className="text-rose-400 text-[11px] mt-1">{errors.name.message}</p>}
+                  {errors.name && <p className="text-rose-600 font-medium text-[11px] mt-1">{errors.name.message}</p>}
                 </div>
 
                 <div>
-                  <label className="block text-slate-400 mb-1 font-mono">Branch Code</label>
+                  <label className="block text-zinc-700 font-semibold mb-1 font-mono">Branch Code</label>
                   <input
                     {...register('code')}
                     placeholder="BR-DET-01"
-                    className="w-full h-9 px-3 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 font-mono uppercase focus:border-blue-500"
+                    className="w-full h-9 px-3 rounded-lg bg-white border border-zinc-300 text-zinc-900 font-mono uppercase placeholder-zinc-400 focus:outline-none focus:border-amber-500"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-slate-400 mb-1">Street Address</label>
+                <label className="block text-zinc-700 font-semibold mb-1">Street Address</label>
                 <input
                   {...register('address')}
                   placeholder="Street Address"
-                  className="w-full h-9 px-3 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 focus:border-blue-500"
+                  className="w-full h-9 px-3 rounded-lg bg-white border border-zinc-300 text-zinc-900 placeholder-zinc-400 focus:outline-none focus:border-amber-500"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-400 mb-1">City</label>
+                  <label className="block text-zinc-700 font-semibold mb-1">City</label>
                   <input
                     {...register('city')}
                     placeholder="City"
-                    className="w-full h-9 px-3 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 focus:border-blue-500"
+                    className="w-full h-9 px-3 rounded-lg bg-white border border-zinc-300 text-zinc-900 placeholder-zinc-400 focus:outline-none focus:border-amber-500"
                   />
-                  {errors.city && <p className="text-rose-400 text-[11px] mt-1">{errors.city.message}</p>}
+                  {errors.city && <p className="text-rose-600 font-medium text-[11px] mt-1">{errors.city.message}</p>}
                 </div>
 
                 <div>
-                  <label className="block text-slate-400 mb-1">State / Province</label>
+                  <label className="block text-zinc-700 font-semibold mb-1">State / Province</label>
                   <input
                     {...register('state')}
                     placeholder="State"
-                    className="w-full h-9 px-3 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 focus:border-blue-500"
+                    className="w-full h-9 px-3 rounded-lg bg-white border border-zinc-300 text-zinc-900 placeholder-zinc-400 focus:outline-none focus:border-amber-500"
                   />
-                  {errors.state && <p className="text-rose-400 text-[11px] mt-1">{errors.state.message}</p>}
+                  {errors.state && <p className="text-rose-600 font-medium text-[11px] mt-1">{errors.state.message}</p>}
                 </div>
               </div>
 
               <div>
-                <label className="block text-slate-400 mb-1">Status</label>
+                <label className="block text-zinc-700 font-semibold mb-1">Status</label>
                 <select
                   {...register('status')}
-                  className="w-full h-9 px-3 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 focus:border-blue-500"
+                  className="w-full h-9 px-3 rounded-lg bg-white border border-zinc-300 text-zinc-900 focus:outline-none focus:border-amber-500"
                 >
                   <option value="active">Active</option>
                   <option value="inactive">Inactive</option>
                 </select>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-zinc-200">
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium"
+                  className="px-3.5 py-1.5 rounded-lg bg-white hover:bg-zinc-50 text-zinc-700 font-semibold border border-zinc-300 shadow-2xs transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-lg shadow-blue-600/20"
+                  className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold shadow-xs transition-colors"
                 >
                   <Save className="w-3.5 h-3.5" /> Save Branch
                 </button>

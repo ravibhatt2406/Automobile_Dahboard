@@ -32,6 +32,25 @@ export class ReportsController {
     return this.reportsService.getSalesReport(branchId, startDate, endDate, user, franchiseId);
   }
 
+  @Get('sales-overview')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'FRANCHISE_MANAGER', 'BRANCH_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE')
+  @ApiOperation({ summary: 'Get Comprehensive Branch-Wise Sales Analytics & Comparison' })
+  @ApiQuery({ name: 'branchId', required: false })
+  @ApiQuery({ name: 'franchiseId', required: false })
+  @ApiQuery({ name: 'startDate', required: false })
+  @ApiQuery({ name: 'endDate', required: false })
+  @ApiQuery({ name: 'groupBy', required: false, enum: ['day', 'week', 'month'] })
+  getSalesOverview(
+    @Query('branchId') branchId?: string,
+    @Query('franchiseId') franchiseId?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('groupBy') groupBy?: 'day' | 'week' | 'month',
+    @CurrentUser() user?: any,
+  ) {
+    return this.reportsService.getSalesOverview(branchId, startDate, endDate, user, franchiseId, groupBy);
+  }
+
   @Get('crm')
   @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'FRANCHISE_MANAGER', 'BRANCH_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE')
   @ApiOperation({ summary: 'Get CRM Pipeline & Lead Conversion Report' })

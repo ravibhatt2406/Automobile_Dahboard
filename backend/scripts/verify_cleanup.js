@@ -63,6 +63,9 @@ async function main() {
     const empCount = await prisma.employee.count({ where: { branchId: b.id } });
     const custCount = await prisma.customer.count({ where: { preferredBranchId: b.id } });
 
+    const insCount = await prisma.insurancePolicy.count({ where: { vehicle: { branchId: b.id } } });
+    const finCount = await prisma.financeApplication.count({ where: { vehicle: { branchId: b.id } } });
+
     console.log(`\nBranch: ${b.name}`);
     console.log(`  - Employees: ${empCount}`);
     console.log(`  - Customers: ${custCount}`);
@@ -71,6 +74,8 @@ async function main() {
     console.log(`  - Quotations: ${quoteCount}`);
     console.log(`  - Bookings: ${bookCount}`);
     console.log(`  - Invoices: ${invCount}`);
+    console.log(`  - Insurance Policies: ${insCount}`);
+    console.log(`  - Finance Applications: ${finCount}`);
     console.log(`  - Appointments: ${aptCount}`);
     console.log(`  - Service Jobs: ${jobCount}`);
     console.log(`  - Campaigns: ${campCount}`);

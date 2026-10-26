@@ -63,8 +63,8 @@ export const EmployeeApprovalsPage: React.FC = () => {
         const code = emp?.employeeCode;
         return (
           <div>
-            <span className="font-semibold text-slate-100 block">{name}</span>
-            <span className="text-[11px] text-slate-400 font-mono">
+            <span className="font-semibold text-zinc-900 block">{name}</span>
+            <span className="text-[11px] text-zinc-500 font-mono">
               {code ? `${code} • ` : ''}
               {email}
             </span>
@@ -75,7 +75,7 @@ export const EmployeeApprovalsPage: React.FC = () => {
     {
       header: 'Branch Location',
       cell: (row) => (
-        <span className="text-xs text-slate-300 font-medium">
+        <span className="text-xs text-zinc-800 font-medium">
           {row.employee?.branch?.name || 'Jaipur Branch'}
         </span>
       ),
@@ -85,7 +85,7 @@ export const EmployeeApprovalsPage: React.FC = () => {
       cell: (row) => {
         const role = row.assignedRole?.name || row.details?.roleName || 'EMPLOYEE';
         return (
-          <span className="px-2 py-0.5 rounded bg-blue-950/70 text-blue-300 border border-blue-800/60 text-xs font-mono font-medium">
+          <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-800 border border-blue-200 text-xs font-mono font-semibold">
             {ROLE_LABELS[role as UserRole] || role}
           </span>
         );
@@ -94,7 +94,7 @@ export const EmployeeApprovalsPage: React.FC = () => {
     {
       header: 'Submitted Date',
       cell: (row) => (
-        <span className="font-mono text-xs text-slate-400">
+        <span className="font-mono text-xs text-zinc-600">
           {new Date(row.createdAt).toLocaleDateString()}
         </span>
       ),
@@ -111,20 +111,20 @@ export const EmployeeApprovalsPage: React.FC = () => {
             <button
               onClick={() => handleAction(row.id, 'APPROVED')}
               disabled={processMutation.isPending}
-              className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-950 hover:bg-emerald-900 text-emerald-300 border border-emerald-800/50 rounded text-xs font-medium transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded text-xs font-semibold transition-colors disabled:opacity-50"
             >
-              <Check className="w-3.5 h-3.5" /> Approve
+              <Check className="w-3.5 h-3.5 stroke-[2.5]" /> Approve
             </button>
             <button
               onClick={() => handleAction(row.id, 'REJECTED')}
               disabled={processMutation.isPending}
-              className="inline-flex items-center gap-1 px-2.5 py-1 bg-rose-950 hover:bg-rose-900 text-rose-300 border border-rose-800/50 rounded text-xs font-medium transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-1 px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 rounded text-xs font-semibold transition-colors disabled:opacity-50"
             >
-              <X className="w-3.5 h-3.5" /> Reject
+              <X className="w-3.5 h-3.5 stroke-[2.5]" /> Reject
             </button>
           </div>
         ) : (
-          <span className="text-xs text-slate-500 font-mono">
+          <span className="text-xs text-zinc-500 font-mono font-medium">
             {row.status === 'APPROVED' ? 'Approved' : 'Rejected'}
           </span>
         ),

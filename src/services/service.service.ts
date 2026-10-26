@@ -39,7 +39,7 @@ export function normalizeServiceJob(j: any): ServiceJob & Record<string, any> {
     customerName,
     customer: j.customer,
     branchId: j.branchId,
-    branchName: j.branch?.name || j.branchName || 'Jaipur Central',
+    branchName: j.branch?.name || j.branchName || '—',
     branch: j.branch,
     mechanicId: j.assignedMechanicId || j.mechanicId,
     mechanicName,

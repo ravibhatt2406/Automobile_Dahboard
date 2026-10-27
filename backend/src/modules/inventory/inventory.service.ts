@@ -9,6 +9,8 @@ import { PrismaService } from '@/database/prisma.service';
 import { CreateVehicleDto } from './dto/create-vehicle.dto';
 import { AuditService } from '../audit/audit.service';
 import { VehicleStatus } from '@prisma/client';
+import * as path from 'path';
+import * as fs from 'fs';
 
 const ALLOWED_STATUS_TRANSITIONS: Record<VehicleStatus, VehicleStatus[]> = {
   IN_STOCK: ['RESERVED', 'ALLOCATED', 'SERVICE', 'BLOCKED', 'TRANSFERRED'],
@@ -22,6 +24,18 @@ const ALLOWED_STATUS_TRANSITIONS: Record<VehicleStatus, VehicleStatus[]> = {
   TRANSFERRED: ['IN_STOCK'],
   BLOCKED: ['IN_STOCK'],
 };
+
+export interface UploadedVehicleFile {
+  fieldname: string;
+  originalname: string;
+  encoding: string;
+  mimetype: string;
+  size: number;
+  buffer: Buffer;
+  destination?: string;
+  filename?: string;
+  path?: string;
+}
 
 @Injectable()
 export class InventoryService {
@@ -970,5 +984,196 @@ export class InventoryService {
       minPrice: Math.min(...item.prices),
       sampleVehicleId: item.vehicleIds[0],
     }));
+  }
+
+  async uploadPhoto(file: UploadedVehicleFile, user: any, vehicleId?: string) {
+    if (!file) {
+      throw new BadRequestException('No image file provided. Please provide a file with field name "file"');
+    }
+
+    const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowedMimeTypes.includes(file.mimetype?.toLowerCase())) {
+      throw new BadRequestException(
+        `Unsupported image format '${file.mimetype}'. Supported formats: JPEG, PNG, WEBP`,
+      );
+    }
+
+    const maxSize = 5 * 1024 * 1024; // 5MB limit
+    if (file.size > maxSize) {
+      throw new BadRequestException('Image file size exceeds the 5MB limit');
+    }
+
+    const uploadsDir = path.resolve(process.cwd(), 'uploads', 'vehicles');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
+    const cleanExt = ['.jpg', '.jpeg', '.png', '.webp'].includes(ext) ? ext : '.jpg';
+    const safeFilename = `vehicle-${Date.now()}-${Math.random().toString(36).substring(2, 9)}${cleanExt}`;
+    const destinationPath = path.join(uploadsDir, safeFilename);
+
+    await fs.promises.writeFile(destinationPath, file.buffer);
+    const photoUrl = `/uploads/vehicles/${safeFilename}`;
+    const actorUserId = user?.id || user?.sub || 'SYSTEM';
+
+    if (vehicleId) {
+      const vehicle = await this.findOne(vehicleId, user);
+      const newImages = [...(vehicle.images || []), photoUrl];
+
+      await this.prisma.fileAttachment.create({
+        data: {
+          fileId: `FILE-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`,
+          entityType: 'VEHICLE',
+          entityId: vehicleId,
+          storageKey: `vehicles/${safeFilename}`,
+          filename: file.originalname || safeFilename,
+          mimeType: file.mimetype,
+          size: file.size,
+          uploadedByUserId: actorUserId,
+        },
+      }).catch(() => {});
+
+      await this.prisma.vehicle.update({
+        where: { id: vehicleId },
+        data: { images: newImages },
+      });
+
+      await this.auditService.log({
+        actorUserId,
+        action: 'VEHICLE_PHOTO_UPLOADED',
+        entityType: 'Vehicle',
+        entityId: vehicleId,
+        metadata: { filename: file.originalname, photoUrl },
+      }).catch(() => {});
+
+      return {
+        url: photoUrl,
+        filename: file.originalname || safeFilename,
+        size: file.size,
+        mimeType: file.mimetype,
+        isPrimary: newImages.length === 1,
+        images: newImages,
+      };
+    }
+
+    return {
+      url: photoUrl,
+      filename: file.originalname || safeFilename,
+      size: file.size,
+      mimeType: file.mimetype,
+      isPrimary: false,
+    };
+  }
+
+  async getPhotos(vehicleId: string, user: any) {
+    const vehicle = await this.findOne(vehicleId, user);
+    const attachments = await this.prisma.fileAttachment.findMany({
+      where: { entityType: 'VEHICLE', entityId: vehicleId },
+    });
+
+    const photos = (vehicle.images || []).map((url: string, index: number) => {
+      const filename = path.basename(url);
+      const attachment = attachments.find(
+        (a) => a.storageKey === `vehicles/${filename}` || a.storageKey === filename || url.includes(a.storageKey),
+      );
+
+      return {
+        url,
+        isPrimary: index === 0,
+        filename: attachment?.filename || filename,
+        size: attachment?.size,
+        mimeType: attachment?.mimeType,
+        uploadedAt: attachment?.createdAt,
+        fileId: attachment?.fileId,
+      };
+    });
+
+    return photos;
+  }
+
+  async setPrimaryPhoto(vehicleId: string, photoUrl: string, user: any) {
+    const vehicle = await this.findOne(vehicleId, user);
+    if (!vehicle.images || !vehicle.images.includes(photoUrl)) {
+      throw new BadRequestException('The selected photo is not attached to this vehicle');
+    }
+
+    const filtered = vehicle.images.filter((img: string) => img !== photoUrl);
+    const reordered = [photoUrl, ...filtered];
+
+    const updated = await this.prisma.vehicle.update({
+      where: { id: vehicleId },
+      data: { images: reordered },
+    });
+
+    const actorUserId = user?.id || user?.sub || 'SYSTEM';
+    await this.auditService.log({
+      actorUserId,
+      action: 'VEHICLE_PRIMARY_PHOTO_UPDATED',
+      entityType: 'Vehicle',
+      entityId: vehicleId,
+      metadata: { primaryPhoto: photoUrl },
+    }).catch(() => {});
+
+    return {
+      success: true,
+      images: updated.images,
+      primaryPhoto: photoUrl,
+    };
+  }
+
+  async deletePhoto(vehicleId: string, photoUrl: string, user: any) {
+    if (!photoUrl) {
+      throw new BadRequestException('photoUrl is required');
+    }
+
+    const vehicle = await this.findOne(vehicleId, user);
+    if (!vehicle.images || !vehicle.images.includes(photoUrl)) {
+      throw new BadRequestException('The specified photo is not attached to this vehicle');
+    }
+
+    const newImages = vehicle.images.filter((img: string) => img !== photoUrl);
+
+    await this.prisma.vehicle.update({
+      where: { id: vehicleId },
+      data: { images: newImages },
+    });
+
+    const filename = path.basename(photoUrl);
+    await this.prisma.fileAttachment.deleteMany({
+      where: {
+        entityType: 'VEHICLE',
+        entityId: vehicleId,
+        OR: [
+          { storageKey: `vehicles/${filename}` },
+          { storageKey: filename },
+          { storageKey: photoUrl },
+        ],
+      },
+    }).catch(() => {});
+
+    try {
+      const uploadsDir = path.resolve(process.cwd(), 'uploads', 'vehicles');
+      const filePath = path.join(uploadsDir, filename);
+      if (fs.existsSync(filePath)) {
+        await fs.promises.unlink(filePath);
+      }
+    } catch {
+      // Safe ignore file system error on unlink
+    }
+
+    const actorUserId = user?.id || user?.sub || 'SYSTEM';
+    await this.auditService.log({
+      actorUserId,
+      action: 'VEHICLE_PHOTO_DELETED',
+      entityType: 'Vehicle',
+      entityId: vehicleId,
+      metadata: { deletedPhoto: photoUrl },
+    }).catch(() => {});
+
+    return {
+      success: true,
+      images: newImages,
+    };
   }
 }

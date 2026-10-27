@@ -514,4 +514,129 @@ describe('Phase 3 — CSV Data Import and Export Suite', () => {
     expect(branchExportRes.text).toContain(testBranchA.code);
     expect(branchExportRes.text).not.toContain('Delhi Fleet Logistics');
   });
+
+  // ==========================================
+  // TEST 11: BRANCH AND FRANCHISE FILTERING IN CSV EXPORT
+  // ==========================================
+  it('11. Respects branch-only filter, branch-plus-franchise filter, branch switching, and rejects mismatched franchise-branch scope', async () => {
+    // Setup a second franchise to test branch-franchise mismatch and isolation
+    const secondFranchise = await prisma.franchise.create({
+      data: {
+        code: `CSV-FRAN2-${Date.now()}`,
+        name: 'CSV Second Franchise Hub',
+        legalName: 'CSV Second Franchise Pvt Ltd',
+        taxId: '08CSVFRAN2222',
+        status: 'ACTIVE',
+      },
+    });
+
+    const custBranchA = await prisma.customer.create({
+      data: {
+        name: `Customer Alpha ${Date.now()}`,
+        phone: '9811111111',
+        email: `cust.alpha.${Date.now()}@example.com`,
+        customerType: 'INDIVIDUAL',
+        preferredBranchId: testBranchA.id,
+        status: 'ACTIVE',
+      },
+    });
+
+    const custBranchB = await prisma.customer.create({
+      data: {
+        name: `Customer Beta ${Date.now()}`,
+        phone: '9822222222',
+        email: `cust.beta.${Date.now()}@example.com`,
+        customerType: 'BUSINESS',
+        companyName: 'Beta Fleet Logistics',
+        preferredBranchId: testBranchB.id,
+        status: 'ACTIVE',
+      },
+    });
+
+    // 1. Branch-only filtering (Branch Alpha)
+    const exportBranchA = await request(app.getHttpServer())
+      .get(`/api/v1/csv-data/export/branches?branchId=${testBranchA.id}`)
+      .set('Authorization', `Bearer ${superAdminToken}`)
+      .expect(200);
+
+    expect(exportBranchA.text).toContain(testBranchA.code);
+    expect(exportBranchA.text).not.toContain(testBranchB.code);
+
+    // 2. Branch-only filtering for employees
+    const exportEmpA = await request(app.getHttpServer())
+      .get(`/api/v1/csv-data/export/employees?branchId=${testBranchA.id}`)
+      .set('Authorization', `Bearer ${superAdminToken}`)
+      .expect(200);
+
+    expect(exportEmpA.text).toContain(testBranchA.code);
+    expect(exportEmpA.text).not.toContain(testBranchB.code);
+
+    // 3. Branch-only filtering for customers
+    const exportCustA = await request(app.getHttpServer())
+      .get(`/api/v1/csv-data/export/customers?branchId=${testBranchA.id}`)
+      .set('Authorization', `Bearer ${superAdminToken}`)
+      .expect(200);
+
+    expect(exportCustA.text).toContain(custBranchA.name);
+    expect(exportCustA.text).not.toContain(custBranchB.name);
+
+    // 4. Branch-plus-franchise filtering (valid combination)
+    const exportBranchPlusFran = await request(app.getHttpServer())
+      .get(`/api/v1/csv-data/export/branches?branchId=${testBranchA.id}&franchiseId=${testFranchise.id}`)
+      .set('Authorization', `Bearer ${superAdminToken}`)
+      .expect(200);
+
+    expect(exportBranchPlusFran.text).toContain(testBranchA.code);
+    expect(exportBranchPlusFran.text).not.toContain(testBranchB.code);
+
+    // 5. Switching between branches (Branch Beta)
+    const exportBranchB = await request(app.getHttpServer())
+      .get(`/api/v1/csv-data/export/branches?branchId=${testBranchB.id}`)
+      .set('Authorization', `Bearer ${superAdminToken}`)
+      .expect(200);
+
+    expect(exportBranchB.text).toContain(testBranchB.code);
+    expect(exportBranchB.text).not.toContain(testBranchA.code);
+
+    const exportCustB = await request(app.getHttpServer())
+      .get(`/api/v1/csv-data/export/customers?branchId=${testBranchB.id}`)
+      .set('Authorization', `Bearer ${superAdminToken}`)
+      .expect(200);
+
+    expect(exportCustB.text).toContain(custBranchB.name);
+    expect(exportCustB.text).not.toContain(custBranchA.name);
+
+    // 6. Mismatched branch and franchise filter: Branch A does NOT belong to secondFranchise
+    const mismatchRes = await request(app.getHttpServer())
+      .get(`/api/v1/csv-data/export/branches?branchId=${testBranchA.id}&franchiseId=${secondFranchise.id}`)
+      .set('Authorization', `Bearer ${superAdminToken}`)
+      .expect(400);
+
+    expect(mismatchRes.body.message).toContain('Selected branch does not belong to the selected franchise');
+
+    // 7. Export with no filters: returns records from all branches
+    const exportAllBranches = await request(app.getHttpServer())
+      .get('/api/v1/csv-data/export/branches')
+      .set('Authorization', `Bearer ${superAdminToken}`)
+      .expect(200);
+
+    expect(exportAllBranches.text).toContain(testBranchA.code);
+    expect(exportAllBranches.text).toContain(testBranchB.code);
+
+    const exportAllCust = await request(app.getHttpServer())
+      .get('/api/v1/csv-data/export/customers')
+      .set('Authorization', `Bearer ${superAdminToken}`)
+      .expect(200);
+
+    expect(exportAllCust.text).toContain(custBranchA.name);
+    expect(exportAllCust.text).toContain(custBranchB.name);
+
+    // Clean up second franchise and test customers
+    await prisma.customer.deleteMany({
+      where: { id: { in: [custBranchA.id, custBranchB.id] } },
+    });
+    await prisma.franchise.deleteMany({
+      where: { id: secondFranchise.id },
+    });
+  });
 });

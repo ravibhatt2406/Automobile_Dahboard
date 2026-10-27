@@ -1,6 +1,19 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
-import { InventoryService } from './inventory.service';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  UseInterceptors,
+  UploadedFile,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
+import { InventoryService, UploadedVehicleFile } from './inventory.service';
 import { CreateVehicleDto } from './dto/create-vehicle.dto';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
@@ -184,5 +197,71 @@ export class InventoryController {
     @CurrentUser() user: any,
   ) {
     return this.inventoryService.allocateVehicle(id, bookingId, user);
+  }
+
+  @Post('upload-photo')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Upload vehicle photo during creation' })
+  async uploadPhoto(
+    @UploadedFile() file: UploadedVehicleFile,
+    @CurrentUser() user: any,
+  ) {
+    return this.inventoryService.uploadPhoto(file, user);
+  }
+
+  @Post(':id/photos')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Upload photo directly to an existing vehicle' })
+  async uploadVehiclePhoto(
+    @Param('id') id: string,
+    @UploadedFile() file: UploadedVehicleFile,
+    @CurrentUser() user: any,
+  ) {
+    return this.inventoryService.uploadPhoto(file, user, id);
+  }
+
+  @Get(':id/photos')
+  @Roles(
+    'SUPER_ADMIN',
+    'FRANCHISE_OWNER',
+    'FRANCHISE_MANAGER',
+    'BRANCH_OWNER',
+    'BRANCH_MANAGER',
+    'DEPARTMENT_MANAGER',
+    'SALES_EMPLOYEE',
+    'SERVICE_ADVISOR',
+    'MECHANIC',
+    'EMPLOYEE',
+  )
+  @ApiOperation({ summary: 'Get list of photos for a vehicle' })
+  async getPhotos(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.inventoryService.getPhotos(id, user);
+  }
+
+  @Patch(':id/photos/primary')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE')
+  @ApiOperation({ summary: 'Set vehicle primary photo' })
+  async setPrimaryPhoto(
+    @Param('id') id: string,
+    @Body('photoUrl') photoUrl: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.inventoryService.setPrimaryPhoto(id, photoUrl, user);
+  }
+
+  @Delete(':id/photos')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE')
+  @ApiOperation({ summary: 'Delete photo from vehicle' })
+  async deletePhoto(
+    @Param('id') id: string,
+    @Body('photoUrl') bodyPhotoUrl: string,
+    @Query('photoUrl') queryPhotoUrl: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.inventoryService.deletePhoto(id, bodyPhotoUrl || queryPhotoUrl, user);
   }
 }

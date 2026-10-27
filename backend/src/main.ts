@@ -1,11 +1,24 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import * as path from 'path';
+import * as fs from 'fs';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
   const logger = new Logger('TitanBootstrap');
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  const uploadsDir = path.resolve(process.cwd(), 'uploads');
+  const vehicleUploadsDir = path.join(uploadsDir, 'vehicles');
+  if (!fs.existsSync(vehicleUploadsDir)) {
+    fs.mkdirSync(vehicleUploadsDir, { recursive: true });
+  }
+
+  app.useStaticAssets(uploadsDir, {
+    prefix: '/uploads/',
+  });
 
   const port = process.env.PORT || 4000;
   const corsOrigin = process.env.CORS_ORIGIN || '*';

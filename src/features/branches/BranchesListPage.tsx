@@ -7,6 +7,7 @@ import { branchService } from '@/services/branch.service';
 import { Plus, Edit, Eye, PowerOff, Download, Upload, RefreshCw } from 'lucide-react';
 import { StatusBadge } from '@/components/data-display/StatusBadge';
 import { useAuth } from '@/app/providers/AuthContext';
+import { useScope } from '@/app/providers/ScopeContext';
 import { BranchFormModal } from './BranchFormModal';
 import { useNavigate } from 'react-router-dom';
 import { csvDataService } from '@/services/csv-data.service';
@@ -16,6 +17,7 @@ export const BranchesListPage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { permissions, activeRole } = useAuth();
+  const { selectedBranchId, selectedFranchiseId } = useScope();
   const canManage = permissions.canManageBranches;
   const isSuperAdmin = activeRole === 'SUPER_ADMIN';
 
@@ -26,14 +28,20 @@ export const BranchesListPage: React.FC = () => {
   const [actionError, setActionError] = useState<string | null>(null);
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['branches'],
-    queryFn: () => branchService.getBranches(),
+    queryKey: ['branches', selectedFranchiseId],
+    queryFn: () =>
+      branchService.getBranches({
+        franchiseId: selectedFranchiseId !== 'ALL' ? selectedFranchiseId : undefined,
+      }),
   });
 
   const handleExport = async () => {
     try {
       setExporting(true);
-      await csvDataService.exportData('branches');
+      await csvDataService.exportData('branches', {
+        branchId: selectedBranchId !== 'ALL' ? selectedBranchId : undefined,
+        franchiseId: selectedFranchiseId !== 'ALL' ? selectedFranchiseId : undefined,
+      });
     } catch (err: any) {
       setActionError(err.message || 'Failed to export branch data.');
     } finally {

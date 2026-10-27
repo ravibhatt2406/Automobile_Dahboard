@@ -95,14 +95,30 @@ export const VehiclesListPage: React.FC = () => {
     },
     {
       header: 'Manufacturer & Model',
-      cell: (row) => (
-        <div>
-          <span className="font-bold text-[#111111] block">
-            {row.manufacturingYear || row.year} {row.make} {row.model}
-          </span>
-          <span className="text-xs text-zinc-500">{row.vehicleType}</span>
-        </div>
-      ),
+      cell: (row) => {
+        const photo = row.primaryPhoto || row.images?.[0] || row.photos?.[0];
+        return (
+          <div className="flex items-center gap-3">
+            {photo ? (
+              <img
+                src={photo}
+                alt={`${row.make} ${row.model}`}
+                className="w-12 h-12 rounded-lg object-cover border border-zinc-200 bg-zinc-50 shrink-0"
+              />
+            ) : (
+              <div className="w-12 h-12 rounded-lg bg-zinc-100 border border-zinc-200 flex items-center justify-center text-zinc-400 shrink-0">
+                <Truck className="w-5 h-5 text-zinc-400" />
+              </div>
+            )}
+            <div>
+              <span className="font-bold text-[#111111] block">
+                {row.manufacturingYear || row.year} {row.make} {row.model}
+              </span>
+              <span className="text-xs text-zinc-500">{row.vehicleType}</span>
+            </div>
+          </div>
+        );
+      },
     },
     {
       header: 'Fuel / Type',
@@ -318,12 +334,19 @@ export const VehiclesListPage: React.FC = () => {
                 className="cockpit-card rounded-xl border border-[#E5E5E5] bg-white cursor-pointer overflow-hidden flex flex-col justify-between hover:border-zinc-300 transition-all shadow-xs group"
               >
                 {/* Vehicle Image Header */}
-                <div className="w-full h-44 bg-zinc-900 border-b border-zinc-200 overflow-hidden relative">
-                  <img
-                    src={vehicle.primaryPhoto || vehicle.photos?.[0] || 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=1200&q=80'}
-                    alt={vehicle.model}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
+                <div className="w-full h-44 bg-zinc-100 border-b border-zinc-200 overflow-hidden relative flex items-center justify-center">
+                  {(vehicle.primaryPhoto || vehicle.photos?.[0] || vehicle.images?.[0]) ? (
+                    <img
+                      src={vehicle.primaryPhoto || vehicle.photos?.[0] || vehicle.images?.[0]}
+                      alt={vehicle.model}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center gap-1 text-zinc-400">
+                      <Truck className="w-10 h-10 text-zinc-300" />
+                      <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-400">No Photo</span>
+                    </div>
+                  )}
                   <div className="absolute top-3 left-3 bg-black/80 text-[#F5A800] text-[10px] font-mono font-bold px-2 py-0.5 rounded uppercase">
                     {vehicle.make}
                   </div>

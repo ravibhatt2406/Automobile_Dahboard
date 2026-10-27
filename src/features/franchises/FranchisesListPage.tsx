@@ -7,6 +7,7 @@ import { franchiseService } from '@/services/franchise.service';
 import { Plus, Edit, Eye, Download, Upload, RefreshCw, CheckCircle2, AlertCircle } from 'lucide-react';
 import { StatusBadge } from '@/components/data-display/StatusBadge';
 import { useAuth } from '@/app/providers/AuthContext';
+import { useScope } from '@/app/providers/ScopeContext';
 import { FranchiseFormModal } from './FranchiseFormModal';
 import { useNavigate } from 'react-router-dom';
 import { csvDataService } from '@/services/csv-data.service';
@@ -16,6 +17,7 @@ export const FranchisesListPage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { activeRole } = useAuth();
+  const { selectedBranchId, selectedFranchiseId } = useScope();
   const isSuperAdmin = activeRole === 'SUPER_ADMIN';
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -57,7 +59,10 @@ export const FranchisesListPage: React.FC = () => {
   const handleExport = async () => {
     try {
       setExporting(true);
-      await csvDataService.exportData('franchises');
+      await csvDataService.exportData('franchises', {
+        branchId: selectedBranchId !== 'ALL' ? selectedBranchId : undefined,
+        franchiseId: selectedFranchiseId !== 'ALL' ? selectedFranchiseId : undefined,
+      });
     } catch (err: any) {
       alert(err.message || 'Failed to export franchise data.');
     } finally {

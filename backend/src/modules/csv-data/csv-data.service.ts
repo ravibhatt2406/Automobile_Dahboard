@@ -9,6 +9,7 @@ import { AuditService } from '../audit/audit.service';
 import { parseCsv, stringifyCsv } from './utils/csv-parser.util';
 import * as bcrypt from 'bcrypt';
 import { ROLE_RANKS } from '@/common/constants/permissions.constant';
+import { resolveUserScope } from '@/common/utils/scope.util';
 
 export interface RowPreviewResult {
   rowNumber: number;
@@ -170,17 +171,44 @@ export class CsvDataService {
   // ==========================================
   // 2. CSV EXPORT (Scoped & Formula Protected)
   // ==========================================
-  async exportData(entity: string, user: any): Promise<{ filename: string; content: string }> {
+  async exportData(
+    entity: string,
+    user: any,
+    queryBranchId?: string,
+    queryFranchiseId?: string,
+    options?: { search?: string; status?: string; customerType?: string },
+  ): Promise<{ filename: string; content: string }> {
     const normalized = entity.toLowerCase();
+
+    // 1. Resolve scope authoritatively
+    const targetBranch =
+      queryBranchId && queryBranchId !== 'ALL' && queryBranchId !== 'undefined'
+        ? queryBranchId.trim()
+        : user?.effectiveScope?.effectiveBranchId || undefined;
+    const targetFranchise =
+      queryFranchiseId && queryFranchiseId !== 'ALL' && queryFranchiseId !== 'undefined'
+        ? queryFranchiseId.trim()
+        : user?.effectiveScope?.effectiveFranchiseId || undefined;
+
+    const scope = user
+      ? await resolveUserScope(this.prisma, user, targetBranch, targetFranchise)
+      : null;
+
     const roles: string[] = Array.isArray(user?.roles) ? user.roles : [];
-    const scope = user?.effectiveScope;
-    const isSuperAdmin = scope ? scope.isActingSuperAdmin : (user?.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN'));
-    const isFranchiseLevel = scope ? scope.isActingFranchiseLevel : roles.some((r) => ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r));
-    const isBranchLevel = scope ? scope.isActingBranchLevel : roles.some((r) =>
-      ['BRANCH_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE', 'SERVICE_ADVISOR', 'MECHANIC'].includes(r),
-    );
-    const assignedFranchiseId = scope?.effectiveFranchiseId || user?.assignedFranchiseId;
-    const assignedBranchId = scope?.effectiveBranchId || user?.assignedBranchId;
+    const isSuperAdmin = scope
+      ? scope.isActingSuperAdmin
+      : user?.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN');
+    const isFranchiseLevel = scope
+      ? scope.isActingFranchiseLevel
+      : roles.some((r) => ['FRANCHISE_OWNER', 'FRANCHISE_MANAGER'].includes(r));
+    const isBranchLevel = scope
+      ? scope.isActingBranchLevel
+      : roles.some((r) =>
+          ['BRANCH_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE', 'SERVICE_ADVISOR', 'MECHANIC'].includes(r),
+        );
+
+    const effectiveFranchiseId = scope?.effectiveFranchiseId || null;
+    const effectiveBranchId = scope?.effectiveBranchId || null;
 
     switch (normalized) {
       case 'franchises': {
@@ -189,8 +217,25 @@ export class CsvDataService {
         }
 
         const where: any = {};
-        if (!isSuperAdmin && isFranchiseLevel && assignedFranchiseId) {
-          where.id = assignedFranchiseId;
+        if (effectiveFranchiseId) {
+          where.id = effectiveFranchiseId;
+        } else if (effectiveBranchId) {
+          where.branches = { some: { id: effectiveBranchId } };
+        } else if (!isSuperAdmin && isFranchiseLevel && scope?.assignedFranchiseId) {
+          where.id = scope.assignedFranchiseId;
+        }
+
+        if (options?.status && options.status !== 'ALL') {
+          where.status = options.status;
+        }
+
+        if (options?.search && options.search.trim()) {
+          const term = options.search.trim();
+          where.OR = [
+            { name: { contains: term, mode: 'insensitive' } },
+            { code: { contains: term, mode: 'insensitive' } },
+            { legalName: { contains: term, mode: 'insensitive' } },
+          ];
         }
 
         const franchises = await this.prisma.franchise.findMany({
@@ -228,12 +273,34 @@ export class CsvDataService {
         }
 
         const where: any = {};
-        if (!isSuperAdmin) {
-          if (isFranchiseLevel && assignedFranchiseId) {
-            where.franchiseId = assignedFranchiseId;
-          } else if (assignedBranchId) {
-            where.OR = [{ id: assignedBranchId }, { code: assignedBranchId }];
+        if (effectiveBranchId) {
+          where.id = effectiveBranchId;
+        } else if (effectiveFranchiseId) {
+          where.franchiseId = effectiveFranchiseId;
+        } else if (!isSuperAdmin) {
+          if (isFranchiseLevel && scope?.assignedFranchiseId) {
+            where.franchiseId = scope.assignedFranchiseId;
+          } else if (scope?.assignedBranchId) {
+            where.id = scope.assignedBranchId;
           }
+        }
+
+        if (options?.status && options.status !== 'ALL') {
+          where.status = options.status;
+        }
+
+        if (options?.search && options.search.trim()) {
+          const term = options.search.trim();
+          where.AND = [
+            ...(where.AND || []),
+            {
+              OR: [
+                { name: { contains: term, mode: 'insensitive' } },
+                { code: { contains: term, mode: 'insensitive' } },
+                { city: { contains: term, mode: 'insensitive' } },
+              ],
+            },
+          ];
         }
 
         const branches = await this.prisma.branch.findMany({
@@ -291,12 +358,37 @@ export class CsvDataService {
         }
 
         const where: any = {};
-        if (!isSuperAdmin) {
-          if (isFranchiseLevel && assignedFranchiseId) {
-            where.branch = { franchiseId: assignedFranchiseId };
-          } else if (assignedBranchId) {
-            where.OR = [{ branchId: assignedBranchId }, { branch: { code: assignedBranchId } }];
+        if (effectiveBranchId) {
+          where.branchId = effectiveBranchId;
+        } else if (effectiveFranchiseId) {
+          where.branch = { franchiseId: effectiveFranchiseId };
+        } else if (!isSuperAdmin) {
+          if (isFranchiseLevel && scope?.assignedFranchiseId) {
+            where.branch = { franchiseId: scope.assignedFranchiseId };
+          } else if (scope?.assignedBranchId) {
+            where.branchId = scope.assignedBranchId;
           }
+        }
+
+        if (options?.status && options.status !== 'ALL') {
+          where.status = options.status;
+        }
+
+        if (options?.search && options.search.trim()) {
+          const term = options.search.trim();
+          where.AND = [
+            ...(where.AND || []),
+            {
+              OR: [
+                { firstName: { contains: term, mode: 'insensitive' } },
+                { lastName: { contains: term, mode: 'insensitive' } },
+                { employeeCode: { contains: term, mode: 'insensitive' } },
+                { designation: { contains: term, mode: 'insensitive' } },
+                { user: { email: { contains: term, mode: 'insensitive' } } },
+                { user: { phone: { contains: term, mode: 'insensitive' } } },
+              ],
+            },
+          ];
         }
 
         const employees = await this.prisma.employee.findMany({
@@ -368,17 +460,91 @@ export class CsvDataService {
           throw new ForbiddenException('Unauthorized: Customers cannot export customer lists.');
         }
 
-        const where: any = {};
-        if (!isSuperAdmin) {
-          if (isFranchiseLevel && assignedFranchiseId) {
-            where.franchiseLinks = { some: { franchiseId: assignedFranchiseId } };
-          } else if (assignedBranchId) {
-            where.OR = [
-              { bookings: { some: { branchId: assignedBranchId } } },
-              { leads: { some: { branchId: assignedBranchId } } },
-            ];
+        const conditions: any[] = [];
+
+        if (effectiveBranchId) {
+          conditions.push({
+            OR: [
+              { preferredBranchId: effectiveBranchId },
+              { quotations: { some: { branchId: effectiveBranchId } } },
+              { bookings: { some: { branchId: effectiveBranchId } } },
+              { vehicles: { some: { branchId: effectiveBranchId } } },
+              { leads: { some: { branchId: effectiveBranchId } } },
+              { serviceAppointments: { some: { branchId: effectiveBranchId } } },
+              { serviceJobs: { some: { branchId: effectiveBranchId } } },
+              { conversations: { some: { branchId: effectiveBranchId } } },
+              { invoices: { some: { branchId: effectiveBranchId } } },
+            ],
+          });
+        } else if (effectiveFranchiseId) {
+          conditions.push({
+            OR: [
+              { preferredBranch: { franchiseId: effectiveFranchiseId } },
+              { franchiseLinks: { some: { franchiseId: effectiveFranchiseId } } },
+              { leads: { some: { franchiseId: effectiveFranchiseId } } },
+              { quotations: { some: { franchiseId: effectiveFranchiseId } } },
+              { bookings: { some: { branch: { franchiseId: effectiveFranchiseId } } } },
+              { vehicles: { some: { branch: { franchiseId: effectiveFranchiseId } } } },
+              { serviceJobs: { some: { branch: { franchiseId: effectiveFranchiseId } } } },
+              { serviceAppointments: { some: { branch: { franchiseId: effectiveFranchiseId } } } },
+              { conversations: { some: { branch: { franchiseId: effectiveFranchiseId } } } },
+              { invoices: { some: { branch: { franchiseId: effectiveFranchiseId } } } },
+            ],
+          });
+        } else if (!isSuperAdmin) {
+          if (isFranchiseLevel && scope?.assignedFranchiseId) {
+            conditions.push({
+              OR: [
+                { preferredBranch: { franchiseId: scope.assignedFranchiseId } },
+                { franchiseLinks: { some: { franchiseId: scope.assignedFranchiseId } } },
+                { leads: { some: { franchiseId: scope.assignedFranchiseId } } },
+                { quotations: { some: { franchiseId: scope.assignedFranchiseId } } },
+                { bookings: { some: { branch: { franchiseId: scope.assignedFranchiseId } } } },
+                { vehicles: { some: { branch: { franchiseId: scope.assignedFranchiseId } } } },
+                { serviceJobs: { some: { branch: { franchiseId: scope.assignedFranchiseId } } } },
+                { serviceAppointments: { some: { branch: { franchiseId: scope.assignedFranchiseId } } } },
+                { conversations: { some: { branch: { franchiseId: scope.assignedFranchiseId } } } },
+                { invoices: { some: { branch: { franchiseId: scope.assignedFranchiseId } } } },
+              ],
+            });
+          } else if (scope?.assignedBranchId) {
+            conditions.push({
+              OR: [
+                { preferredBranchId: scope.assignedBranchId },
+                { quotations: { some: { branchId: scope.assignedBranchId } } },
+                { bookings: { some: { branchId: scope.assignedBranchId } } },
+                { vehicles: { some: { branchId: scope.assignedBranchId } } },
+                { leads: { some: { branchId: scope.assignedBranchId } } },
+                { serviceAppointments: { some: { branchId: scope.assignedBranchId } } },
+                { serviceJobs: { some: { branchId: scope.assignedBranchId } } },
+                { conversations: { some: { branchId: scope.assignedBranchId } } },
+                { invoices: { some: { branchId: scope.assignedBranchId } } },
+              ],
+            });
           }
         }
+
+        if (options?.customerType && options.customerType !== 'ALL') {
+          conditions.push({ customerType: options.customerType });
+        }
+
+        if (options?.status && options.status !== 'ALL') {
+          conditions.push({ status: options.status });
+        }
+
+        if (options?.search && options.search.trim()) {
+          const term = options.search.trim();
+          conditions.push({
+            OR: [
+              { name: { contains: term, mode: 'insensitive' } },
+              { phone: { contains: term, mode: 'insensitive' } },
+              { email: { contains: term, mode: 'insensitive' } },
+              { companyName: { contains: term, mode: 'insensitive' } },
+            ],
+          });
+        }
+
+        const where: any = conditions.length > 0 ? { AND: conditions } : {};
 
         const customers = await this.prisma.customer.findMany({
           where,

@@ -46,7 +46,11 @@ export const EmployeesListPage: React.FC = () => {
   const handleExport = async () => {
     try {
       setExporting(true);
-      await csvDataService.exportData('employees');
+      await csvDataService.exportData('employees', {
+        branchId: selectedBranchId !== 'ALL' ? selectedBranchId : undefined,
+        franchiseId: selectedFranchiseId !== 'ALL' ? selectedFranchiseId : undefined,
+        search: search || undefined,
+      });
     } catch (err: any) {
       alert(err.message || 'Failed to export employee data.');
     } finally {

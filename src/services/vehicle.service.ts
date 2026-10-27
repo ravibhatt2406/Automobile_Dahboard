@@ -248,4 +248,48 @@ export const vehicleService = {
     });
     return unwrapData<{ success: boolean; message: string }>(res);
   },
+
+  async uploadPhoto(
+    file: File,
+    vehicleId?: string,
+  ): Promise<{ url: string; filename: string; size: number; isPrimary?: boolean; images?: string[] }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const endpoint = vehicleId ? `/vehicles/${vehicleId}/photos` : '/vehicles/upload-photo';
+    const res = await apiFetch<any>(endpoint, {
+      method: 'POST',
+      body: formData,
+    });
+    return unwrapData<any>(res);
+  },
+
+  async getPhotos(
+    vehicleId: string,
+  ): Promise<Array<{ url: string; isPrimary: boolean; filename: string; size?: number; mimeType?: string }>> {
+    const res = await apiFetch<any>(`/vehicles/${vehicleId}/photos`);
+    const unwrapped = unwrapData<any>(res);
+    return Array.isArray(unwrapped) ? unwrapped : [];
+  },
+
+  async setPrimaryPhoto(
+    vehicleId: string,
+    photoUrl: string,
+  ): Promise<{ success: boolean; images: string[]; primaryPhoto: string }> {
+    const res = await apiFetch<any>(`/vehicles/${vehicleId}/photos/primary`, {
+      method: 'PATCH',
+      body: JSON.stringify({ photoUrl }),
+    });
+    return unwrapData<any>(res);
+  },
+
+  async deletePhoto(
+    vehicleId: string,
+    photoUrl: string,
+  ): Promise<{ success: boolean; images: string[] }> {
+    const res = await apiFetch<any>(`/vehicles/${vehicleId}/photos`, {
+      method: 'DELETE',
+      body: JSON.stringify({ photoUrl }),
+    });
+    return unwrapData<any>(res);
+  },
 };

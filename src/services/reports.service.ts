@@ -1,4 +1,4 @@
-import { apiFetch, unwrapData } from './apiClient';
+import { API_BASE_URL, apiFetch, unwrapData } from './apiClient';
 
 export interface SalesOverviewReport {
   summary: {
@@ -425,8 +425,10 @@ export const reportsService = {
     if (params?.endDate) cleanParams.endDate = params.endDate;
     const query = new URLSearchParams(cleanParams).toString();
 
-    const token = localStorage.getItem('titan_access_token');
-    const response = await fetch(`/api/v1/reports/export?${query}`, {
+    const token =
+      localStorage.getItem('titan_auth_token') ||
+      localStorage.getItem('titan_access_token');
+    const response = await fetch(`${API_BASE_URL}/reports/export?${query}`, {
       headers: {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },

@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { PageHeader } from '@/components/data-display/PageHeader';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Truck, Save, ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react';
+import { Truck, Save, ArrowLeft, CheckCircle, AlertCircle, Upload, Star, Trash2, Loader2 } from 'lucide-react';
 import { vehicleService } from '@/services/vehicle.service';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { branchService } from '@/services/branch.service';
@@ -34,6 +34,9 @@ export const VehicleFormPage: React.FC = () => {
   const queryClient = useQueryClient();
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
 
   const { data: branchesRes } = useQuery({
     queryKey: ['branches'],
@@ -94,8 +97,75 @@ export const VehicleFormPage: React.FC = () => {
         branchId: existingVehicle.branchId || '',
         variantId: (existingVehicle as any).variant_details?.id || (existingVehicle as any).variantId || '',
       });
+      if (existingVehicle.images && Array.isArray(existingVehicle.images) && existingVehicle.images.length > 0) {
+        setPhotos(existingVehicle.images);
+      } else if (existingVehicle.photos && Array.isArray(existingVehicle.photos) && existingVehicle.photos.length > 0) {
+        setPhotos(existingVehicle.photos);
+      }
     }
   }, [existingVehicle, reset]);
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setPhotoError(null);
+    setUploadingPhoto(true);
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+    const maxSize = 5 * 1024 * 1024; // 5MB
+
+    try {
+      const newUrls: string[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (!allowedTypes.includes(file.type.toLowerCase())) {
+          throw new Error(`'${file.name}' has an unsupported format. Allowed formats: JPEG, PNG, WEBP.`);
+        }
+        if (file.size > maxSize) {
+          throw new Error(`'${file.name}' exceeds the 5MB size limit.`);
+        }
+
+        const uploaded = await vehicleService.uploadPhoto(file, isEdit ? id : undefined);
+        if (uploaded?.url) {
+          newUrls.push(uploaded.url);
+        }
+      }
+
+      setPhotos((prev) => [...prev, ...newUrls]);
+    } catch (err: any) {
+      setPhotoError(err?.message || 'Failed to upload photo. Please verify image file and try again.');
+    } finally {
+      setUploadingPhoto(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleSetPrimary = async (index: number) => {
+    if (index === 0) return;
+    const selected = photos[index];
+    const reordered = [selected, ...photos.filter((_, i) => i !== index)];
+    setPhotos(reordered);
+    if (isEdit && id) {
+      try {
+        await vehicleService.setPrimaryPhoto(id, selected);
+      } catch (err: any) {
+        console.error('Failed to update primary photo', err);
+      }
+    }
+  };
+
+  const handleRemovePhoto = async (index: number) => {
+    const targetUrl = photos[index];
+    const remaining = photos.filter((_, i) => i !== index);
+    setPhotos(remaining);
+    if (isEdit && id) {
+      try {
+        await vehicleService.deletePhoto(id, targetUrl);
+      } catch (err: any) {
+        console.error('Failed to delete photo on server', err);
+      }
+    }
+  };
 
   // Handle variant selection to auto-fill specs
   const handleVariantChange = (variantId: string) => {
@@ -130,6 +200,7 @@ export const VehicleFormPage: React.FC = () => {
           manufacturingYear: data.manufacturingYear,
           branchId: data.branchId,
           variantId: data.variantId,
+          images: photos,
         } as any);
       } else {
         await vehicleService.createVehicle({
@@ -145,6 +216,7 @@ export const VehicleFormPage: React.FC = () => {
           baseCost: data.baseCost,
           branchId: data.branchId,
           variantId: data.variantId,
+          images: photos,
         });
       }
       await queryClient.invalidateQueries({ queryKey: ['vehicles'] });
@@ -334,6 +406,107 @@ export const VehicleFormPage: React.FC = () => {
                 )}
               </select>
               {errors.branchId && <p className="text-rose-400 text-[11px] mt-1">{errors.branchId.message}</p>}
+            </div>
+
+            {/* Vehicle Photos Upload & Preview Field */}
+            <div className="md:col-span-2 pt-6 border-t border-slate-800 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="block text-sm font-bold text-slate-200">
+                    Vehicle Photos & Media
+                  </label>
+                  <p className="text-[11px] text-slate-400">
+                    Upload vehicle photos. The first image is the primary cover photo. Formats: JPG, PNG, WEBP (Max 5MB each).
+                  </p>
+                </div>
+                <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded bg-slate-800 text-amber-400 border border-slate-700">
+                  {photos.length} {photos.length === 1 ? 'photo' : 'photos'}
+                </span>
+              </div>
+
+              {photoError && (
+                <div className="p-3 rounded-lg bg-rose-950/40 border border-rose-800 text-rose-300 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+                  <span>{photoError}</span>
+                </div>
+              )}
+
+              {/* Upload Dropzone */}
+              <label className="relative flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-700 hover:border-[#F5A800] rounded-xl bg-slate-900/60 hover:bg-slate-900 transition-colors cursor-pointer group">
+                <input
+                  type="file"
+                  multiple
+                  accept="image/jpeg,image/png,image/webp,image/jpg"
+                  onChange={handlePhotoUpload}
+                  disabled={uploadingPhoto}
+                  className="hidden"
+                />
+                <div className="flex flex-col items-center gap-2 text-center">
+                  {uploadingPhoto ? (
+                    <Loader2 className="w-8 h-8 text-[#F5A800] animate-spin" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-slate-800 group-hover:bg-[#F5A800]/20 flex items-center justify-center transition-colors">
+                      <Upload className="w-5 h-5 text-slate-400 group-hover:text-[#F5A800]" />
+                    </div>
+                  )}
+                  <div>
+                    <span className="text-xs font-semibold text-slate-200 group-hover:text-[#F5A800]">
+                      {uploadingPhoto ? 'Uploading and validating photos...' : 'Click to browse or drop vehicle photos here'}
+                    </span>
+                    <p className="text-[10px] text-slate-400 mt-0.5">JPEG, PNG, WEBP up to 5MB</p>
+                  </div>
+                </div>
+              </label>
+
+              {/* Photos Preview Grid */}
+              {photos.length > 0 && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 pt-2">
+                  {photos.map((url, idx) => {
+                    const isPrimary = idx === 0;
+                    return (
+                      <div
+                        key={`${url}-${idx}`}
+                        className={`relative group rounded-xl overflow-hidden border ${
+                          isPrimary ? 'border-[#F5A800] ring-2 ring-[#F5A800]/30' : 'border-slate-800'
+                        } bg-slate-950 aspect-video flex items-center justify-center`}
+                      >
+                        <img
+                          src={url}
+                          alt={`Vehicle photo ${idx + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                        {/* Primary badge */}
+                        {isPrimary && (
+                          <div className="absolute top-2 left-2 px-2 py-0.5 rounded bg-[#F5A800] text-black text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-md">
+                            <Star className="w-3 h-3 fill-black text-black" /> Cover
+                          </div>
+                        )}
+                        {/* Action overlay */}
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                          {!isPrimary && (
+                            <button
+                              type="button"
+                              onClick={() => handleSetPrimary(idx)}
+                              title="Set as primary cover photo"
+                              className="p-1.5 rounded-lg bg-slate-800 hover:bg-[#F5A800] text-slate-200 hover:text-black transition-colors"
+                            >
+                              <Star className="w-4 h-4" />
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleRemovePhoto(idx)}
+                            title="Remove photo"
+                            className="p-1.5 rounded-lg bg-rose-600/80 hover:bg-rose-600 text-white transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
 

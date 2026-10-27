@@ -60,11 +60,61 @@ export const csvDataService = {
   /**
    * Export database records to CSV respecting user scope & sanitization
    */
-  async exportData(entity: 'customers' | 'branches' | 'franchises' | 'employees'): Promise<void> {
+  async exportData(
+    entity: 'customers' | 'branches' | 'franchises' | 'employees',
+    params?: {
+      branchId?: string;
+      franchiseId?: string;
+      search?: string;
+      status?: string;
+      customerType?: string;
+    },
+  ): Promise<void> {
     const token = localStorage.getItem('titan_auth_token');
-    const response = await fetch(`${API_BASE_URL}/csv-data/export/${entity}`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
+    const activeRole = localStorage.getItem('titan_active_role');
+    const storedBranchId = localStorage.getItem('titan_active_branch_id');
+    const storedFranchiseId = localStorage.getItem('titan_active_franchise_id');
+
+    const effectiveBranchId =
+      params?.branchId !== undefined ? params.branchId : storedBranchId;
+    const effectiveFranchiseId =
+      params?.franchiseId !== undefined ? params.franchiseId : storedFranchiseId;
+
+    const queryParams = new URLSearchParams();
+    if (effectiveBranchId && effectiveBranchId !== 'ALL') {
+      queryParams.set('branchId', effectiveBranchId);
+    }
+    if (effectiveFranchiseId && effectiveFranchiseId !== 'ALL') {
+      queryParams.set('franchiseId', effectiveFranchiseId);
+    }
+    if (params?.search && params.search.trim()) {
+      queryParams.set('search', params.search.trim());
+    }
+    if (params?.status && params.status !== 'ALL') {
+      queryParams.set('status', params.status);
+    }
+    if (params?.customerType && params.customerType !== 'ALL') {
+      queryParams.set('customerType', params.customerType);
+    }
+
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    if (activeRole) {
+      headers['x-active-role'] = activeRole;
+    }
+    if (effectiveBranchId && effectiveBranchId !== 'ALL') {
+      headers['x-active-branch-id'] = effectiveBranchId;
+    }
+    if (effectiveFranchiseId && effectiveFranchiseId !== 'ALL') {
+      headers['x-active-franchise-id'] = effectiveFranchiseId;
+    }
+
+    const queryString = queryParams.toString();
+    const url = `${API_BASE_URL}/csv-data/export/${entity}${queryString ? `?${queryString}` : ''}`;
+
+    const response = await fetch(url, { headers });
 
     if (!response.ok) {
       let errMsg = response.statusText;
@@ -83,13 +133,13 @@ export const csvDataService = {
     }
 
     const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
+    const blobUrl = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
+    a.href = blobUrl;
     a.download = filename;
     document.body.appendChild(a);
     a.click();
-    window.URL.revokeObjectURL(url);
+    window.URL.revokeObjectURL(blobUrl);
     document.body.removeChild(a);
   },
 

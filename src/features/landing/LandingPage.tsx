@@ -21,7 +21,7 @@ import {
   CreditCard,
   Package,
 } from 'lucide-react';
-import heroAsset from '@/assets/hero.png';
+import dealershipOperationsImage from '@/assets/landing/dealership-operations.jpg';
 import heroEcosystemImage from '@/assets/landing/automotive-ecosystem.png';
 
 export const LandingPage: React.FC = () => {
@@ -353,7 +353,7 @@ export const LandingPage: React.FC = () => {
             <div className="lg:col-span-6">
               <div className="rounded-2xl border border-[#E5E5E5] bg-white p-3 shadow-xl overflow-hidden">
                 <img
-                  src={heroAsset}
+                  src={dealershipOperationsImage}
                   alt="Branch Operations Platform"
                   className="w-full h-auto rounded-xl object-cover"
                 />

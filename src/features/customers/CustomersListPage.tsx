@@ -104,7 +104,13 @@ export const CustomersListPage: React.FC = () => {
   const handleExport = async () => {
     try {
       setExporting(true);
-      await csvDataService.exportData('customers');
+      await csvDataService.exportData('customers', {
+        branchId: selectedBranchId !== 'ALL' ? selectedBranchId : undefined,
+        franchiseId: selectedFranchiseId !== 'ALL' ? selectedFranchiseId : undefined,
+        search: searchTerm || undefined,
+        customerType: customerTypeFilter || undefined,
+        status: statusFilter || undefined,
+      });
     } catch (err: any) {
       alert(err.message || 'Failed to export customer directory.');
     } finally {

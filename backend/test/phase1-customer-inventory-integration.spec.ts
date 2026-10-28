@@ -19,11 +19,13 @@ describe('Phase 1 — Customer Branch Experience and Inventory Integration Suite
 
   let branch1: any;
   let branch2: any;
+  let franchiseId: string;
   let vehicle1: any;
   let vehicle2: any;
   let variant1: any;
 
   const testPassword = 'Password@123';
+  let ts: number;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -43,7 +45,7 @@ describe('Phase 1 — Customer Branch Experience and Inventory Integration Suite
 
     prisma = app.get(PrismaService);
 
-    const ts = Date.now();
+    ts = Date.now();
     const passwordHash = await bcrypt.hash(testPassword, 10);
 
     // 1. Create Franchise & Branches
@@ -56,6 +58,7 @@ describe('Phase 1 — Customer Branch Experience and Inventory Integration Suite
         status: 'ACTIVE',
       },
     });
+    franchiseId = franchise.id;
 
     branch1 = await prisma.branch.create({
       data: {
@@ -225,6 +228,22 @@ describe('Phase 1 — Customer Branch Experience and Inventory Integration Suite
   });
 
   afterAll(async () => {
+    if (franchiseId) {
+      try {
+        await prisma.chatMessage.deleteMany({ where: { conversation: { branch: { franchiseId } } } });
+        await prisma.conversation.deleteMany({ where: { branch: { franchiseId } } });
+        await prisma.quotationItem.deleteMany({ where: { quotation: { branch: { franchiseId } } } });
+        await prisma.quotation.deleteMany({ where: { branch: { franchiseId } } });
+        await prisma.vehicle.deleteMany({ where: { branch: { franchiseId } } });
+        await prisma.customerFranchise.deleteMany({ where: { franchiseId } });
+        await prisma.customer.deleteMany({ where: { email: { contains: `${ts}` } } });
+        await prisma.user.deleteMany({ where: { email: { contains: `${ts}` } } });
+        await prisma.branch.deleteMany({ where: { franchiseId } });
+        await prisma.franchise.deleteMany({ where: { id: franchiseId } });
+      } catch (err) {
+        // cleanup error ignored
+      }
+    }
     await app.close();
   });
 

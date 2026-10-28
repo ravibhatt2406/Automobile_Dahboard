@@ -34,6 +34,7 @@ describe('Phase 1 — Global Branch-Wise & Franchise-Wise Filtering Suite', () =
   let leadA1: any;
 
   const testPassword = 'Password@123';
+  let ts: number;
 
   const getList = (body: any): any[] => {
     if (Array.isArray(body)) return body;
@@ -60,7 +61,7 @@ describe('Phase 1 — Global Branch-Wise & Franchise-Wise Filtering Suite', () =
     await app.init();
 
     prisma = app.get(PrismaService);
-    const ts = Date.now();
+    ts = Date.now();
     const passwordHash = await bcrypt.hash(testPassword, 10);
 
     // 1. Create Franchises
@@ -426,6 +427,29 @@ describe('Phase 1 — Global Branch-Wise & Franchise-Wise Filtering Suite', () =
   });
 
   afterAll(async () => {
+    try {
+      const fIds = [franchise1?.id, franchise2?.id].filter(Boolean);
+      if (fIds.length > 0) {
+        await prisma.invoiceItem.deleteMany({ where: { invoice: { branch: { franchiseId: { in: fIds } } } } });
+        await prisma.invoice.deleteMany({ where: { branch: { franchiseId: { in: fIds } } } });
+        await prisma.booking.deleteMany({ where: { branch: { franchiseId: { in: fIds } } } });
+        await prisma.quotationItem.deleteMany({ where: { quotation: { branch: { franchiseId: { in: fIds } } } });
+        await prisma.quotation.deleteMany({ where: { branch: { franchiseId: { in: fIds } } } });
+        await prisma.serviceJob.deleteMany({ where: { branch: { franchiseId: { in: fIds } } } });
+        await prisma.leadActivity.deleteMany({ where: { lead: { branch: { franchiseId: { in: fIds } } } });
+        await prisma.lead.deleteMany({ where: { branch: { franchiseId: { in: fIds } } } });
+        await prisma.vehicle.deleteMany({ where: { branch: { franchiseId: { in: fIds } } } });
+        await prisma.employeeRoleAssignment.deleteMany({ where: { employee: { branch: { franchiseId: { in: fIds } } } } });
+        await prisma.employee.deleteMany({ where: { branch: { franchiseId: { in: fIds } } } });
+        await prisma.customerFranchise.deleteMany({ where: { franchiseId: { in: fIds } } });
+        await prisma.customer.deleteMany({ where: { email: { contains: `${ts}` } } });
+        await prisma.user.deleteMany({ where: { email: { contains: `${ts}` } } });
+        await prisma.branch.deleteMany({ where: { franchiseId: { in: fIds } } });
+        await prisma.franchise.deleteMany({ where: { id: { in: fIds } } });
+      }
+    } catch (e) {
+      // cleanup error ignored
+    }
     await app.close();
   });
 

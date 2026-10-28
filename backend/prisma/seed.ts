@@ -178,16 +178,7 @@ async function main() {
     where: { id: { in: testUserIds } },
   });
 
-  // Migrate legacy seed franchise code FR-AL-01 to target FR-RAJ-01
-  await prisma.franchise.updateMany({
-    where: { code: 'FR-AL-01' },
-    data: {
-      code: 'FR-RAJ-01',
-      name: 'Titan Commercial Motors (Rajasthan)',
-      legalName: 'Titan Rajasthan Commercial Fleet Dealerships Pvt Ltd',
-      taxId: 'GSTIN08TITAN01',
-    },
-  });
+  // Preserve target franchises and branches exactly
 
   // H. Delete non-target branches and franchises
   await prisma.branch.deleteMany({
@@ -564,11 +555,10 @@ async function main() {
     create: { employeeId: adminEmp.id, roleId: roleMap['SUPER_ADMIN'] },
   });
 
-  // B. Franchise Owners (3 executives, 1 per franchise)
+  // B. Franchise Owners (2 executives, 1 per franchise)
   const franchiseOwners = [
-    { email: 'owner.rajasthan@titanauto.com', name: 'Vikramaditya', code: 'EMP-FO-01', franchiseCode: 'FR-RAJ-01', branchCode: 'BR-JAI-01' },
-    { email: 'owner.mewar@titanauto.com', name: 'Bhim Singh', code: 'EMP-FO-02', franchiseCode: 'FR-MEW-02', branchCode: 'BR-UDR-01' },
-    { email: 'owner.marwar@titanauto.com', name: 'Gaj Singh', code: 'EMP-FO-03', franchiseCode: 'FR-MAR-03', branchCode: 'BR-JDH-01' },
+    { email: 'franchise.tata@titanauto.com', name: 'Karan Singh', code: 'EMP-B2E-2365-336', franchiseCode: 'FR-TATA-01', branchCode: 'BR-UDR-01' },
+    { email: 'franchise.ashok@titanauto.com', name: 'Anand Agrawal', code: 'EMP-6BC-2538-431', franchiseCode: 'FR-AL-01', branchCode: 'BR-JAI-01' },
   ];
 
   for (const fo of franchiseOwners) {
@@ -598,76 +588,31 @@ async function main() {
   }
 
   // =========================================================================
-  // 8. SEED EXACTLY 30 BRANCH EMPLOYEES (EXACTLY 5 PER EACH OF THE 6 BRANCHES)
+  // 8. SEED BRANCH EMPLOYEES (TARGET BRANCHES: JAIPUR & UDAIPUR)
   // =========================================================================
-  console.log('👥 Seeding exactly 30 branch employees (5 per branch)...');
+  console.log('👥 Seeding branch employees for Jaipur and Udaipur branches...');
 
   const branchEmployeeDefinitions = [
     // --- 1. Jaipur Central (BR-JAI-01) ---
     {
       branchCode: 'BR-JAI-01',
       employees: [
-        { email: 'manager.jaipur@titanauto.com', role: 'BRANCH_MANAGER', code: 'EMP-JAI-MGR01', first: 'Rajesh', last: 'Sharma', desig: 'Branch General Manager', pwd: managerPasswordHash },
-        { email: 'sales.jaipur@titanauto.com', role: 'SALES_EMPLOYEE', code: 'EMP-JAI-SALES01', first: 'Amit', last: 'Verma', desig: 'Commercial Sales Executive', pwd: salesPasswordHash },
-        { email: 'advisor.jaipur@titanauto.com', role: 'SERVICE_ADVISOR', code: 'EMP-JAI-ADV01', first: 'Sunita', last: 'Meena', desig: 'Commercial Service Advisor', pwd: advisorPasswordHash },
-        { email: 'mechanic.jaipur@titanauto.com', role: 'MECHANIC', code: 'EMP-JAI-TECH01', first: 'Rahul', last: 'Saini', desig: 'Senior Commercial Vehicle Technician', pwd: mechanicPasswordHash },
-        { email: 'staff.jaipur@titanauto.com', role: 'EMPLOYEE', code: 'EMP-JAI-OPS01', first: 'Deepak', last: 'Rathore', desig: 'Branch Logistics & Parts Assistant', pwd: staffPasswordHash },
+        { email: 'bm.jaipur@titanauto.com', role: 'BRANCH_MANAGER', code: 'EMP-6BC-2545-730', first: 'Devendra', last: 'Shekhawat', desig: 'Branch General Manager', pwd: managerPasswordHash },
+        { email: 'sales.jaipur@titanauto.com', role: 'SALES_EMPLOYEE', code: 'EMP-6BC-2551-695', first: 'Aman', last: 'Khandelwal', desig: 'Commercial Sales Executive', pwd: salesPasswordHash },
+        { email: 'advisor.jaipur@titanauto.com', role: 'SERVICE_ADVISOR', code: 'EMP-6BC-2556-396', first: 'Dinesh', last: 'Verma', desig: 'Commercial Service Advisor', pwd: advisorPasswordHash },
+        { email: 'mechanic.jaipur@titanauto.com', role: 'MECHANIC', code: 'EMP-6BC-2561-766', first: 'Ramesh', last: 'Saini', desig: 'Senior Commercial Vehicle Technician', pwd: mechanicPasswordHash },
+        { email: 'rajbhatt2406@gmail.com', role: 'EMPLOYEE', code: 'EMP-7042', first: 'Raj', last: 'Bhatt', desig: 'Staff', pwd: defaultPasswordHash },
       ],
     },
-    // --- 2. Jaipur Industrial (BR-JAI-02) ---
-    {
-      branchCode: 'BR-JAI-02',
-      employees: [
-        { email: 'mgr.jai.ind@titanauto.com', role: 'BRANCH_MANAGER', code: 'EMP-JAI-IND-MGR', first: 'Vikram', last: 'Joshi', desig: 'Industrial Branch Manager', pwd: managerPasswordHash },
-        { email: 'sales.jai.ind@titanauto.com', role: 'SALES_EMPLOYEE', code: 'EMP-JAI-IND-SALES', first: 'Priyanka', last: 'Kalla', desig: 'Commercial Sales Executive', pwd: salesPasswordHash },
-        { email: 'advisor.jai.ind@titanauto.com', role: 'SERVICE_ADVISOR', code: 'EMP-JAI-IND-ADV', first: 'Manoj', last: 'Choudhary', desig: 'Heavy Commercial Service Advisor', pwd: advisorPasswordHash },
-        { email: 'mech.jai.ind@titanauto.com', role: 'MECHANIC', code: 'EMP-JAI-IND-TECH', first: 'Kishan', last: 'Lal', desig: 'Master Heavy Vehicle Mechanic', pwd: mechanicPasswordHash },
-        { email: 'staff.jai.ind@titanauto.com', role: 'EMPLOYEE', code: 'EMP-JAI-IND-OPS', first: 'Ankit', last: 'Sharma', desig: 'PDI & Yard Logistics Assistant', pwd: staffPasswordHash },
-      ],
-    },
-    // --- 3. Udaipur Central (BR-UDR-01) ---
-    // Note: Ravi Bhatt (genuine user ravibhatt2406@gmail.com) is preserved as the 5th employee
+    // --- 2. Udaipur Central (BR-UDR-01) ---
     {
       branchCode: 'BR-UDR-01',
       employees: [
-        { email: 'mgr.udr.cen@titanauto.com', role: 'BRANCH_MANAGER', code: 'EMP-UDR-CEN-MGR', first: 'Surendra', last: 'Sisodia', desig: 'Branch General Manager', pwd: managerPasswordHash },
-        { email: 'sales.udr.cen@titanauto.com', role: 'SALES_EMPLOYEE', code: 'EMP-UDR-CEN-SALES', first: 'Neha', last: 'Paliwal', desig: 'Commercial Sales Executive', pwd: salesPasswordHash },
-        { email: 'advisor.udr.cen@titanauto.com', role: 'SERVICE_ADVISOR', code: 'EMP-UDR-CEN-ADV', first: 'Bhupendra', last: 'Rawat', desig: 'Commercial Fleet Service Advisor', pwd: advisorPasswordHash },
-        { email: 'mech.udr.cen@titanauto.com', role: 'MECHANIC', code: 'EMP-UDR-CEN-TECH', first: 'Mohan', last: 'Lohar', desig: 'Certified Commercial Technician', pwd: mechanicPasswordHash },
+        { email: 'bm.udaipur@titanauto.com', role: 'BRANCH_MANAGER', code: 'EMP-B2E-2373-174', first: 'Bhanwar', last: 'Rathore', desig: 'Branch General Manager', pwd: managerPasswordHash },
+        { email: 'sales.udaipur@titanauto.com', role: 'SALES_EMPLOYEE', code: 'EMP-B2E-2380-888', first: 'Vikram', last: 'Mehta', desig: 'Commercial Sales Executive', pwd: salesPasswordHash },
+        { email: 'advisor.udaipur@titanauto.com', role: 'SERVICE_ADVISOR', code: 'EMP-B2E-2387-168', first: 'Mahesh', last: 'Sharma', desig: 'Commercial Fleet Service Advisor', pwd: advisorPasswordHash },
+        { email: 'mechanic.udaipur@titanauto.com', role: 'MECHANIC', code: 'EMP-B2E-2394-484', first: 'Rajesh', last: 'Kumawat', desig: 'Certified Commercial Technician', pwd: mechanicPasswordHash },
         { email: 'ravibhatt2406@gmail.com', role: 'EMPLOYEE', code: 'EMP-8673', first: 'Ravi', last: 'Bhatt', desig: 'Branch Operations Officer', pwd: defaultPasswordHash },
-      ],
-    },
-    // --- 4. Udaipur Industrial (BR-UDR-02) ---
-    {
-      branchCode: 'BR-UDR-02',
-      employees: [
-        { email: 'mgr.udr.ind@titanauto.com', role: 'BRANCH_MANAGER', code: 'EMP-UDR-IND-MGR', first: 'Gajendra', last: 'Menaria', desig: 'Industrial Branch Manager', pwd: managerPasswordHash },
-        { email: 'sales.udr.ind@titanauto.com', role: 'SALES_EMPLOYEE', code: 'EMP-UDR-IND-SALES', first: 'Tarun', last: 'Dangi', desig: 'Commercial Sales Executive', pwd: salesPasswordHash },
-        { email: 'advisor.udr.ind@titanauto.com', role: 'SERVICE_ADVISOR', code: 'EMP-UDR-IND-ADV', first: 'Laxman', last: 'Sen', desig: 'Commercial Fleet Service Advisor', pwd: advisorPasswordHash },
-        { email: 'mech.udr.ind@titanauto.com', role: 'MECHANIC', code: 'EMP-UDR-IND-TECH', first: 'Prakash', last: 'Meghwal', desig: 'Senior Commercial Technician', pwd: mechanicPasswordHash },
-        { email: 'staff.udr.ind@titanauto.com', role: 'EMPLOYEE', code: 'EMP-UDR-IND-OPS', first: 'Dinesh', last: 'Vaishnav', desig: 'Warehouse & Parts Logistics', pwd: staffPasswordHash },
-      ],
-    },
-    // --- 5. Jodhpur Central (BR-JDH-01) ---
-    {
-      branchCode: 'BR-JDH-01',
-      employees: [
-        { email: 'mgr.jdh.cen@titanauto.com', role: 'BRANCH_MANAGER', code: 'EMP-JDH-CEN-MGR', first: 'Jaswant', last: 'Bhati', desig: 'Branch General Manager', pwd: managerPasswordHash },
-        { email: 'sales.jdh.cen@titanauto.com', role: 'SALES_EMPLOYEE', code: 'EMP-JDH-CEN-SALES', first: 'Rohit', last: 'Gehlot', desig: 'Commercial Sales Executive', pwd: salesPasswordHash },
-        { email: 'advisor.jdh.cen@titanauto.com', role: 'SERVICE_ADVISOR', code: 'EMP-JDH-CEN-ADV', first: 'Mahaveer', last: 'Bishnoi', desig: 'Fleet Service Advisor', pwd: advisorPasswordHash },
-        { email: 'mech.jdh.cen@titanauto.com', role: 'MECHANIC', code: 'EMP-JDH-CEN-TECH', first: 'Ram Dayal', last: 'Prajapat', desig: 'Commercial Vehicle Master Technician', pwd: mechanicPasswordHash },
-        { email: 'staff.jdh.cen@titanauto.com', role: 'EMPLOYEE', code: 'EMP-JDH-CEN-OPS', first: 'Kailash', last: 'Charan', desig: 'Operations & Yard Assistant', pwd: staffPasswordHash },
-      ],
-    },
-    // --- 6. Jodhpur Industrial (BR-JDH-02) ---
-    {
-      branchCode: 'BR-JDH-02',
-      employees: [
-        { email: 'mgr.jdh.ind@titanauto.com', role: 'BRANCH_MANAGER', code: 'EMP-JDH-IND-MGR', first: 'Hanwant', last: 'Rathore', desig: 'Industrial Branch Manager', pwd: managerPasswordHash },
-        { email: 'sales.jdh.ind@titanauto.com', role: 'SALES_EMPLOYEE', code: 'EMP-JDH-IND-SALES', first: 'Sunita', last: 'Parihar', desig: 'Commercial Sales Executive', pwd: salesPasswordHash },
-        { email: 'advisor.jdh.ind@titanauto.com', role: 'SERVICE_ADVISOR', code: 'EMP-JDH-IND-ADV', first: 'Suresh', last: 'Deora', desig: 'Fleet Service Advisor', pwd: advisorPasswordHash },
-        { email: 'mech.jdh.ind@titanauto.com', role: 'MECHANIC', code: 'EMP-JDH-IND-TECH', first: 'Govind', last: 'Mali', desig: 'Commercial Vehicle Technician', pwd: mechanicPasswordHash },
-        { email: 'staff.jdh.ind@titanauto.com', role: 'EMPLOYEE', code: 'EMP-JDH-IND-OPS', first: 'Narendra', last: 'Solanki', desig: 'Branch Inventory & Logistics', pwd: staffPasswordHash },
       ],
     },
   ];
@@ -727,12 +672,12 @@ async function main() {
       }
     }
   }
-  console.log(`✅ Seeded exactly ${totalBranchEmpCount} branch-assigned employees (5 per branch across 6 branches).`);
+  console.log(`✅ Seeded exactly ${totalBranchEmpCount} branch-assigned employees across 2 branches.`);
 
   // =========================================================================
-  // 9. SEED EXACTLY 30 CUSTOMERS (EXACTLY 5 ASSOCIATED PER EACH OF THE 6 BRANCHES)
+  // 9. SEED TARGET CUSTOMERS FOR JAIPUR & UDAIPUR
   // =========================================================================
-  console.log('🏢 Seeding exactly 30 customers (5 associated per branch)...');
+  console.log('🏢 Seeding customers for Jaipur and Udaipur branches...');
 
   const branchCustomerDefinitions = [
     // --- 1. Jaipur Central Customers ---
@@ -740,65 +685,17 @@ async function main() {
       branchCode: 'BR-JAI-01',
       customers: [
         { email: 'customer@rajasthanlogistics.com', name: 'Vikram Singh Shekhawat', phone: '+91 98290 12345', company: 'Rajasthan Logistics & Freight Corp', city: 'Jaipur', gstin: '08AABCR1234F1Z1' },
-        { email: 'cust.jai1@titanfleet.dev', name: 'Ramesh Chand Goyal', phone: '+91 98290 22001', company: 'PinkCity Heavy Transports Pvt Ltd', city: 'Jaipur', gstin: '08AABCP2201F1Z2' },
-        { email: 'cust.jai2@titanfleet.dev', name: 'Mahendra Agarwal', phone: '+91 98290 22002', company: 'Jaipur Super Express Lines Ltd', city: 'Jaipur', gstin: '08AABCJ2202F1Z3' },
-        { email: 'cust.jai3@titanfleet.dev', name: 'Sunita Khandelwal', phone: '+91 98290 22003', company: 'Aravalli Cargo Carriers', city: 'Jaipur', gstin: '08AABCA2203F1Z4' },
-        { email: 'cust.jai4@titanfleet.dev', name: 'Harish Singhal', phone: '+91 98290 22004', company: 'Shekhawati Freight Movers Pvt Ltd', city: 'Jaipur', gstin: '08AABCS2204F1Z5' },
+        { email: 'jaipur.cargo@fleet.in', name: 'Jaipur Express Cargo Carriers', phone: '+91 98290 22001', company: 'Jaipur Express Cargo Carriers', city: 'Jaipur', gstin: '08AABCP2201F1Z2' },
+        { email: 'pinkcity.transport@fleet.in', name: 'Pink City Transport & Logistics', phone: '+91 98290 22002', company: 'Pink City Transport & Logistics', city: 'Jaipur', gstin: '08AABCJ2202F1Z3' },
+        { email: 'ravibhatt.ai29@jecrc.ac.in', name: 'Ravi Bhatt', phone: '+919057496989', company: 'Independent Fleet Owner', city: 'Jaipur', gstin: '08AABCA2203F1Z4' },
       ],
     },
-    // --- 2. Jaipur Industrial Customers ---
-    {
-      branchCode: 'BR-JAI-02',
-      customers: [
-        { email: 'cust.jai5@titanfleet.dev', name: 'Devendra Pareek', phone: '+91 98290 22005', company: 'Sitapura Industrial Freight Ltd', city: 'Jaipur', gstin: '08AABCD2205F1Z6' },
-        { email: 'cust.jai6@titanfleet.dev', name: 'Sanjay Godara', phone: '+91 98290 22006', company: 'VKIA Haulage & Container Corp', city: 'Jaipur', gstin: '08AABCG2206F1Z7' },
-        { email: 'cust.jai7@titanfleet.dev', name: 'Ashok Bagaria', phone: '+91 98290 22007', company: 'Jaipur Ring Road Cargo Lines', city: 'Jaipur', gstin: '08AABCB2207F1Z8' },
-        { email: 'cust.jai8@titanfleet.dev', name: 'Ritu Mathur', phone: '+91 98290 22008', company: 'Apex Highway Freightlines Ltd', city: 'Jaipur', gstin: '08AABCM2208F1Z9' },
-        { email: 'cust.jai9@titanfleet.dev', name: 'Bhawani Singh', phone: '+91 98290 22009', company: 'Amber Commercial Logistics', city: 'Jaipur', gstin: '08AABCA2209F1Z0' },
-      ],
-    },
-    // --- 3. Udaipur Central Customers ---
+    // --- 2. Udaipur Central Customers ---
     {
       branchCode: 'BR-UDR-01',
       customers: [
-        { email: 'cust.udr1@titanfleet.dev', name: 'Narendra Ranawat', phone: '+91 98290 33001', company: 'LakeCity Marble Logistics Ltd', city: 'Udaipur', gstin: '08AABCL3301F1Z1' },
-        { email: 'cust.udr2@titanfleet.dev', name: 'Chetan Paliwal', phone: '+91 98290 33002', company: 'Mewar Heavy Transport Fleet', city: 'Udaipur', gstin: '08AABCM3302F1Z2' },
-        { email: 'cust.udr3@titanfleet.dev', name: 'Suman Chouhan', phone: '+91 98290 33003', company: 'Fatehsagar Commercial Cargo Lines', city: 'Udaipur', gstin: '08AABCF3303F1Z3' },
-        { email: 'cust.udr4@titanfleet.dev', name: 'Pradeep Shrimali', phone: '+91 98290 33004', company: 'Udaipur Mineral Express Corp', city: 'Udaipur', gstin: '08AABCU3304F1Z4' },
-        { email: 'cust.udr5@titanfleet.dev', name: 'Hemant Menaria', phone: '+91 98290 33005', company: 'Girwa Valley Freightlines Ltd', city: 'Udaipur', gstin: '08AABCG3305F1Z5' },
-      ],
-    },
-    // --- 4. Udaipur Industrial Customers ---
-    {
-      branchCode: 'BR-UDR-02',
-      customers: [
-        { email: 'cust.udr6@titanfleet.dev', name: 'Jagdish Dangi', phone: '+91 98290 33006', company: 'Sukher Highway Logistics Pvt Ltd', city: 'Udaipur', gstin: '08AABCS3306F1Z6' },
-        { email: 'cust.udr7@titanfleet.dev', name: 'Bhupendra Jain', phone: '+91 98290 33007', company: 'Madri Industrial Cargo Lines', city: 'Udaipur', gstin: '08AABCM3307F1Z7' },
-        { email: 'cust.udr8@titanfleet.dev', name: 'Vinod Kumawat', phone: '+91 98290 33008', company: 'Debari Smelter Road Haulage', city: 'Udaipur', gstin: '08AABCD3308F1Z8' },
-        { email: 'cust.udr9@titanfleet.dev', name: 'Mamta Meena', phone: '+91 98290 33009', company: 'Mewar Bulk Freight Carriers', city: 'Udaipur', gstin: '08AABCM3309F1Z9' },
-        { email: 'cust.udr10@titanfleet.dev', name: 'Suresh Patel', phone: '+91 98290 33010', company: 'Rajasthan Zinc Express Transports', city: 'Udaipur', gstin: '08AABCZ3310F1Z0' },
-      ],
-    },
-    // --- 5. Jodhpur Central Customers ---
-    {
-      branchCode: 'BR-JDH-01',
-      customers: [
-        { email: 'cust.jdh1@titanfleet.dev', name: 'Om Prakash Bishnoi', phone: '+91 98290 44001', company: 'Marwar Desert Express Freight', city: 'Jodhpur', gstin: '08AABCM4401F1Z1' },
-        { email: 'cust.jdh2@titanfleet.dev', name: 'Shaitan Singh Bhati', phone: '+91 98290 44002', company: 'SunCity Commercial Fleet Lines', city: 'Jodhpur', gstin: '08AABCS4402F1Z2' },
-        { email: 'cust.jdh3@titanfleet.dev', name: 'Rekha Gehlot', phone: '+91 98290 44003', company: 'Jodhpur Stone & Handicraft Cargo', city: 'Jodhpur', gstin: '08AABCJ4403F1Z3' },
-        { email: 'cust.jdh4@titanfleet.dev', name: 'Ganpat Lal Tak', phone: '+91 98290 44004', company: 'Mehrangarh Road Transports Ltd', city: 'Jodhpur', gstin: '08AABCM4404F1Z4' },
-        { email: 'cust.jdh5@titanfleet.dev', name: 'Kalu Ram Prajapat', phone: '+91 98290 44005', company: 'Thar Regional Haulage Network', city: 'Jodhpur', gstin: '08AABCT4405F1Z5' },
-      ],
-    },
-    // --- 6. Jodhpur Industrial Customers ---
-    {
-      branchCode: 'BR-JDH-02',
-      customers: [
-        { email: 'cust.jdh6@titanfleet.dev', name: 'Bhanwar Lal Choudhary', phone: '+91 98290 44006', company: 'Basni Industrial Fleet Solutions', city: 'Jodhpur', gstin: '08AABCB4406F1Z6' },
-        { email: 'cust.jdh7@titanfleet.dev', name: 'Prem Singh Panwar', phone: '+91 98290 44007', company: 'Boranada SEZ Freight Lines Ltd', city: 'Jodhpur', gstin: '08AABCP4407F1Z7' },
-        { email: 'cust.jdh8@titanfleet.dev', name: 'Urmila Bika', phone: '+91 98290 44008', company: 'Mandore Commercial Transport Corp', city: 'Jodhpur', gstin: '08AABCM4408F1Z8' },
-        { email: 'cust.jdh9@titanfleet.dev', name: 'Mohan Ram Dewasi', phone: '+91 98290 44009', company: 'Salawas Heavy Cargo Hub', city: 'Jodhpur', gstin: '08AABCS4409F1Z9' },
-        { email: 'cust.jdh10@titanfleet.dev', name: 'Dungar Singh Rathore', phone: '+91 98290 44010', company: 'Western Rajasthan Freight Carriers', city: 'Jodhpur', gstin: '08AABCW4410F1Z0' },
+        { email: 'mewar.mining@fleet.in', name: 'Mewar Mining & Infra Logistics', phone: '+91 98290 33001', company: 'Mewar Mining & Infra Logistics', city: 'Udaipur', gstin: '08AABCL3301F1Z1' },
+        { email: 'udaipur.marble@fleet.in', name: 'Udaipur Marble Carriers', phone: '+91 98290 33002', company: 'Udaipur Marble Carriers', city: 'Udaipur', gstin: '08AABCM3302F1Z2' },
       ],
     },
   ];
@@ -870,31 +767,19 @@ async function main() {
       });
     }
   }
-  console.log(`✅ Seeded exactly ${totalCustomerCount} customers (5 preferred per branch across 6 branches).`);
+  console.log(`✅ Seeded exactly ${totalCustomerCount} customers for Jaipur and Udaipur branches.`);
 
   // ==========================================
-  // 10. SEED PHYSICAL INVENTORY (2 TRUCKS PER BRANCH = 12 TRUCKS TOTAL)
+  // 10. SEED PHYSICAL INVENTORY (2 TRUCKS PER BRANCH = 4 TRUCKS TOTAL)
   // ==========================================
-  console.log('🚛 Seeding physical inventory vehicles in all 6 branches...');
+  console.log('🚛 Seeding physical inventory vehicles in Udaipur and Jaipur branches...');
   const inventoryVehicles = [
-    // Jaipur Central
+    // Jaipur Central (Ashok Leyland)
     { vin: 'MB1TITANJAI01001', engine: 'ENG-AL-5525-0101', variantId: variantAvtr.id, branch: 'BR-JAI-01', color: 'Signal White', cost: 3500000, price: 3850000 },
     { vin: 'MB1TITANJAI01002', engine: 'ENG-AL-1215-0102', variantId: variantEcomet.id, branch: 'BR-JAI-01', color: 'Royal Blue', cost: 1950000, price: 2150000 },
-    // Jaipur Industrial
-    { vin: 'MB1TITANJAI02001', engine: 'ENG-AL-BDOST-0201', variantId: variantBadaDost.id, branch: 'BR-JAI-02', color: 'Golden Yellow', cost: 780000, price: 875000 },
-    { vin: 'MB1TITANJAI02002', engine: 'ENG-AL-5525-0202', variantId: variantAvtr.id, branch: 'BR-JAI-02', color: 'Graphite Grey', cost: 3500000, price: 3850000 },
-    // Udaipur Central
+    // Udaipur Central (Tata Motors)
     { vin: 'MB1TITANUDR01001', engine: 'ENG-AL-5525-0301', variantId: variantAvtr.id, branch: 'BR-UDR-01', color: 'Signal White', cost: 3500000, price: 3850000 },
     { vin: 'MB1TITANUDR01002', engine: 'ENG-AL-1215-0302', variantId: variantEcomet.id, branch: 'BR-UDR-01', color: 'Forest Green', cost: 1950000, price: 2150000 },
-    // Udaipur Industrial
-    { vin: 'MB1TITANUDR02001', engine: 'ENG-AL-BDOST-0401', variantId: variantBadaDost.id, branch: 'BR-UDR-02', color: 'Silver Mist', cost: 780000, price: 875000 },
-    { vin: 'MB1TITANUDR02002', engine: 'ENG-AL-1215-0402', variantId: variantEcomet.id, branch: 'BR-UDR-02', color: 'Signal White', cost: 1950000, price: 2150000 },
-    // Jodhpur Central
-    { vin: 'MB1TITANJDH01001', engine: 'ENG-AL-5525-0501', variantId: variantAvtr.id, branch: 'BR-JDH-01', color: 'Royal Blue', cost: 3500000, price: 3850000 },
-    { vin: 'MB1TITANJDH01002', engine: 'ENG-AL-1215-0502', variantId: variantEcomet.id, branch: 'BR-JDH-01', color: 'Golden Yellow', cost: 1950000, price: 2150000 },
-    // Jodhpur Industrial
-    { vin: 'MB1TITANJDH02001', engine: 'ENG-AL-BDOST-0601', variantId: variantBadaDost.id, branch: 'BR-JDH-02', color: 'Signal White', cost: 780000, price: 875000 },
-    { vin: 'MB1TITANJDH02002', engine: 'ENG-AL-5525-0602', variantId: variantAvtr.id, branch: 'BR-JDH-02', color: 'Desert Sand', cost: 3500000, price: 3850000 },
   ];
 
   for (const v of inventoryVehicles) {
@@ -970,9 +855,9 @@ async function main() {
     create: {
       quotationNumber: 'QT-2026-JAI-001',
       customerId: customerMap['customer@rajasthanlogistics.com'],
-      franchiseId: franchiseMap['FR-RAJ-01'],
+      franchiseId: franchiseMap['FR-AL-01'],
       branchId: branchMap['BR-JAI-01'],
-      salespersonEmployeeId: employeeMap['EMP-JAI-SALES01'],
+      salespersonEmployeeId: employeeMap['EMP-6BC-2551-695'],
       createdByUserId: adminUser.id,
       variantId: variantAvtr.id,
       quantity: 1,
@@ -1000,7 +885,7 @@ async function main() {
       quotationId: quotationJai.id,
       customerId: customerMap['customer@rajasthanlogistics.com'],
       branchId: branchMap['BR-JAI-01'],
-      salespersonEmployeeId: employeeMap['EMP-JAI-SALES01'],
+      salespersonEmployeeId: employeeMap['EMP-6BC-2551-695'],
       vehicleId: sampleVehicleJaipur?.id,
       bookingAmount: 500000,
       totalAmount: 5081600,
@@ -1017,7 +902,7 @@ async function main() {
       invoiceNumber: 'INV-2026-JAI-001',
       customerId: customerMap['customer@rajasthanlogistics.com'],
       branchId: branchMap['BR-JAI-01'],
-      franchiseId: franchiseMap['FR-RAJ-01'],
+      franchiseId: franchiseMap['FR-AL-01'],
       bookingId: bookingJai.id,
       vehicleId: sampleVehicleJaipur?.id,
       billingAddress: 'Plot 42, Sitapura Industrial Area, Tonk Road, Jaipur',
@@ -1058,10 +943,10 @@ async function main() {
       update: {},
       create: {
         appointmentNumber: 'APT-2026-UDR-001',
-        customerId: customerMap['cust.udr1@titanfleet.dev'],
+        customerId: customerMap['mewar.mining@fleet.in'],
         vehicleId: sampleVehicleUdaipur.id,
         branchId: branchMap['BR-UDR-01'],
-        serviceAdvisorId: employeeMap['EMP-UDR-CEN-ADV'],
+        serviceAdvisorId: employeeMap['EMP-B2E-2387-168'],
         requestedService: 'Periodic Fleet Maintenance',
         preferredDate: new Date('2026-10-25T10:00:00Z'),
         status: AppointmentStatus.CONFIRMED,
@@ -1075,11 +960,11 @@ async function main() {
       create: {
         jobNumber: 'JOB-2026-UDR-001',
         appointmentId: appointmentUdr.id,
-        customerId: customerMap['cust.udr1@titanfleet.dev'],
+        customerId: customerMap['mewar.mining@fleet.in'],
         vehicleId: sampleVehicleUdaipur.id,
         branchId: branchMap['BR-UDR-01'],
-        serviceAdvisorId: employeeMap['EMP-UDR-CEN-ADV'],
-        assignedMechanicId: employeeMap['EMP-UDR-CEN-TECH'],
+        serviceAdvisorId: employeeMap['EMP-B2E-2387-168'],
+        assignedMechanicId: employeeMap['EMP-B2E-2394-484'],
         complaint: 'Scheduled 50,000 km fleet service and inspection.',
         diagnosis: 'Engine oil and primary filters require routine change. Brake pads in acceptable condition.',
         estimatedCost: 18500,
@@ -1111,7 +996,7 @@ async function main() {
       create: {
         customerId: customerMap['customer@rajasthanlogistics.com'],
         branchId: branchMap['BR-JAI-01'],
-        assignedEmployeeId: employeeMap['EMP-JAI-SALES01'],
+        assignedEmployeeId: employeeMap['EMP-6BC-2551-695'],
         subject: 'Interstate Fleet Delivery Timeline Inquiry',
         contextType: 'GENERAL',
         contextId: 'NONE',
@@ -1161,22 +1046,20 @@ async function main() {
   const jaipurBranches = await prisma.branch.count({ where: { city: 'Jaipur' } });
   const jodhpurBranches = await prisma.branch.count({ where: { city: 'Jodhpur' } });
 
-  console.log(`   Franchises:       ${finalFranchiseCount} (Target: 3)`);
-  console.log(`   Branches Total:   ${finalBranchCount} (Target: 6)`);
-  console.log(`   - Udaipur:        ${udaipurBranches} (Target: 2)`);
-  console.log(`   - Jaipur:         ${jaipurBranches} (Target: 2)`);
-  console.log(`   - Jodhpur:        ${jodhpurBranches} (Target: 2)`);
-  console.log(`   Branch Employees: ${finalBranchEmployeesCount} (Target: 30)`);
-  console.log(`   Customers:        ${finalCustomerCount} (Target: 30)`);
+  console.log(`   Franchises:       ${finalFranchiseCount} (Target: 2)`);
+  console.log(`   Branches Total:   ${finalBranchCount} (Target: 2)`);
+  console.log(`   - Udaipur:        ${udaipurBranches} (Target: 1)`);
+  console.log(`   - Jaipur:         ${jaipurBranches} (Target: 1)`);
+  console.log(`   - Jodhpur:        ${jodhpurBranches} (Target: 0)`);
+  console.log(`   Branch Employees: ${finalBranchEmployeesCount}`);
+  console.log(`   Customers:        ${finalCustomerCount}`);
 
   if (
-    finalFranchiseCount !== 3 ||
-    finalBranchCount !== 6 ||
-    udaipurBranches !== 2 ||
-    jaipurBranches !== 2 ||
-    jodhpurBranches !== 2 ||
-    finalBranchEmployeesCount !== 30 ||
-    finalCustomerCount !== 30
+    finalFranchiseCount !== 2 ||
+    finalBranchCount !== 2 ||
+    udaipurBranches !== 1 ||
+    jaipurBranches !== 1 ||
+    jodhpurBranches !== 0
   ) {
     throw new Error('❌ Data count verification failed! Target requirements not satisfied.');
   }

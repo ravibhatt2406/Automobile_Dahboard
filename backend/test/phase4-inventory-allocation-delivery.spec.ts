@@ -267,6 +267,28 @@ describe('Phase 4 — Physical Vehicle Inventory, Allocation, PDI & Delivery Sui
   }, 60000);
 
   afterAll(async () => {
+    if (franchiseId) {
+      try {
+        await prisma.delivery.deleteMany({ where: { booking: { branch: { franchiseId } } } });
+        await prisma.vehicleAllocation.deleteMany({ where: { vehicle: { branch: { franchiseId } } } });
+        await prisma.pdiInspection.deleteMany({ where: { vehicle: { branch: { franchiseId } } } });
+        await prisma.payment.deleteMany({ where: { booking: { branch: { franchiseId } } } });
+        await prisma.invoiceItem.deleteMany({ where: { invoice: { branch: { franchiseId } } } });
+        await prisma.invoice.deleteMany({ where: { branch: { franchiseId } } });
+        await prisma.booking.deleteMany({ where: { branch: { franchiseId } } });
+        await prisma.quotationItem.deleteMany({ where: { quotation: { branch: { franchiseId } } } });
+        await prisma.quotation.deleteMany({ where: { branch: { franchiseId } } });
+        await prisma.vehicle.deleteMany({ where: { branch: { franchiseId } } });
+        await prisma.employeeRoleAssignment.deleteMany({ where: { employee: { branch: { franchiseId } } } });
+        await prisma.employee.deleteMany({ where: { branch: { franchiseId } } });
+        await prisma.branch.deleteMany({ where: { franchiseId } });
+        await prisma.franchise.deleteMany({ where: { id: franchiseId } });
+        await prisma.customer.deleteMany({ where: { email: { contains: `${ts}` } } });
+        await prisma.user.deleteMany({ where: { email: { contains: `${ts}` } } });
+      } catch (err) {
+        // cleanup error ignored
+      }
+    }
     await app.close();
   });
 

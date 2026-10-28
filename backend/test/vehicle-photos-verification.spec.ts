@@ -182,6 +182,18 @@ describe('Vehicle Photos & Media Integration Suite', () => {
   });
 
   afterAll(async () => {
+    if (franchiseId) {
+      try {
+        await prisma.vehicle.deleteMany({ where: { branch: { franchiseId } } });
+        await prisma.employeeRoleAssignment.deleteMany({ where: { employee: { branch: { franchiseId } } } });
+        await prisma.employee.deleteMany({ where: { branch: { franchiseId } } });
+        await prisma.branch.deleteMany({ where: { franchiseId } });
+        await prisma.franchise.deleteMany({ where: { id: franchiseId } });
+        await prisma.user.deleteMany({ where: { email: { contains: `${ts}` } } });
+      } catch (err) {
+        // cleanup error ignored
+      }
+    }
     await app.close();
   });
 

@@ -1,16 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/app/providers/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
-import { Lock, Mail, ArrowRight, User, Sparkles, CheckCircle2 } from 'lucide-react';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { Lock, Mail, ArrowRight, User, Sparkles, CheckCircle2, AlertCircle } from 'lucide-react';
 import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
 
 export const CustomerLoginPage: React.FC = () => {
   const { login, isLoading } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
-  const [emailOrPhone, setEmailOrPhone] = useState('');
+  const queryEmail = searchParams.get('email') || searchParams.get('emailOrPhone') || '';
+  const [emailOrPhone, setEmailOrPhone] = useState(queryEmail);
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (queryEmail && !emailOrPhone) {
+      setEmailOrPhone(queryEmail);
+    }
+  }, [queryEmail]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,8 +107,63 @@ export const CustomerLoginPage: React.FC = () => {
             </div>
 
             {errorMsg && (
-              <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium text-center">
-                {errorMsg}
+              <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 text-xs font-medium space-y-2 shadow-xs">
+                <p className="text-center font-semibold">{errorMsg}</p>
+                {(errorMsg.toLowerCase().includes('dealership') ||
+                  errorMsg.toLowerCase().includes('staff') ||
+                  errorMsg.toLowerCase().includes('enterprise operations') ||
+                  errorMsg.toLowerCase().includes('organization')) && (
+                  <div className="text-center pt-1">
+                    <Link
+                      to={`/login/organization?email=${encodeURIComponent(emailOrPhone)}`}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#111111] hover:bg-zinc-800 text-white font-bold rounded-xl text-xs transition-colors shadow-xs"
+                    >
+                      <span>Switch to Enterprise Operations Portal</span>
+                      <ArrowRight className="w-3.5 h-3.5 text-[#F5A800]" />
+                    </Link>
+                  </div>
+                )}
+                {errorMsg.toLowerCase().includes('activate') && (
+                  <div className="text-center pt-1">
+                    <Link
+                      to={`/activate-account?emailOrPhone=${encodeURIComponent(emailOrPhone)}`}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#111111] hover:bg-zinc-800 text-white font-bold rounded-xl text-xs transition-colors shadow-xs"
+                    >
+                      <span>Activate Your Account Now</span>
+                      <ArrowRight className="w-3.5 h-3.5 text-[#F5A800]" />
+                    </Link>
+                  </div>
+                )}
+                {errorMsg.toLowerCase().includes('already exists') && (
+                  <p className="text-[11px] text-amber-800 text-center">
+                    This account is registered with a password. Please enter your password below to sign in, or click "Forgot Password?" to reset it.
+                  </p>
+                )}
+                {errorMsg.toLowerCase().includes('google') && (
+                  <div className="text-center pt-1 space-y-1.5">
+                    <p className="text-[11px] text-amber-900 font-semibold">
+                      Please use the Google Sign-In button above, or click below to establish an email password:
+                    </p>
+                    <Link
+                      to={`/forgot-password?emailOrPhone=${encodeURIComponent(emailOrPhone)}`}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#111111] hover:bg-zinc-800 text-white font-bold rounded-xl text-xs transition-colors shadow-xs"
+                    >
+                      <span>Reset / Set Account Password</span>
+                      <ArrowRight className="w-3.5 h-3.5 text-[#F5A800]" />
+                    </Link>
+                  </div>
+                )}
+                {errorMsg.toLowerCase().includes('invalid') && !errorMsg.toLowerCase().includes('google') && (
+                  <div className="text-center pt-1">
+                    <Link
+                      to={`/forgot-password?emailOrPhone=${encodeURIComponent(emailOrPhone)}`}
+                      className="text-xs font-semibold text-amber-900 underline hover:text-black inline-flex items-center gap-1"
+                    >
+                      <span>Forgot your password? Reset it here</span>
+                      <ArrowRight className="w-3 h-3 text-[#F5A800]" />
+                    </Link>
+                  </div>
+                )}
               </div>
             )}
 
@@ -183,6 +246,12 @@ export const CustomerLoginPage: React.FC = () => {
             </form>
 
             <div className="pt-4 border-t border-[#E5E5E5] space-y-2 text-center">
+              <div className="text-xs text-zinc-600">
+                Received an invitation?{' '}
+                <Link to="/activate-account" className="font-semibold text-amber-600 hover:text-amber-700 underline">
+                  Activate Account
+                </Link>
+              </div>
               <div className="text-xs text-zinc-600">
                 New customer?{' '}
                 <Link to="/register" className="font-semibold text-zinc-900 hover:text-[#F5A800] transition-colors underline">

@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '@/database/prisma.service';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
+import { RecordInvoicePaymentDto } from './dto/record-payment.dto';
 import { AuditService } from '../audit/audit.service';
 import { InvoiceStatus } from '@prisma/client';
 import { resolveUserScope } from '@/common/utils/scope.util';
@@ -392,7 +393,7 @@ export class InvoicesService {
 
   async recordPayment(
     id: string,
-    dto: { amount: number; paymentMethod?: string; transactionReference?: string },
+    dto: RecordInvoicePaymentDto,
     user: any,
   ) {
     const invoice = await this.findOne(id, user);

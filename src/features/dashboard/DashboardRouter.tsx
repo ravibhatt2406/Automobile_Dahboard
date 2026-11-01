@@ -9,6 +9,7 @@ import { SalesDashboard } from './SalesDashboard';
 import { ServiceAdvisorDashboard } from './ServiceAdvisorDashboard';
 import { MechanicDashboard } from './MechanicDashboard';
 import { CustomerDashboard } from './CustomerDashboard';
+import { AccessRestricted } from '@/components/feedback/AccessRestricted';
 
 export const DashboardRouter: React.FC = () => {
   const { activeRole } = useAuth();
@@ -33,6 +34,8 @@ export const DashboardRouter: React.FC = () => {
     case 'CUSTOMER':
       return <CustomerDashboard />;
     default:
-      return <SuperAdminDashboard />;
+      return (
+        <AccessRestricted reason="Your authenticated account does not have an active or valid operational role assigned. Please sign in with an authorized account or contact dealership administration." />
+      );
   }
 };

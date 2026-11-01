@@ -12,6 +12,7 @@ import {
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { InvoicesService } from './invoices.service';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
+import { RecordInvoicePaymentDto } from './dto/record-payment.dto';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
 import { TenantScopeGuard } from '@/common/guards/tenant-scope.guard';
@@ -92,7 +93,7 @@ export class InvoicesController {
   @ApiOperation({ summary: 'Record verified payment on invoice' })
   recordPayment(
     @Param('id') id: string,
-    @Body() dto: { amount: number; paymentMethod?: string; transactionReference?: string },
+    @Body() dto: RecordInvoicePaymentDto,
     @CurrentUser() user: any,
   ) {
     return this.invoicesService.recordPayment(id, dto, user);

@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
-import { CustomerType } from '@prisma/client';
+import { IsBoolean, IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { CustomerType, CustomerStatus } from '@prisma/client';
 
 export class CreateCustomerDto {
   @ApiProperty({ example: 'Apex Logistics Inc.' })
@@ -76,4 +76,9 @@ export class CreateCustomerDto {
   @IsString()
   @IsOptional()
   customerId?: string | null;
+
+  @ApiProperty({ example: true, required: false, default: true })
+  @IsBoolean()
+  @IsOptional()
+  sendInvitation?: boolean;
 }

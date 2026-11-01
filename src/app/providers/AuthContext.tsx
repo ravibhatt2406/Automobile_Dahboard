@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState } from 'react';
 import { UserProfile } from '@/types/auth';
-import { UserRole, ROLE_PERMISSIONS, RolePermissions, ROLE_RANKS } from '@/types/roles';
+import { UserRole, ROLE_PERMISSIONS, RolePermissions, ROLE_RANKS, ROLE_LABELS } from '@/types/roles';
 import { authService } from '@/services/auth.service';
 
 export function getAllowedSwitchRoles(user: UserProfile | null): UserRole[] {
@@ -53,7 +53,7 @@ interface AuthContextType {
   setActiveRole: (role: UserRole) => boolean;
   login: (emailOrPhone: string, password?: string, accountType?: 'customer' | 'organization') => Promise<UserProfile>;
   registerCustomer: (payload: { name: string; email: string; phone?: string; password: string; termsAccepted: boolean }) => Promise<UserProfile>;
-  loginWithGoogle: (credential: string) => Promise<UserProfile>;
+  loginWithGoogle: (credential: string, portal?: 'customer' | 'organization') => Promise<UserProfile>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<UserProfile | null>;
 }
@@ -61,15 +61,36 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function mapBackendUserToProfile(me: any): UserProfile {
-  const rawRoles: string[] = (me.roles as any[])?.map((r: any) => typeof r === 'string' ? r : r.name || r.role?.name) || [];
+  const rawRoles: string[] = (me.roles as any[])
+    ?.map((r: any) => typeof r === 'string' ? r : r.name || r.role?.name)
+    .filter((r: string) => r && Object.prototype.hasOwnProperty.call(ROLE_LABELS, r)) || [];
+
   if (me.accountType === 'CUSTOMER' || me.role === 'CUSTOMER') {
     if (!rawRoles.includes('CUSTOMER')) rawRoles.push('CUSTOMER');
   }
   const isCustomer = me.accountType === 'CUSTOMER' || me.role === 'CUSTOMER' || rawRoles.includes('CUSTOMER');
-  const roles: UserRole[] = rawRoles.length > 0 
-    ? (rawRoles as UserRole[]) 
-    : (isCustomer ? ['CUSTOMER'] : me.accountType === 'SUPER_ADMIN' ? ['SUPER_ADMIN'] : ['CUSTOMER']);
-  const activeRole: UserRole = isCustomer ? 'CUSTOMER' : (me.activeRole || roles[0] || 'SUPER_ADMIN');
+
+  let roles: UserRole[];
+  if (rawRoles.length > 0) {
+    roles = rawRoles as UserRole[];
+  } else if (isCustomer) {
+    roles = ['CUSTOMER'];
+  } else if (me.accountType === 'SUPER_ADMIN') {
+    roles = ['SUPER_ADMIN'];
+  } else {
+    roles = ['UNASSIGNED'];
+  }
+
+  let activeRole: UserRole;
+  if (isCustomer) {
+    activeRole = 'CUSTOMER';
+  } else if (me.activeRole && roles.includes(me.activeRole)) {
+    activeRole = me.activeRole;
+  } else if (roles.length > 0 && roles[0] !== 'UNASSIGNED') {
+    activeRole = roles[0];
+  } else {
+    activeRole = 'UNASSIGNED';
+  }
 
   return {
     id: me.id,
@@ -86,6 +107,8 @@ export function mapBackendUserToProfile(me: any): UserProfile {
     accountType: me.accountType,
     customerId: me.customerId || me.customerProfile?.id || me.customer?.id || null,
     customerProfile: me.customerProfile || me.customer || null,
+    employeeId: me.employeeId || me.employeeProfile?.id || me.employee?.id || null,
+    employeeProfile: me.employeeProfile || me.employee || null,
     preferredBranchId: me.customerProfile?.preferredBranchId || me.customer?.preferredBranchId || null,
   };
 }
@@ -97,7 +120,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (isAuth === 'false') return null;
     if (savedUserData) {
       try {
-        return JSON.parse(savedUserData);
+        const parsed = JSON.parse(savedUserData);
+        if (parsed && typeof parsed === 'object') {
+          return mapBackendUserToProfile(parsed);
+        }
       } catch {
         // fallback
       }
@@ -116,6 +142,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(authenticatedUser);
           localStorage.setItem('titan_is_authenticated', 'true');
           localStorage.setItem('titan_user_profile', JSON.stringify(authenticatedUser));
+          localStorage.setItem('titan_active_role', authenticatedUser.activeRole);
         } else {
           authService.logout();
           setUser(null);
@@ -124,8 +151,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  const activeRole: UserRole = user?.activeRole || 'SUPER_ADMIN';
-  const permissions: RolePermissions = ROLE_PERMISSIONS[activeRole] || ROLE_PERMISSIONS.CUSTOMER;
+  const activeRole: UserRole = user?.activeRole || 'UNASSIGNED';
+  const permissions: RolePermissions = ROLE_PERMISSIONS[activeRole] || ROLE_PERMISSIONS.UNASSIGNED;
   const allowedSwitchRoles = getAllowedSwitchRoles(user);
 
   const setActiveRole = (role: UserRole): boolean => {
@@ -148,7 +175,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (
     emailOrPhone: string,
     password?: string,
-    _accountType: 'customer' | 'organization' = 'organization'
+    accountType: 'customer' | 'organization' = 'organization'
   ): Promise<UserProfile> => {
     setIsLoading(true);
     const normalizedInput = emailOrPhone.toLowerCase().trim();
@@ -158,8 +185,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error('Password is required.');
     }
 
+    // Clear any previous stale session before storing new authentication
+    localStorage.removeItem('titan_active_role');
+    localStorage.removeItem('titan_active_branch_id');
+    localStorage.removeItem('titan_active_franchise_id');
+    localStorage.removeItem('titan_user_profile');
+
     try {
-      const loginRes = await authService.login({ emailOrPhone: normalizedInput, password });
+      const loginRes = await authService.login({
+        emailOrPhone: normalizedInput,
+        password,
+        portal: accountType,
+      });
       const backendUser: any = loginRes?.user;
 
       if (!backendUser) {
@@ -167,6 +204,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       const authenticatedUser = mapBackendUserToProfile(backendUser);
+
+      // Validate portal authorization on client
+      if (accountType === 'customer') {
+        const isAuthorizedCustomer =
+          authenticatedUser.accountType === 'CUSTOMER' ||
+          authenticatedUser.roles.includes('CUSTOMER') ||
+          !!authenticatedUser.customerProfile ||
+          !!authenticatedUser.customerId;
+
+        if (!isAuthorizedCustomer) {
+          await logout();
+          throw new Error(
+            'This account belongs to dealership staff. Please sign in through the Enterprise Operations Portal (/login/organization).'
+          );
+        }
+      } else if (accountType === 'organization') {
+        const isAuthorizedOrg =
+          authenticatedUser.accountType !== 'CUSTOMER' ||
+          authenticatedUser.roles.some((r) => r !== 'CUSTOMER') ||
+          !!authenticatedUser.employeeProfile;
+
+        if (!isAuthorizedOrg) {
+          await logout();
+          throw new Error(
+            'This account is registered for customer access. Please sign in through the Client Portal (/login/customer).'
+          );
+        }
+      }
 
       setUser(authenticatedUser);
       localStorage.setItem('titan_is_authenticated', 'true');
@@ -206,10 +271,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const loginWithGoogle = async (credential: string): Promise<UserProfile> => {
+  const loginWithGoogle = async (credential: string, portal?: 'customer' | 'organization'): Promise<UserProfile> => {
     setIsLoading(true);
     try {
-      const res = await authService.loginWithGoogle(credential);
+      const res = await authService.loginWithGoogle(credential, portal);
       if (!res.user) {
         throw new Error('Google authentication succeeded but profile could not be loaded.');
       }

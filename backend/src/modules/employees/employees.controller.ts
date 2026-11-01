@@ -88,6 +88,13 @@ export class EmployeesController {
     return this.employeesService.deactivate(id, user);
   }
 
+  @Post(':id/resend-invite')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'FRANCHISE_MANAGER', 'BRANCH_OWNER', 'BRANCH_MANAGER')
+  @ApiOperation({ summary: 'Resend activation invitation to employee' })
+  async resendInvite(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.employeesService.resendInvitation(id, user);
+  }
+
   @Patch(':id')
   @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'FRANCHISE_MANAGER', 'BRANCH_OWNER', 'BRANCH_MANAGER')
   @ApiOperation({ summary: 'Update employee details (Branch transfer forbidden)' })

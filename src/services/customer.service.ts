@@ -99,4 +99,11 @@ export const customerService = {
     });
     return unwrapData<Customer>(res);
   },
+
+  async resendInvitation(id: string): Promise<any> {
+    const res = await apiFetch<any>(`/customers/${id}/resend-invite`, {
+      method: 'POST',
+    });
+    return unwrapData<any>(res);
+  },
 };

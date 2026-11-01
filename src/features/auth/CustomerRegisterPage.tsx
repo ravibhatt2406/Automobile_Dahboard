@@ -87,10 +87,9 @@ export const CustomerRegisterPage: React.FC = () => {
       }
     } catch (err: any) {
       const msg = err?.message || 'Registration failed. Please verify your details.';
+      setGeneralError(msg);
       if (msg.toLowerCase().includes('already exists') || msg.toLowerCase().includes('email')) {
         setFieldErrors((prev) => ({ ...prev, email: msg }));
-      } else {
-        setGeneralError(msg);
       }
     }
   };
@@ -169,9 +168,38 @@ export const CustomerRegisterPage: React.FC = () => {
             </div>
 
             {generalError && (
-              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{generalError}</span>
+              <div className="p-3.5 rounded-2xl bg-amber-50/90 border border-amber-300 text-amber-950 text-xs space-y-2 shadow-xs">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-amber-700 mt-0.5" />
+                  <span className="font-semibold">{generalError}</span>
+                </div>
+                {generalError.toLowerCase().includes('pending activation') ? (
+                  <div className="pt-1 flex items-center gap-2">
+                    <Link
+                      to={`/activate-account?emailOrPhone=${encodeURIComponent(formData.email)}`}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#111111] hover:bg-zinc-800 text-white font-bold rounded-xl text-xs transition-colors"
+                    >
+                      <span>Activate Account Now</span>
+                      <ArrowRight className="w-3.5 h-3.5 text-[#F5A800]" />
+                    </Link>
+                  </div>
+                ) : generalError.toLowerCase().includes('already exists') || generalError.toLowerCase().includes('please log in') ? (
+                  <div className="pt-1 flex flex-wrap items-center gap-2">
+                    <Link
+                      to={`/login/customer?email=${encodeURIComponent(formData.email)}`}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#111111] hover:bg-zinc-800 text-white font-bold rounded-xl text-xs transition-colors"
+                    >
+                      <span>Sign In with Password</span>
+                      <ArrowRight className="w-3.5 h-3.5 text-[#F5A800]" />
+                    </Link>
+                    <Link
+                      to={`/forgot-password?email=${encodeURIComponent(formData.email)}`}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-900 font-semibold rounded-xl text-xs transition-colors"
+                    >
+                      Reset Password
+                    </Link>
+                  </div>
+                ) : null}
               </div>
             )}
 

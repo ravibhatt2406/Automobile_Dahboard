@@ -41,16 +41,26 @@ export const QuotationsListPage: React.FC = () => {
   });
 
   const columns: Column<Quotation>[] = [
-    { header: 'Quote #', accessorKey: 'quotationNumber', className: 'font-mono text-xs font-semibold text-blue-600' },
-    { header: 'Customer', accessorKey: 'customerName' },
-    { header: 'Vehicle Spec', accessorKey: 'vehicleModel' },
+    { header: 'Quote #', accessorKey: 'quotationNumber', className: 'font-mono text-xs font-semibold text-zinc-900' },
+    {
+      header: 'Customer',
+      cell: (row) => (row as any).customer?.companyName || (row as any).customer?.name || (row as any).customerName || 'N/A',
+    },
+    {
+      header: 'Vehicle Spec',
+      cell: (row) => (row as any).variant?.name || (row as any).vehicleModel || 'Commercial Truck',
+    },
+    {
+      header: 'Branch',
+      cell: (row) => (row as any).branch?.name || '--',
+    },
     {
       header: 'Line Items',
       cell: (row) => `${row.items ? row.items.length : 1} items`,
     },
     {
       header: 'Total Amount',
-      cell: (row) => `₹${row.totalAmount.toLocaleString()}`,
+      cell: (row) => `₹${Number(row.totalAmount || 0).toLocaleString()}`,
     },
     {
       header: 'Status',

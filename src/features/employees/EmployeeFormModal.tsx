@@ -90,7 +90,6 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
       await onSubmit({
         email: data.email,
         phone: data.phone || undefined,
-        password: data.password || 'Password123!',
         firstName: data.firstName,
         lastName: data.lastName,
         branchId: data.branchId,
@@ -207,17 +206,14 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
               </div>
 
               {!isEditing && (
-                <div>
-                  <label className="block text-slate-400 mb-1">Initial Password</label>
-                  <input
-                    type="password"
-                    {...register('password')}
-                    placeholder="Leave blank for default (Password123!)"
-                    className="w-full h-9 px-3 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 focus:border-blue-500"
-                  />
-                  {errors.password && (
-                    <p className="text-rose-400 text-[11px] mt-1">{errors.password.message}</p>
-                  )}
+                <div className="p-3.5 rounded-xl bg-blue-950/40 border border-blue-500/30 text-blue-200 text-xs space-y-1.5">
+                  <div className="font-bold flex items-center gap-2 text-blue-400">
+                    <Shield className="w-4 h-4 text-blue-400" />
+                    <span>Secure Account Activation</span>
+                  </div>
+                  <p className="text-[11px] text-slate-300 leading-relaxed">
+                    Administrators do not create or share passwords. The employee will receive an invitation via email and SMS with a single-use verification token to establish their own private password.
+                  </p>
                 </div>
               )}
 

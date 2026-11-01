@@ -8,6 +8,8 @@ import {
 import { PrismaService } from '@/database/prisma.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { AuditService } from '../audit/audit.service';
+import { AuthService } from '../auth/auth.service';
+import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { resolveUserScope } from '@/common/utils/scope.util';
 
 @Injectable()
@@ -15,6 +17,7 @@ export class CustomersService {
   constructor(
     private prisma: PrismaService,
     private auditService: AuditService,
+    private authService: AuthService,
   ) {}
 
   async create(dto: CreateCustomerDto, userOrId: any) {
@@ -262,8 +265,13 @@ export class CustomersService {
       : (dto.companyName?.trim() || undefined);
 
     // 2. Duplicate Detection
-    const existingByPhone = await this.prisma.customer.findFirst({
-      where: { phone: cleanPhone },
+    const phoneDigits = cleanPhone.replace(/\D/g, '').slice(-10);
+    const existingCustomers = await this.prisma.customer.findMany({
+      select: { id: true, name: true, phone: true },
+    });
+    const existingByPhone = existingCustomers.find((c) => {
+      const cDigits = (c.phone || '').replace(/\D/g, '').slice(-10);
+      return phoneDigits.length >= 7 && cDigits === phoneDigits;
     });
     if (existingByPhone) {
       throw new ConflictException(
@@ -390,6 +398,10 @@ export class CustomersService {
         branchId: assignedBranchId,
       },
     }).catch(() => {});
+
+    if (dto.sendInvitation !== false && (customer.email || customer.phone)) {
+      await this.authService.sendActivationInvitation(customer.id, actorUserId).catch(() => {});
+    }
 
     return customer;
   }
@@ -738,11 +750,65 @@ export class CustomersService {
     return customer;
   }
 
-  async update(id: string, dto: Partial<CreateCustomerDto>, userOrId: any) {
+  async update(id: string, dto: UpdateCustomerDto, userOrId: any) {
     const actorUserId = typeof userOrId === 'object' ? userOrId.id : userOrId;
     const user = typeof userOrId === 'object' ? userOrId : null;
 
     const existing = await this.findOne(id, user);
+
+    const name = dto.name !== undefined ? dto.name.trim() : undefined;
+    if (name !== undefined && name.length < 2) {
+      throw new BadRequestException('Customer name must be at least 2 characters');
+    }
+
+    let cleanPhone: string | undefined = undefined;
+    if (dto.phone !== undefined) {
+      const rawPhone = dto.phone.trim();
+      cleanPhone = rawPhone.replace(/\s+/g, '');
+      if (!/^[+]?[\d-]{7,16}$/.test(cleanPhone)) {
+        throw new BadRequestException('Invalid phone number format. Must be 7-16 digits.');
+      }
+      const dupPhone = await this.prisma.customer.findFirst({
+        where: { phone: cleanPhone, NOT: { id: existing.id } },
+      });
+      if (dupPhone) {
+        throw new ConflictException(`Phone number '${cleanPhone}' is already associated with another customer (${dupPhone.name}).`);
+      }
+    }
+
+    let cleanEmail: string | null | undefined = undefined;
+    if (dto.email !== undefined) {
+      if (dto.email && dto.email.trim() !== '') {
+        cleanEmail = dto.email.trim().toLowerCase();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+          throw new BadRequestException('Invalid email address format');
+        }
+        const dupEmail = await this.prisma.customer.findFirst({
+          where: { email: { equals: cleanEmail, mode: 'insensitive' }, NOT: { id: existing.id } },
+        });
+        if (dupEmail) {
+          throw new ConflictException(`Email address '${cleanEmail}' is already associated with another customer (${dupEmail.name}).`);
+        }
+      } else {
+        cleanEmail = null;
+      }
+    }
+
+    const cleanGstin = dto.gstin !== undefined ? (dto.gstin?.trim() ? dto.gstin.trim().toUpperCase() : null) : undefined;
+    if (cleanGstin && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(cleanGstin)) {
+      throw new BadRequestException('Invalid GSTIN format (must be 15 alphanumeric characters)');
+    }
+
+    const cleanPan = dto.pan !== undefined ? (dto.pan?.trim() ? dto.pan.trim().toUpperCase() : null) : undefined;
+    if (cleanPan && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(cleanPan)) {
+      throw new BadRequestException('Invalid PAN format (must be 10 characters)');
+    }
+
+    const customerType = dto.customerType || existing.customerType;
+    let companyName = dto.companyName !== undefined ? dto.companyName.trim() : undefined;
+    if (customerType === 'BUSINESS' && !companyName && !existing.companyName) {
+      companyName = name || existing.name;
+    }
 
     let preferredBranchIdUpdate: string | null | undefined = undefined;
     if ('preferredBranchId' in dto) {
@@ -775,18 +841,22 @@ export class CustomersService {
       }
     }
 
+    // Update customer record
     const updated = await this.prisma.customer.update({
       where: { id: existing.id },
       data: {
-        name: dto.name,
-        phone: dto.phone,
-        email: dto.email,
-        address: dto.address,
-        city: dto.city,
-        state: dto.state,
-        pincode: dto.pincode,
-        gstin: dto.gstin,
-        companyName: dto.companyName,
+        ...(name !== undefined ? { name } : {}),
+        ...(cleanPhone !== undefined ? { phone: cleanPhone } : {}),
+        ...(cleanEmail !== undefined ? { email: cleanEmail } : {}),
+        ...(dto.customerType !== undefined ? { customerType: dto.customerType } : {}),
+        ...(companyName !== undefined ? { companyName } : {}),
+        ...(dto.address !== undefined ? { address: dto.address?.trim() || null } : {}),
+        ...(dto.city !== undefined ? { city: dto.city?.trim() || null } : {}),
+        ...(dto.state !== undefined ? { state: dto.state?.trim() || null } : {}),
+        ...(dto.pincode !== undefined ? { pincode: dto.pincode?.trim() || null } : {}),
+        ...(cleanGstin !== undefined ? { gstin: cleanGstin } : {}),
+        ...(cleanPan !== undefined ? { pan: cleanPan } : {}),
+        ...(dto.status !== undefined ? { status: dto.status } : {}),
         ...(preferredBranchIdUpdate !== undefined ? { preferredBranchId: preferredBranchIdUpdate } : {}),
       },
       include: {
@@ -794,15 +864,47 @@ export class CustomersService {
       },
     });
 
+    // Synchronize linked User account credentials if phone/email changed and prevent duplicate login account
+    if (existing.userId && (cleanEmail !== undefined || cleanPhone !== undefined)) {
+      if (cleanEmail) {
+        const dupUserEmail = await this.prisma.user.findFirst({
+          where: { email: cleanEmail, NOT: { id: existing.userId } },
+        });
+        if (dupUserEmail) {
+          throw new ConflictException(`A login user account already exists with email '${cleanEmail}'.`);
+        }
+      }
+      if (cleanPhone) {
+        const dupUserPhone = await this.prisma.user.findFirst({
+          where: { phone: cleanPhone, NOT: { id: existing.userId } },
+        });
+        if (dupUserPhone) {
+          throw new ConflictException(`A login user account already exists with phone '${cleanPhone}'.`);
+        }
+      }
+      await this.prisma.user.update({
+        where: { id: existing.userId },
+        data: {
+          ...(cleanEmail ? { email: cleanEmail } : {}),
+          ...(cleanPhone ? { phone: cleanPhone } : {}),
+        },
+      }).catch(() => {});
+    }
+
     await this.auditService.log({
       actorUserId,
       action: 'CUSTOMER_UPDATED',
       entityType: 'Customer',
       entityId: id,
-      metadata: { name: dto.name, preferredBranchId: preferredBranchIdUpdate },
+      metadata: { name: updated.name, phone: updated.phone, email: updated.email },
     }).catch(() => {});
 
     return updated;
+  }
+
+  async resendInvitation(id: string, user: any) {
+    const customer = await this.findOne(id, user);
+    return this.authService.sendActivationInvitation(customer.id, user?.id);
   }
 
   async deactivate(id: string, userOrId: any) {

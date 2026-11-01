@@ -8,6 +8,8 @@ import { TenantScopeGuard } from '@/common/guards/tenant-scope.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 
+import { UpdateCustomerDto } from './dto/update-customer.dto';
+
 @ApiTags('Customers')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard, TenantScopeGuard)
@@ -83,14 +85,21 @@ export class CustomersController {
   }
 
   @Patch(':id')
-  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'FRANCHISE_MANAGER', 'BRANCH_OWNER', 'BRANCH_MANAGER', 'CUSTOMER')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'FRANCHISE_MANAGER', 'BRANCH_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE', 'CUSTOMER')
   @ApiOperation({ summary: 'Update customer details' })
   async update(
     @Param('id') id: string,
-    @Body() dto: Partial<CreateCustomerDto>,
+    @Body() dto: UpdateCustomerDto,
     @CurrentUser() user: any,
   ) {
     return this.customersService.update(id, dto, user);
+  }
+
+  @Post(':id/resend-invite')
+  @Roles('SUPER_ADMIN', 'FRANCHISE_OWNER', 'FRANCHISE_MANAGER', 'BRANCH_OWNER', 'BRANCH_MANAGER', 'SALES_EMPLOYEE')
+  @ApiOperation({ summary: 'Send or resend customer account activation invitation' })
+  async resendInvite(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.customersService.resendInvitation(id, user);
   }
 
   @Patch(':id/deactivate')

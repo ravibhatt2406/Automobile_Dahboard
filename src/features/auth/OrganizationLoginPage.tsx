@@ -1,16 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/app/providers/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { Lock, Mail, ArrowRight, Building, Sparkles, ShieldCheck } from 'lucide-react';
 import { UserRole } from '@/types/roles';
 
 export const OrganizationLoginPage: React.FC = () => {
   const { login, isLoading } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
-  const [emailOrPhone, setEmailOrPhone] = useState('');
+  const queryEmail = searchParams.get('email') || searchParams.get('emailOrPhone') || '';
+  const [emailOrPhone, setEmailOrPhone] = useState(queryEmail);
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (queryEmail && !emailOrPhone) {
+      setEmailOrPhone(queryEmail);
+    }
+  }, [queryEmail]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,8 +115,41 @@ export const OrganizationLoginPage: React.FC = () => {
             </div>
 
             {errorMsg && (
-              <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium text-center">
-                {errorMsg}
+              <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 text-xs font-medium space-y-2 shadow-xs">
+                <p className="text-center font-semibold">{errorMsg}</p>
+                {(errorMsg.toLowerCase().includes('customer') || errorMsg.toLowerCase().includes('client portal')) && (
+                  <div className="text-center pt-1">
+                    <Link
+                      to={`/login/customer?email=${encodeURIComponent(emailOrPhone)}`}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#111111] hover:bg-zinc-800 text-white font-bold rounded-xl text-xs transition-colors shadow-xs"
+                    >
+                      <span>Switch to Customer Portal</span>
+                      <ArrowRight className="w-3.5 h-3.5 text-[#F5A800]" />
+                    </Link>
+                  </div>
+                )}
+                {errorMsg.toLowerCase().includes('activate') && (
+                  <div className="text-center pt-1">
+                    <Link
+                      to={`/activate-employee?emailOrPhone=${encodeURIComponent(emailOrPhone)}`}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#111111] hover:bg-zinc-800 text-white font-bold rounded-xl text-xs transition-colors shadow-xs"
+                    >
+                      <span>Activate Your Employee Account</span>
+                      <ArrowRight className="w-3.5 h-3.5 text-[#F5A800]" />
+                    </Link>
+                  </div>
+                )}
+                {errorMsg.toLowerCase().includes('invalid') && (
+                  <div className="text-center pt-1">
+                    <Link
+                      to={`/forgot-password?emailOrPhone=${encodeURIComponent(emailOrPhone)}`}
+                      className="text-xs font-semibold text-amber-900 underline hover:text-black inline-flex items-center gap-1"
+                    >
+                      <span>Forgot your password? Reset it here</span>
+                      <ArrowRight className="w-3 h-3 text-[#F5A800]" />
+                    </Link>
+                  </div>
+                )}
               </div>
             )}
 

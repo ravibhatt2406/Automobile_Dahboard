@@ -1,10 +1,13 @@
 import React from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { User, Building, ArrowRight, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export const AccountTypeSelectionPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const queryEmail = searchParams.get('email') || searchParams.get('emailOrPhone') || '';
+  const emailParam = queryEmail ? `?email=${encodeURIComponent(queryEmail)}` : '';
 
   return (
     <div className="min-h-screen bg-[#F7F7F5] flex flex-col justify-between p-4 lg:p-8 font-sans">
@@ -50,7 +53,7 @@ export const AccountTypeSelectionPage: React.FC = () => {
           <motion.div
             whileHover={{ y: -4, scale: 1.01 }}
             transition={{ duration: 0.2 }}
-            onClick={() => navigate('/login/customer')}
+            onClick={() => navigate(`/login/customer${emailParam}`)}
             className="group cursor-pointer rounded-3xl bg-white border border-[#E5E5E5] p-8 lg:p-10 shadow-xl hover:shadow-2xl hover:border-amber-500/50 transition-all flex flex-col justify-between relative overflow-hidden"
           >
             <div className="space-y-6 relative z-10">
@@ -98,7 +101,7 @@ export const AccountTypeSelectionPage: React.FC = () => {
           <motion.div
             whileHover={{ y: -4, scale: 1.01 }}
             transition={{ duration: 0.2 }}
-            onClick={() => navigate('/login/organization')}
+            onClick={() => navigate(`/login/organization${emailParam}`)}
             className="group cursor-pointer rounded-3xl bg-[#111111] text-white border border-zinc-800 p-8 lg:p-10 shadow-xl hover:shadow-2xl hover:border-[#F5A800]/50 transition-all flex flex-col justify-between relative overflow-hidden"
           >
             <div className="space-y-6 relative z-10">

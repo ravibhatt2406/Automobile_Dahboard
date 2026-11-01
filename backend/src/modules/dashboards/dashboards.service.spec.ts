@@ -33,8 +33,8 @@ describe('DashboardsService Unit & Scope Enforcement Tests', () => {
       },
       booking: {
         count: jest.fn(),
-        aggregate: jest.fn(),
-        findMany: jest.fn(),
+        aggregate: jest.fn().mockResolvedValue({ _sum: { totalAmount: 0 } }),
+        findMany: jest.fn().mockResolvedValue([]),
       },
       serviceJob: {
         count: jest.fn(),
@@ -59,6 +59,31 @@ describe('DashboardsService Unit & Scope Enforcement Tests', () => {
       },
       invoice: {
         findMany: jest.fn(),
+      },
+      payment: {
+        aggregate: jest.fn().mockResolvedValue({ _sum: { amount: 0, totalAmount: 0 } }),
+      },
+      followUp: {
+        count: jest.fn().mockResolvedValue(0),
+      },
+      campaign: {
+        count: jest.fn().mockResolvedValue(0),
+        aggregate: jest.fn().mockResolvedValue({ _sum: { budget: 0 } }),
+      },
+      campaignExpense: {
+        aggregate: jest.fn().mockResolvedValue({ _sum: { amount: 0 } }),
+      },
+      delivery: {
+        count: jest.fn().mockResolvedValue(0),
+      },
+      vehicleComplianceDocument: {
+        count: jest.fn().mockResolvedValue(0),
+      },
+      financeApplication: {
+        count: jest.fn().mockResolvedValue(0),
+      },
+      financeEmiSchedule: {
+        count: jest.fn().mockResolvedValue(0),
       },
     };
 
@@ -147,6 +172,8 @@ describe('DashboardsService Unit & Scope Enforcement Tests', () => {
         franchiseId: 'fran-1',
       };
 
+      prisma.franchise.findFirst.mockResolvedValue({ id: 'fran-2' });
+
       await expect(service.getFranchiseDashboard('fran-2', user)).rejects.toThrow(
         ForbiddenException,
       );
@@ -161,13 +188,15 @@ describe('DashboardsService Unit & Scope Enforcement Tests', () => {
         branchId: 'br-1',
       };
 
-      prisma.branch.findUnique.mockResolvedValue({
+      const branchData = {
         id: 'br-1',
         name: 'Chennai Central Hub',
         code: 'BR-CHN-01',
         city: 'Chennai',
         franchise: { id: 'fran-1', name: 'Apex Trucks South', code: 'FRAN-APX-S' },
-      });
+      };
+      prisma.branch.findFirst.mockResolvedValue(branchData);
+      prisma.branch.findUnique.mockResolvedValue(branchData);
       prisma.vehicle.count
         .mockResolvedValueOnce(18) // in stock
         .mockResolvedValueOnce(25); // total
@@ -203,6 +232,8 @@ describe('DashboardsService Unit & Scope Enforcement Tests', () => {
         branchId: 'br-1',
       };
 
+      prisma.branch.findFirst.mockResolvedValue({ id: 'br-2', code: 'BR-02' });
+
       await expect(service.getBranchDashboard('br-2', user)).rejects.toThrow(
         ForbiddenException,
       );
@@ -215,6 +246,11 @@ describe('DashboardsService Unit & Scope Enforcement Tests', () => {
         franchiseId: 'fran-1',
       };
 
+      prisma.branch.findFirst.mockResolvedValue({
+        id: 'br-99',
+        franchiseId: 'fran-OTHER',
+        name: 'Unrelated Branch',
+      });
       prisma.branch.findUnique.mockResolvedValue({
         id: 'br-99',
         franchiseId: 'fran-OTHER',

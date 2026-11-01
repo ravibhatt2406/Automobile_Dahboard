@@ -35,6 +35,7 @@ declare global {
 }
 
 interface GoogleSignInButtonProps {
+  portal?: 'customer' | 'organization';
   text?: 'signin_with' | 'signup_with' | 'continue_with' | 'signin';
   theme?: 'outline' | 'filled_blue' | 'filled_black';
   shape?: 'rectangular' | 'pill';
@@ -44,6 +45,7 @@ interface GoogleSignInButtonProps {
 }
 
 export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
+  portal = 'customer',
   text = 'signin_with',
   theme = 'outline',
   shape = 'rectangular',
@@ -72,7 +74,7 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
     setErrorMessage(null);
 
     try {
-      const authed = await loginWithGoogle(response.credential);
+      const authed = await loginWithGoogle(response.credential, portal);
       if (onSuccess) {
         onSuccess();
       } else {

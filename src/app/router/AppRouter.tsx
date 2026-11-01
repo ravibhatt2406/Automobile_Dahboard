@@ -21,6 +21,12 @@ const OrganizationLoginPage = lazy(() =>
 const ForgotPasswordPage = lazy(() =>
   import('@/features/auth/ForgotPasswordPage').then((m) => ({ default: m.ForgotPasswordPage }))
 );
+const CustomerActivationPage = lazy(() =>
+  import('@/features/auth/CustomerActivationPage').then((m) => ({ default: m.CustomerActivationPage }))
+);
+const EmployeeActivationPage = lazy(() =>
+  import('@/features/auth/EmployeeActivationPage').then((m) => ({ default: m.EmployeeActivationPage }))
+);
 const DashboardRouter = lazy(() =>
   import('@/features/dashboard/DashboardRouter').then((m) => ({ default: m.DashboardRouter }))
 );
@@ -218,6 +224,9 @@ export const AppRouter: React.FC = () => {
           <Route path="/register" element={<CustomerRegisterPage />} />
           <Route path="/register/customer" element={<CustomerRegisterPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/activate" element={<CustomerActivationPage />} />
+          <Route path="/activate-account" element={<CustomerActivationPage />} />
+          <Route path="/activate-employee" element={<EmployeeActivationPage />} />
 
           {/* Authenticated Application Shell */}
           <Route element={<AppShell />}>

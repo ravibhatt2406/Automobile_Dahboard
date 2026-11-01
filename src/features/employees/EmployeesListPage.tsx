@@ -4,7 +4,7 @@ import { DataTable, Column } from '@/components/data-display/DataTable';
 import { Employee } from '@/types/domain';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { employeeService, CreateEmployeePayload } from '@/services/employee.service';
-import { UserPlus, Eye, ShieldCheck, UserX, Download, Upload, RefreshCw } from 'lucide-react';
+import { UserPlus, Eye, ShieldCheck, UserX, Download, Upload, RefreshCw, Send } from 'lucide-react';
 import { StatusBadge } from '@/components/data-display/StatusBadge';
 import { useAuth } from '@/app/providers/AuthContext';
 import { EmployeeFormModal } from './EmployeeFormModal';
@@ -72,6 +72,26 @@ export const EmployeesListPage: React.FC = () => {
     },
   });
 
+  const [resendingId, setResendingId] = useState<string | null>(null);
+
+  const resendInviteMutation = useMutation({
+    mutationFn: (id: string) => employeeService.resendInvitation(id),
+    onSuccess: (res) => {
+      alert(res?.message || 'Activation invitation resent successfully.');
+    },
+    onError: (err: any) => {
+      alert(err?.message || 'Failed to resend activation invitation.');
+    },
+    onSettled: () => {
+      setResendingId(null);
+    },
+  });
+
+  const handleResendInvite = async (id: string) => {
+    setResendingId(id);
+    await resendInviteMutation.mutateAsync(id);
+  };
+
   const handleCreate = () => {
     setEditingEmployee(null);
     setIsModalOpen(true);
@@ -135,6 +155,16 @@ export const EmployeesListPage: React.FC = () => {
           >
             <Eye className="w-3.5 h-3.5" /> Details
           </button>
+          {canManage && (row.status === 'pending_approval' || (row as any).user?.status === 'PENDING') && (
+            <button
+              onClick={() => handleResendInvite(row.id)}
+              disabled={resendingId === row.id}
+              className="inline-flex items-center gap-1 text-amber-600 hover:text-amber-800 font-semibold disabled:opacity-50"
+              title="Resend Activation Invite"
+            >
+              <Send className="w-3.5 h-3.5" /> {resendingId === row.id ? 'Sending...' : 'Invite'}
+            </button>
+          )}
           {canManage && row.status !== 'inactive' && (
             <button
               onClick={() => handleDeactivate(row.id)}

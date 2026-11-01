@@ -5,7 +5,7 @@ import { apiFetch, unwrapData } from './apiClient';
 export interface CreateEmployeePayload {
   email: string;
   phone?: string;
-  password: string;
+  password?: string;
   firstName: string;
   lastName: string;
   branchId: string;
@@ -131,6 +131,13 @@ export const employeeService = {
   async deactivateEmployee(id: string): Promise<{ success: boolean; message: string }> {
     const res = await apiFetch<any>(`/employees/${id}/deactivate`, {
       method: 'PATCH',
+    });
+    return unwrapData<{ success: boolean; message: string }>(res);
+  },
+
+  async resendInvitation(id: string): Promise<{ success: boolean; message: string }> {
+    const res = await apiFetch<any>(`/employees/${id}/resend-invite`, {
+      method: 'POST',
     });
     return unwrapData<{ success: boolean; message: string }>(res);
   },

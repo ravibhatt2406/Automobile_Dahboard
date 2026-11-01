@@ -16,5 +16,10 @@ export class LoginDto {
   @IsString()
   @IsNotEmpty({ message: 'Password is required' })
   password: string;
+
+  @ApiProperty({ example: 'customer', description: 'Target portal (customer or organization)', required: false })
+  @IsOptional()
+  @IsString()
+  portal?: 'customer' | 'organization';
 }
 

@@ -279,11 +279,19 @@ export class ApprovalsService {
           data: { status: 'ACTIVE' },
         });
 
-        // 3. Activate User identity
-        await tx.user.update({
-          where: { id: request.employee.userId },
-          data: { status: 'ACTIVE' },
-        });
+        // 3. Activate User identity ONLY if user has established their own password
+        const userRec = await tx.user.findUnique({ where: { id: request.employee.userId } });
+        const isUnactivated =
+          !userRec?.passwordHash ||
+          userRec.passwordHash.includes('_unactivated_') ||
+          userRec.passwordHash.startsWith('!UNACTIVATED!') ||
+          !userRec.passwordHash.startsWith('$2');
+        if (!isUnactivated) {
+          await tx.user.update({
+            where: { id: request.employee.userId },
+            data: { status: 'ACTIVE' },
+          });
+        }
 
         // 4. Update Approval Request
         const updatedRequest = await tx.employeeApprovalRequest.update({

@@ -17,6 +17,8 @@ export interface UserProfile {
   createdAt?: string;
   customerId?: string | null;
   customerProfile?: any;
+  employeeId?: string | null;
+  employeeProfile?: any;
   preferredBranchId?: string | null;
 }
 

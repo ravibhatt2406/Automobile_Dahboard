@@ -4,6 +4,7 @@ import { apiFetch } from './apiClient';
 export interface LoginPayload {
   emailOrPhone: string;
   password: string;
+  portal?: 'customer' | 'organization';
 }
 
 export interface LoginResponse {
@@ -74,6 +75,7 @@ export const authService = {
       body: JSON.stringify({
         email: payload.emailOrPhone,
         password: payload.password,
+        portal: payload.portal,
       }),
     });
 
@@ -95,10 +97,10 @@ export const authService = {
     return { accessToken, refreshToken, user };
   },
 
-  async loginWithGoogle(credential: string): Promise<{ accessToken?: string; refreshToken?: string; user?: UserProfile }> {
+  async loginWithGoogle(credential: string, portal?: 'customer' | 'organization'): Promise<{ accessToken?: string; refreshToken?: string; user?: UserProfile }> {
     const response = await apiFetch<any>('/auth/google', {
       method: 'POST',
-      body: JSON.stringify({ credential }),
+      body: JSON.stringify({ credential, portal }),
     });
 
     const accessToken = response?.data?.accessToken || response?.accessToken;
@@ -132,14 +134,119 @@ export const authService = {
   },
 
   async forgotPassword(emailOrPhone: string): Promise<{ success: boolean; message: string }> {
-    try {
-      return await apiFetch('/auth/forgot-password', {
-        method: 'POST',
-        body: JSON.stringify({ emailOrPhone }),
-      });
-    } catch {
-      throw new Error('Password reset service unreachable.');
+    return await apiFetch('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ emailOrPhone }),
+    });
+  },
+
+  async resetPassword(payload: {
+    token?: string;
+    otp?: string;
+    emailOrPhone?: string;
+    password: string;
+  }): Promise<{ success: boolean; message: string }> {
+    return await apiFetch('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async activateCustomer(payload: {
+    token?: string;
+    otp?: string;
+    emailOrPhone?: string;
+    password: string;
+  }): Promise<{ accessToken?: string; refreshToken?: string; user?: any; message?: string }> {
+    const response = await apiFetch<any>('/auth/customer/activate', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+
+    const accessToken =
+      response?.data?.accessToken ||
+      response?.accessToken ||
+      response?.tokens?.accessToken ||
+      response?.data?.tokens?.accessToken;
+    const refreshToken =
+      response?.data?.refreshToken ||
+      response?.refreshToken ||
+      response?.tokens?.refreshToken ||
+      response?.data?.tokens?.refreshToken;
+    const user = response?.data?.user || response?.user;
+
+    if (accessToken) {
+      localStorage.setItem('titan_auth_token', accessToken);
+      localStorage.setItem('titan_is_authenticated', 'true');
     }
+    if (refreshToken) {
+      localStorage.setItem('titan_refresh_token', refreshToken);
+    }
+    if (user) {
+      const userProfile: UserProfile = {
+        id: user.id,
+        email: user.email,
+        phone: user.phone,
+        firstName: user.firstName || user.name?.split(' ')[0] || user.name || 'Customer',
+        lastName: user.lastName || user.name?.split(' ').slice(1).join(' ') || '',
+        roles: ['CUSTOMER'],
+        activeRole: 'CUSTOMER',
+      };
+      localStorage.setItem('titan_user_profile', JSON.stringify(userProfile));
+    }
+
+    return { accessToken, refreshToken, user, message: response?.message };
+  },
+
+  async resendCustomerActivation(emailOrPhone: string): Promise<{ success: boolean; message: string }> {
+    return await apiFetch('/auth/customer/resend-activation', {
+      method: 'POST',
+      body: JSON.stringify({ emailOrPhone }),
+    });
+  },
+
+  async activateEmployee(payload: {
+    token?: string;
+    otp?: string;
+    emailOrPhone?: string;
+    password: string;
+  }): Promise<{ accessToken?: string; refreshToken?: string; user?: any; message?: string }> {
+    const response = await apiFetch<any>('/auth/employee/activate', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+
+    const accessToken =
+      response?.data?.accessToken ||
+      response?.accessToken ||
+      response?.tokens?.accessToken ||
+      response?.data?.tokens?.accessToken;
+    const refreshToken =
+      response?.data?.refreshToken ||
+      response?.refreshToken ||
+      response?.tokens?.refreshToken ||
+      response?.data?.tokens?.refreshToken;
+    const user = response?.data?.user || response?.user;
+
+    if (accessToken) {
+      localStorage.setItem('titan_auth_token', accessToken);
+      localStorage.setItem('titan_is_authenticated', 'true');
+    }
+    if (refreshToken) {
+      localStorage.setItem('titan_refresh_token', refreshToken);
+    }
+    if (user) {
+      localStorage.setItem('titan_user_profile', JSON.stringify(user));
+    }
+
+    return { accessToken, refreshToken, user, message: response?.message };
+  },
+
+  async resendEmployeeActivation(emailOrPhone: string): Promise<{ success: boolean; message: string }> {
+    return await apiFetch('/auth/employee/resend-activation', {
+      method: 'POST',
+      body: JSON.stringify({ emailOrPhone }),
+    });
   },
 
   async getCurrentUser(): Promise<UserProfile | null> {

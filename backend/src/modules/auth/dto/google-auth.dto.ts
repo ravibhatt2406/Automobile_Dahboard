@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsIn, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class GoogleAuthDto {
   @ApiProperty({
@@ -9,4 +9,15 @@ export class GoogleAuthDto {
   @IsString()
   @IsNotEmpty({ message: 'Google credential ID token is required' })
   credential: string;
+
+  @ApiPropertyOptional({
+    description: 'Portal boundary through which the user is authenticating',
+    enum: ['customer', 'organization'],
+    example: 'customer',
+  })
+  @IsOptional()
+  @IsIn(['customer', 'organization'], {
+    message: 'portal must be either "customer" or "organization"',
+  })
+  portal?: 'customer' | 'organization';
 }

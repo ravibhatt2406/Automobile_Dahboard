@@ -4,12 +4,16 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { PrismaService } from '@/database/prisma.service';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { AuditService } from '../audit/audit.service';
 import { BranchesService } from '../branches/branches.service';
+import { AuthService } from '../auth/auth.service';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
 import { ROLE_RANKS } from '@/common/constants/permissions.constant';
 import { resolveUserScope } from '@/common/utils/scope.util';
 
@@ -19,6 +23,8 @@ export class EmployeesService {
     private prisma: PrismaService,
     private auditService: AuditService,
     private branchesService: BranchesService,
+    @Inject(forwardRef(() => AuthService))
+    private authService: AuthService,
   ) {}
 
   async create(dto: CreateEmployeeDto, userOrId: any, actorRoles?: string[]) {
@@ -107,26 +113,32 @@ export class EmployeesService {
       throw new BadRequestException(`Cannot assign employee to inactive branch '${targetBranch.name}'`);
     }
 
+    const normalizedEmail = dto.email.toLowerCase().trim();
+    const normalizedPhone = dto.phone ? dto.phone.trim() : undefined;
+
     const existingUser = await this.prisma.user.findFirst({
-      where: { OR: [{ email: dto.email }, dto.phone ? { phone: dto.phone } : {}] },
+      where: { OR: [{ email: normalizedEmail }, normalizedPhone ? { phone: normalizedPhone } : {}] },
     });
 
     if (existingUser) {
       throw new ConflictException(`User with email/phone '${dto.email}' already exists`);
     }
 
-    return await this.prisma.$transaction(async (tx) => {
+    const createdResult = await this.prisma.$transaction(async (tx) => {
       const branchId = targetBranch.id;
 
       if (dto.roleName === 'BRANCH_MANAGER') {
         await this.branchesService.validateMaxBranchManagersTransaction(tx, branchId);
       }
 
-      const passwordHash = await bcrypt.hash(dto.password, 10);
+      const passwordHash = dto.password
+        ? await bcrypt.hash(dto.password, 10)
+        : `_unactivated_emp_${crypto.randomUUID()}`;
+
       const newUser = await tx.user.create({
         data: {
-          email: dto.email,
-          phone: dto.phone,
+          email: normalizedEmail,
+          phone: normalizedPhone || null,
           passwordHash,
           accountType: 'EMPLOYEE',
           status: 'PENDING',
@@ -260,6 +272,31 @@ export class EmployeesService {
         status: employee.status,
       };
     });
+
+    try {
+      await this.authService.sendEmployeeActivationInvitation(createdResult.employeeId, creatorUserId);
+    } catch (err) {
+      // Non-blocking if notification fails; employee is created
+    }
+
+    return createdResult;
+  }
+
+  async resendInvitation(id: string, user: any) {
+    const employee = await this.prisma.employee.findUnique({
+      where: { id },
+      include: { user: true, branch: true },
+    });
+
+    if (!employee) {
+      throw new NotFoundException(`Employee '${id}' not found`);
+    }
+
+    if (employee.status === 'INACTIVE' || employee.status === 'TERMINATED') {
+      throw new BadRequestException('Cannot send invitation to an inactive or terminated employee');
+    }
+
+    return await this.authService.sendEmployeeActivationInvitation(employee.id, user?.id);
   }
 
   async assignRole(id: string, roleName: string, user: any) {

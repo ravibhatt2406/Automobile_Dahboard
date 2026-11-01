@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import * as path from 'path';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { validateEnv } from './config/env.config';
@@ -59,6 +60,11 @@ import { AnnouncementsModule } from './modules/announcements/announcements.modul
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: [
+        path.resolve(process.cwd(), 'backend/.env'),
+        path.resolve(__dirname, '../../.env'),
+        path.resolve(process.cwd(), '.env'),
+      ],
       validate: validateEnv,
     }),
     DatabaseModule,

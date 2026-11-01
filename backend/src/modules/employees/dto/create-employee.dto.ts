@@ -12,10 +12,10 @@ export class CreateEmployeeDto {
   @IsOptional()
   phone?: string;
 
-  @ApiProperty({ example: 'Password123!' })
+  @ApiProperty({ example: 'Password123!', required: false })
   @IsString()
-  @MinLength(6)
-  password: string;
+  @IsOptional()
+  password?: string;
 
   @ApiProperty({ example: 'John' })
   @IsString()

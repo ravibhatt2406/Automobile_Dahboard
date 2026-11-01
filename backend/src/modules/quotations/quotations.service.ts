@@ -93,7 +93,7 @@ export class QuotationsService {
       }
     }
 
-    // Scope check on branch for creator
+    // Scope check on branch and customer for creator
     if (user && !isCustomer) {
       const roles: string[] = user.roles || [];
       const isSuperAdmin = user.accountType === 'SUPER_ADMIN' || roles.includes('SUPER_ADMIN');
@@ -110,6 +110,19 @@ export class QuotationsService {
           // Branch level
           if (allowedBranchId && branch.id !== allowedBranchId && branch.code !== allowedBranchId) {
             throw new ForbiddenException('Multi-tenant scope violation: Cannot create quotation in another branch');
+          }
+        }
+
+        // Scope check on customer
+        if (customer.preferredBranchId) {
+          const custBranch = await this.prisma.branch.findUnique({ where: { id: customer.preferredBranchId } });
+          if (custBranch) {
+            if (isFranchiseLevel && custBranch.franchiseId !== allowedFranchiseId) {
+              throw new ForbiddenException('Multi-tenant scope violation: Customer belongs to another franchise');
+            }
+            if (!isFranchiseLevel && custBranch.id !== allowedBranchId && custBranch.code !== allowedBranchId && custBranch.franchiseId !== branch.franchiseId) {
+              throw new ForbiddenException('Multi-tenant scope violation: Customer belongs to another branch/franchise');
+            }
           }
         }
       }
@@ -183,12 +196,57 @@ export class QuotationsService {
         validityDate,
         status,
         notes: dto.notes,
+        items: {
+          create: [
+            {
+              itemType: 'VEHICLE_BASE',
+              description: `${variant.name} (${quantity} unit${quantity > 1 ? 's' : ''})`,
+              unitPrice: unitBasePrice,
+              quantity,
+              totalPrice: baseTotal,
+            },
+            ...(accessories > 0
+              ? [
+                  {
+                    itemType: 'ACCESSORIES',
+                    description: 'Commercial Fleet Vehicle Accessories',
+                    unitPrice: accessories,
+                    quantity: 1,
+                    totalPrice: accessories,
+                  },
+                ]
+              : []),
+            ...(insurance > 0
+              ? [
+                  {
+                    itemType: 'INSURANCE',
+                    description: 'Comprehensive Commercial Transit & Fleet Insurance',
+                    unitPrice: insurance,
+                    quantity: 1,
+                    totalPrice: insurance,
+                  },
+                ]
+              : []),
+            ...(registration > 0
+              ? [
+                  {
+                    itemType: 'REGISTRATION',
+                    description: 'RTO Registration & Road Tax Certification',
+                    unitPrice: registration,
+                    quantity: 1,
+                    totalPrice: registration,
+                  },
+                ]
+              : []),
+          ],
+        },
       },
       include: {
         customer: true,
         variant: { include: { model: { include: { manufacturer: true } } } },
         branch: true,
         salesperson: true,
+        items: true,
       },
     });
 

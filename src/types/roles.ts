@@ -8,7 +8,8 @@ export type UserRole =
   | 'SALES_EMPLOYEE'
   | 'SERVICE_ADVISOR'
   | 'MECHANIC'
-  | 'CUSTOMER';
+  | 'CUSTOMER'
+  | 'UNASSIGNED';
 
 export interface RolePermissions {
   canViewAllFranchises: boolean;
@@ -42,6 +43,7 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   SERVICE_ADVISOR: 'Service Advisor',
   MECHANIC: 'Service Technician / Mechanic',
   CUSTOMER: 'Commercial Fleet Customer',
+  UNASSIGNED: 'Restricted / Unassigned',
 };
 
 export const ROLE_RANKS: Record<UserRole, number> = {
@@ -55,6 +57,7 @@ export const ROLE_RANKS: Record<UserRole, number> = {
   SERVICE_ADVISOR: 8,
   MECHANIC: 9,
   CUSTOMER: 99,
+  UNASSIGNED: 999,
 };
 
 export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
@@ -249,6 +252,26 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canViewLeads: false,
     canManageLeads: false,
     canViewInventory: true,
+    canManageInventory: false,
+    canViewSales: false,
+    canManageSales: false,
+    canViewServiceJobs: false,
+    canManageServiceJobs: false,
+    canViewFinance: false,
+    canViewReports: false,
+    canManageSettings: false,
+  },
+  UNASSIGNED: {
+    canViewAllFranchises: false,
+    canManageFranchises: false,
+    canViewBranches: false,
+    canManageBranches: false,
+    canViewEmployees: false,
+    canManageEmployees: false,
+    canViewAllCustomers: false,
+    canViewLeads: false,
+    canManageLeads: false,
+    canViewInventory: false,
     canManageInventory: false,
     canViewSales: false,
     canManageSales: false,

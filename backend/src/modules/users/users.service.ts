@@ -50,27 +50,6 @@ export class UsersService {
       customerProfile = await this.prisma.customer.findFirst({
         where: { userId: user.id },
       });
-
-      if (!customerProfile && user.email && user.phone) {
-        const cleanDigits = user.phone.replace(/\D/g, '').slice(-10);
-        const candidates = await this.prisma.customer.findMany({
-          where: {
-            email: { equals: user.email.trim(), mode: 'insensitive' },
-            userId: null,
-          },
-        });
-        const matched = candidates.filter((c) => {
-          const cDigits = (c.phone || '').replace(/\D/g, '').slice(-10);
-          return cleanDigits.length >= 7 && cDigits === cleanDigits;
-        });
-
-        if (matched.length === 1 && matched[0].status !== 'INACTIVE') {
-          customerProfile = await this.prisma.customer.update({
-            where: { id: matched[0].id },
-            data: { userId: user.id },
-          }).catch(() => null);
-        }
-      }
     }
 
     return {
@@ -139,35 +118,42 @@ export class UsersService {
     if (!identifier) return null;
     const clean = identifier.trim();
     const targetEmail = clean.toLowerCase();
+    const isEmail = clean.includes('@');
 
-    // Extract numerical digits for phone format normalization
-    const digits = clean.replace(/\D/g, '');
-    const phoneVariants = new Set<string>([clean]);
+    let orConditions: any[] = [];
 
-    if (digits.length >= 7) {
-      phoneVariants.add(digits);
-      phoneVariants.add(`+${digits}`);
+    if (isEmail) {
+      orConditions = [
+        { email: { equals: targetEmail, mode: 'insensitive' } },
+        { customerProfile: { email: { equals: targetEmail, mode: 'insensitive' } } },
+      ];
+    } else {
+      // Extract numerical digits for phone format normalization
+      const digits = clean.replace(/\D/g, '');
+      const phoneVariants = new Set<string>([clean]);
 
-      const last10 = digits.length >= 10 ? digits.slice(-10) : digits;
-      phoneVariants.add(last10);
-      phoneVariants.add(`+91${last10}`);
-      phoneVariants.add(`0${last10}`);
+      if (digits.length >= 7) {
+        phoneVariants.add(digits);
+        phoneVariants.add(`+${digits}`);
 
-      if (last10.length === 10) {
-        const formattedWithSpace = `${last10.slice(0, 5)} ${last10.slice(5)}`;
-        phoneVariants.add(formattedWithSpace);
-        phoneVariants.add(`+91 ${formattedWithSpace}`);
+        const last10 = digits.length >= 10 ? digits.slice(-10) : digits;
+        phoneVariants.add(last10);
+        phoneVariants.add(`+91${last10}`);
+        phoneVariants.add(`0${last10}`);
+
+        if (last10.length === 10) {
+          const formattedWithSpace = `${last10.slice(0, 5)} ${last10.slice(5)}`;
+          phoneVariants.add(formattedWithSpace);
+          phoneVariants.add(`+91 ${formattedWithSpace}`);
+        }
       }
+
+      const phoneList = Array.from(phoneVariants);
+      orConditions = [
+        { phone: { in: phoneList } },
+        { customerProfile: { phone: { in: phoneList } } },
+      ];
     }
-
-    const phoneList = Array.from(phoneVariants);
-
-    const orConditions: any[] = [
-      { email: targetEmail },
-      { customerProfile: { email: targetEmail } },
-      { phone: { in: phoneList } },
-      { customerProfile: { phone: { in: phoneList } } },
-    ];
 
     let user = await this.prisma.user.findFirst({
       where: {
@@ -184,26 +170,13 @@ export class UsersService {
       },
     });
 
-    // If user is a customer but customerProfile is not linked, attempt safe linkage
+    // If user is a customer and customerProfile is linked by verified userId
     if (user && !user.customerProfile && user.accountType === 'CUSTOMER') {
-      const existingCustomer = await this.prisma.customer.findFirst({
-        where: {
-          OR: [
-            { userId: user.id },
-            ...(user.email ? [{ email: user.email }] : []),
-            ...(user.phone ? [{ phone: { in: phoneList } }] : []),
-          ],
-        },
+      const linkedCustomer = await this.prisma.customer.findFirst({
+        where: { userId: user.id },
       });
-
-      if (existingCustomer) {
-        if (!existingCustomer.userId) {
-          await this.prisma.customer.update({
-            where: { id: existingCustomer.id },
-            data: { userId: user.id },
-          }).catch(() => {});
-        }
-        (user as any).customerProfile = existingCustomer;
+      if (linkedCustomer) {
+        (user as any).customerProfile = linkedCustomer;
       }
     }
 
